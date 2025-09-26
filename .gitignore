@@ -1,5 +1,6 @@
 # Ignore all data files
 data/*
+notebooks/data/*
 !data/.gitkeep   # keep empty folder tracked (optional)
 
 # macOS system files
