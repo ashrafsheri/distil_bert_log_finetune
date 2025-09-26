@@ -1,0 +1,111 @@
+# Fine-tuning configuration for OpenStack log anomaly modeling
+base_checkpoint_dir: artifacts/logbert-mlm-hdfs
+seed: 1337
+
+sequence:
+  max_length: 256
+  mlm_probability: 0.15
+  padding: longest
+
+training:
+  epochs: 3
+  patience: 2
+  min_delta: 5.0e-4
+  train_batch_size_per_device: 8
+  eval_batch_size_per_device: 16
+  grad_accumulation_steps: 16
+  effective_global_batch_size: 256
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+
+optimizer:
+  type: adamw
+  lr: 1.0e-5
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  warmup_steps: 500
+  scheduler: cosine
+
+precision:
+  mixed_precision: fp16
+  gradient_checkpointing_override: true
+
+accelerate:
+  config_path: configs/accelerate_config.yaml
+  num_processes: 2
+  gradient_accumulation_steps: 16
+  find_unused_parameters: false
+  mixed_precision: fp16
+  ddp_timeout: 7200
+  zero_stage2_toggle: false
+
+replay:
+  enabled: true
+  ratio: 0.1
+  source_parquet: artifacts/datasets/hdfs_train.parquet
+  sampling: random
+
+peft:
+  lora_enabled: false
+  target_modules: ["q_lin","v_lin","out_proj"]
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  bias: none
+
+checkpointing:
+  output_dir: artifacts/logbert-mlm-os
+  save_steps: 1000
+  keep_last_n: 3
+  save_on_epoch_end: true
+  metric: eval_loss
+  greater_is_better: false
+
+logging:
+  log_steps: 100
+  eval_steps: 500
+  throughput_ema_beta: 0.9
+  log_gpu_memory: true
+
+metrics:
+  required:
+    f1: 0.85
+    roc_auc: 0.90
+    pr_auc: 0.80
+  compute: ["f1","roc_auc","pr_auc","accuracy","precision","recall"]
+  curve_points: 200
+
+export:
+  output_dir: artifacts/exported_models
+  torchscript_filename: logbert_openstack.ts
+  onnx_filename: logbert_openstack.onnx
+  opset: 17
+  verify_dummy_batch_size: 8
+
+memory:
+  target_vram_gb_per_gpu: 24
+  cleanup_every_n_steps: 250
+  free_cuda_after_checkpoint: true
+
+artifacts:
+  tokenizer_dir: artifacts/tokenizer
+  metrics_dir: artifacts/metrics/openstack
+  eval_dir: artifacts/eval
+  run_config_path: artifacts/logbert-mlm-os/run_config.json
+
+# Optional DeepSpeed ZeRO-2. Enable by setting accelerate.zero_stage2_toggle to true.
+deepspeed_zero2_template: |
+  {
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto",
+    "zero_optimization": {
+      "stage": 2,
+      "overlap_comm": true,
+      "reduce_scatter": true,
+      "contiguous_gradients": true
+    },
+    "bf16": {"enabled": false},
+    "fp16": {"enabled": true}
+  }

@@ -1,0 +1,115 @@
+raw_paths:
+  hdfs: data/hdfs/raw
+  openstack: data/openstack/raw
+artifacts_dir: artifacts
+tokens:
+  special:
+  - <IP>
+  - <USER>
+  - <PORT>
+  - <CMD>
+  - <ID>
+  - <NUM>
+  - <PATH>
+  - <NUM_1e3>
+  - <NUM_1e6>
+normalizer:
+  rules:
+  - name: ipv4
+    pattern: (?i)\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b
+    replace: <IP>
+  - name: ipv6
+    pattern: (?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|(?:::[0-9a-f]{1,4}){1,7}\b
+    replace: <IP>
+  - name: email
+    pattern: (?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}
+    replace: <USER>
+  - name: username
+    pattern: (?i)\buser[_-]?[a-z0-9]+\b
+    replace: <USER>
+  - name: uuid
+    pattern: \b[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}\b
+    replace: <ID>
+  - name: sha_like
+    pattern: \b[a-f0-9]{40,64}\b
+    replace: <ID>
+  - name: md5
+    pattern: \b[a-f0-9]{32}\b
+    replace: <ID>
+  - name: hex_token
+    pattern: \b0x[a-f0-9]{8,}\b
+    replace: <ID>
+  - name: port
+    pattern: '(?<=[: ])(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3})(?=\b)'
+    replace: <PORT>
+  - name: command
+    pattern: \b(?:sudo|systemctl|service|kubectl|docker|podman)\b
+    replace: <CMD>
+  - name: int_bucket_1e6
+    pattern: \b\d{7,}\b
+    replace: <NUM_1e6>
+  - name: int_bucket_1e3
+    pattern: \b\d{4,6}\b
+    replace: <NUM_1e3>
+  - name: int_generic
+    pattern: \b\d+\b
+    replace: <NUM>
+  - name: path_uuid_segment
+    pattern: /[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}(?=/|$)
+    replace: /{uuid}
+  - name: path_numeric_segment
+    pattern: /\d+(?=/|$)
+    replace: /{id}
+  - name: path_slug_segment
+    pattern: /[A-Za-z0-9_.-]+(?=\.[A-Za-z0-9_.-]+$)
+    replace: /{path}
+drain3:
+  depth: 4
+  st: 0.4
+  max_children: 100
+  extra_delimiters:
+  - '='
+  - ':'
+  - ','
+  - ;
+  snapshot_interval_minutes: 15
+  persistence_path: artifacts/drain3/state.jsonl
+  template_transition_ngram: 3
+  transition_output: artifacts/drain3/template_transitions.parquet
+splits:
+  method: time
+  train: 0.8
+  val: 0.1
+  test: 0.1
+  min_samples_per_split: 1000
+datasets:
+  hdfs:
+    urls:
+    - https://zenodo.org/records/3227177/files/HDFS_1.tar.gz?download=1
+    - https://github.com/logpai/loghub/raw/master/HDFS/HDFS_1.tar.gz
+    sha256: 6ca6c5bc2671c66afecee9369a2fdac606bf33997a2494ac66aa411fe3e95169
+    archive_name: HDFS_1.tar.gz
+    log_file: HDFS.log
+  openstack:
+    abnormal_urls:
+    - https://zenodo.org/records/1144100/files/openstack_abnormal.log?download=1
+    - https://github.com/logpai/loghub/raw/master/OpenStack/openstack_abnormal.log
+    normal_urls:
+    - https://huggingface.co/datasets/logpai/loghub/resolve/main/OpenStack/openstack_normal.log?download=1
+    - https://huggingface.co/datasets/logpai/loghub/resolve/main/OpenStack.tar.gz?download=1
+    - https://raw.githubusercontent.com/logpai/loghub/main/OpenStack/openstack_normal.log
+    - https://raw.githubusercontent.com/logpai/loghub2/master/OpenStack/openstack_normal.log
+    sha256:
+      abnormal: null
+      normal: 81bc1a64d6788efe1a6f30b9a9958b14eb53c1bfe6a2d166bf23c821d8b77b71
+tokenizer:
+  base_model: distilbert-base-uncased
+  max_length: 512
+  add_prefix_space: false
+  lowercase: true
+preprocessing:
+  chunk_size: 10000
+  max_workers: 4
+  cache_dir: artifacts/cache
+  parquet_dir: artifacts/datasets
+  dataset_metadata: artifacts/metadata/datasets.json
