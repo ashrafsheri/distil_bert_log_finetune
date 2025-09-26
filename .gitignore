@@ -1,0 +1,39 @@
+# Ignore all data files
+data/*
+!data/.gitkeep   # keep empty folder tracked (optional)
+
+# macOS system files
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs and artifacts
+*.log
+artifacts/*
+
+# VSCode settings
+.vscode/
+
+# Other editors
+.idea/
+
+# Build/packaging
+*.egg-info/
+dist/
+build/
+
+# Ignore temporary files
+*.tmp
+*.swp
+*~
