@@ -1,40 +1,64 @@
-# Ignore all data files
-data/*
-notebooks/data/*
-!data/.gitkeep   # keep empty folder tracked (optional)
-
-# macOS system files
-.DS_Store
-
-# Python cache
+# --------------------
+# Python
+# --------------------
 __pycache__/
 *.py[cod]
+*.pyo
 *.so
+*.egg-info/
+.eggs/
+*.egg
+*.log
 
-# Virtual environment
-.venv/
+# Virtual env
+.env
+.venv
 env/
 venv/
 
-# Jupyter Notebook checkpoints
+# Jupyter
 .ipynb_checkpoints/
+.notebooks/
 
-# Logs and artifacts
-*.log
-artifacts/*
+# --------------------
+# Project-specific
+# --------------------
 
-# VSCode settings
-.vscode/
+# Artifacts (large model/data dirs)
+artifacts/
+notebooks/artifacts/
+notebooks/data/
 
-# Other editors
-.idea/
+# Checkpoints & exported models
+*.ckpt
+*.pt
+*.bin
+*.onnx
+*.ts
 
-# Build/packaging
-*.egg-info/
-dist/
-build/
+# Training logs and metrics
+logs/
+metrics/
+runs/
+wandb/
+mlruns/
 
-# Ignore temporary files
+# Cache files
+.cache/
+*.pkl
+*.parquet
+*.h5
+*.npz
+*.npy
+
+# Temp/cleanup
 *.tmp
 *.swp
-*~
+*.bak
+.DS_Store
+
+# --------------------
+# IDEs / Editors
+# --------------------
+.vscode/
+.idea/
