@@ -1,0 +1,19 @@
+{
+  "total_logs": 150000,
+  "normal_logs": 127584,
+  "attack_logs": 22416,
+  "attack_ratio": 0.15,
+  "attack_types": {
+    "sqli": 3395,
+    "xss": 2671,
+    "path_traversal": 2252,
+    "cmd_injection": 1737,
+    "brute_force": 4408,
+    "scanner": 3491,
+    "ddos": 2267,
+    "data_exfil": 1086,
+    "api_abuse": 1109
+  },
+  "log_file": "apache_training_150k.log",
+  "generated_at": "2025-10-12T19:43:41.609458"
+}

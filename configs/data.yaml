@@ -1,18 +1,4 @@
-raw_paths:
-  hdfs: data/hdfs/raw
-  openstack: data/openstack/raw
-artifacts_dir: artifacts
-tokens:
-  special:
-  - <IP>
-  - <USER>
-  - <PORT>
-  - <CMD>
-  - <ID>
-  - <NUM>
-  - <PATH>
-  - <NUM_1e3>
-  - <NUM_1e6>
+artifacts_root: artifacts
 normalizer:
   rules:
   - name: ipv4
@@ -73,9 +59,7 @@ drain3:
   - ','
   - ;
   snapshot_interval_minutes: 15
-  persistence_path: artifacts/drain3/state.jsonl
   template_transition_ngram: 3
-  transition_output: artifacts/drain3/template_transitions.parquet
 splits:
   method: time
   train: 0.8
@@ -84,32 +68,28 @@ splits:
   min_samples_per_split: 1000
 datasets:
   hdfs:
-    urls:
-    - https://zenodo.org/records/3227177/files/HDFS_1.tar.gz?download=1
-    - https://github.com/logpai/loghub/raw/master/HDFS/HDFS_1.tar.gz
-    sha256: 6ca6c5bc2671c66afecee9369a2fdac606bf33997a2494ac66aa411fe3e95169
-    archive_name: HDFS_1.tar.gz
-    log_file: HDFS.log
+    type: hdfs
+    inputs:
+      logs:
+        - data/hdfs/raw/HDFS.log
+    output_dir: artifacts/hdfs_pretrain
+    session_prefix: hdfs
   openstack:
-    abnormal_urls:
-    - https://zenodo.org/records/1144100/files/openstack_abnormal.log?download=1
-    - https://github.com/logpai/loghub/raw/master/OpenStack/openstack_abnormal.log
-    normal_urls:
-    - https://huggingface.co/datasets/logpai/loghub/resolve/main/OpenStack/openstack_normal.log?download=1
-    - https://huggingface.co/datasets/logpai/loghub/resolve/main/OpenStack.tar.gz?download=1
-    - https://raw.githubusercontent.com/logpai/loghub/main/OpenStack/openstack_normal.log
-    - https://raw.githubusercontent.com/logpai/loghub2/master/OpenStack/openstack_normal.log
-    sha256:
-      abnormal: null
-      normal: 81bc1a64d6788efe1a6f30b9a9958b14eb53c1bfe6a2d166bf23c821d8b77b71
-tokenizer:
-  base_model: distilbert-base-uncased
-  max_length: 512
-  add_prefix_space: false
-  lowercase: true
-preprocessing:
-  chunk_size: 10000
-  max_workers: 4
-  cache_dir: artifacts/cache
-  parquet_dir: artifacts/datasets
-  dataset_metadata: artifacts/metadata/datasets.json
+    type: openstack
+    inputs:
+      logs:
+        - data/openstack/raw/openstack_normal1.log
+        - data/openstack/raw/openstack_normal2.log
+        - data/openstack/raw/openstack_abnormal.log
+    labels:
+      request_ids: data/openstack/raw/anomaly_labels.txt
+    output_dir: artifacts/openstack_finetune
+    session_prefix: openstack
+  nodejs_example:
+    type: nodejs
+    enabled: false
+    inputs:
+      logs:
+        - data/nodejs/raw/service.log
+    output_dir: artifacts/nodejs_service
+    session_prefix: node
