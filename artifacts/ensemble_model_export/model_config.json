@@ -1,0 +1,13 @@
+{
+  "optimal_threshold": 12.218810558319092,
+  "vocab_size": 6,
+  "window_size": 20,
+  "stride": 10,
+  "ensemble_weights": {
+    "rule_based": 1.0,
+    "isolation_forest": 0.6,
+    "transformer": 0.7
+  },
+  "export_date": "2025-10-13T22:10:03.764166",
+  "source_notebook": "07_hybrid_attack_detection.ipynb"
+}
