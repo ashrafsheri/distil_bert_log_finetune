@@ -1,0 +1,196 @@
+### LogGuard Backend API Tests
+### Using REST Client Extension for VS Code
+
+@baseUrl = http://localhost:8000
+@apiUrl = {{baseUrl}}/api/v1
+
+### Health Check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### Root Endpoint
+GET {{baseUrl}}/
+Content-Type: application/json
+
+### Fetch Logs - Frontend API
+GET {{apiUrl}}/fetch
+Content-Type: application/json
+
+### Send Logs from Agent - Empty Array
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[]
+
+### Send Logs from Agent - Single Log
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/users",
+    "status_code": 200,
+    "infected": false
+  }
+]
+
+### Send Logs from Agent - Multiple Logs
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/users",
+    "status_code": 200,
+    "infected": false
+  },
+  {
+    "ip_address": "10.0.0.15",
+    "api_accessed": "/api/v1/admin/settings",
+    "status_code": 403,
+    "infected": true
+  },
+  {
+    "ip_address": "172.16.0.25",
+    "api_accessed": "/api/v1/data/export",
+    "status_code": 500,
+    "infected": false
+  }
+]
+
+### Send Logs from Agent - Malformed Data (Should Return Error)
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "invalid-ip",
+    "api_accessed": "/api/v1/test",
+    "status_code": "not-a-number",
+    "infected": "not-a-boolean"
+  }
+]
+
+### Test WebSocket Connection (Note: This won't work in REST Client, use browser console)
+### WebSocket URL: ws://localhost:8000/ws/test-client-123
+
+### Test CORS Headers
+OPTIONS {{apiUrl}}/fetch
+Origin: http://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type
+
+### Test Invalid Endpoint (Should Return 404)
+GET {{apiUrl}}/invalid-endpoint
+Content-Type: application/json
+
+### Test Method Not Allowed (Should Return 405)
+PUT {{apiUrl}}/fetch
+Content-Type: application/json
+
+### Test Large Payload (Stress Test)
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.{{$randomInt}}",
+    "api_accessed": "/api/v1/endpoint{{$randomInt}}",
+    "status_code": {{$randomInt 200 500}},
+    "infected": {{$randomBoolean}}
+  }
+]
+
+### Test Different Content Types
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/x-www-form-urlencoded
+
+logs=[{"ip_address":"192.168.1.1","api_accessed":"/test","status_code":200,"infected":false}]
+
+### Test Missing Content-Type Header
+POST {{apiUrl}}/agent/sendLogs
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/test",
+    "status_code": 200,
+    "infected": false
+  }
+]
+
+### Test Empty Request Body
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+### Test Very Large Log Entry
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/very/long/endpoint/path/that/might/cause/issues",
+    "status_code": 200,
+    "infected": false
+  }
+]
+
+### Test Special Characters in Log Data
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/test?param=value&special=chars%20here",
+    "status_code": 200,
+    "infected": false
+  }
+]
+
+### Test Edge Cases - Status Codes
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/test",
+    "status_code": 100,
+    "infected": false
+  },
+  {
+    "ip_address": "192.168.1.100",
+    "api_accessed": "/api/v1/test",
+    "status_code": 999,
+    "infected": false
+  }
+]
+
+### Test Edge Cases - IP Addresses
+POST {{apiUrl}}/agent/sendLogs
+Content-Type: application/json
+
+[
+  {
+    "ip_address": "0.0.0.0",
+    "api_accessed": "/api/v1/test",
+    "status_code": 200,
+    "infected": false
+  },
+  {
+    "ip_address": "255.255.255.255",
+    "api_accessed": "/api/v1/test",
+    "status_code": 200,
+    "infected": false
+  },
+  {
+    "ip_address": "::1",
+    "api_accessed": "/api/v1/test",
+    "status_code": 200,
+    "infected": false
+  }
+]
