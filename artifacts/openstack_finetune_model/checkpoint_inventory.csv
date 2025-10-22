@@ -1,0 +1,3 @@
+filename,size_mb,path
+best.pt,55.53748893737793,/home/tpi/distil_shahreyar/artifacts/openstack_finetune_model/best.pt
+last.pt,55.53748893737793,/home/tpi/distil_shahreyar/artifacts/openstack_finetune_model/last.pt

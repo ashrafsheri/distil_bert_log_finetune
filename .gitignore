@@ -25,9 +25,9 @@ venv/
 # --------------------
 
 # Artifacts (large model/data dirs)
-artifacts/
-notebooks/artifacts/
-notebooks/data/
+# artifacts/
+# notebooks/artifacts/
+# notebooks/data/
 
 # Checkpoints & exported models
 *.ckpt
