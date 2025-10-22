@@ -1,0 +1,33 @@
+filepath: realtime_anomaly_detection/docker-compose.yml
+version: '3.8'
+
+services:
+  anomaly-detection-api:
+    build:
+      context: ..
+      dockerfile: realtime_anomaly_detection/Dockerfile
+    container_name: anomaly-detection-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Model artifacts (read-only)
+      - ../artifacts/ensemble_model_export:/app/artifacts/ensemble_model_export:ro
+      # Logs directory for the API to store logs
+      - ./logs:/app/logs
+    environment:
+      - MODEL_DIR=/app/artifacts/ensemble_model_export
+      - WARMUP_LOGS=50000  # Adaptive learning warmup
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - anomaly-detection-network
+
+networks:
+  anomaly-detection-network:
+    driver: bridge
