@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 
 from app.api.v1.router import api_router
-from app.controllers.websocket_controller import websocket_router
+from app.controllers.websocket_controller import router as websocket_router
 
 # Create FastAPI application
 app = FastAPI(

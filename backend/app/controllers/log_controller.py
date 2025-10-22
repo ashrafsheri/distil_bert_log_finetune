@@ -47,34 +47,46 @@ async def fetch_logs(log_service: LogService = Depends(get_log_service)):
 
 @router.post("/agent/sendLogs")
 async def receive_agent_logs(
-    logs: List[dict],
+    request_data: dict,
     log_service: LogService = Depends(get_log_service)
 ):
     """
-    Receive logs from LogShipper Agent
+    Receive raw logs from LogShipper Agent
     
     Args:
-        logs: List of log entries from the agent
+        request_data: Dictionary containing batch_id and raw_logs
         
     Returns:
-        dict: Confirmation message
+        dict: Confirmation message with batch acknowledgment
     """
     try:
-        # TODO: Implement log processing logic
+        # Extract data from request
+        batch_id = request_data.get("batch_id")
+        raw_logs = request_data.get("raw_logs", [])
+        
+        if not batch_id:
+            raise HTTPException(status_code=400, detail="Missing batch_id")
+        
+        if not raw_logs:
+            raise HTTPException(status_code=400, detail="No raw logs provided")
+        
+        # TODO: Implement raw log processing logic
         # This should:
-        # 1. Validate incoming logs
-        # 2. Process and store logs
-        # 3. Trigger real-time updates via WebSocket
-        # 4. Perform anomaly detection
+        # 1. Parse raw Apache logs
+        # 2. Validate log entries
+        # 3. Store processed logs
+        # 4. Trigger real-time updates via WebSocket
+        # 5. Perform anomaly detection
         
         # Placeholder implementation
-        processed_count = 0  # Replace with actual processing
+        processed_count = len(raw_logs)  # Replace with actual processing
         
         return {
-            "message": "Logs received successfully",
+            "message": "Raw logs received successfully",
+            "batch_id": batch_id,
             "processed_count": processed_count,
             "status": "success"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process logs: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process raw logs: {str(e)}")
