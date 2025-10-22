@@ -62,3 +62,13 @@ mlruns/
 # --------------------
 .vscode/
 .idea/
+# Large data files
+data/hdfs/raw/*.tar.gz
+data/hdfs/raw/*.zip
+data/apache_logs/*.log
+artifacts/ensemble_model_export/transformer_model.pt
+artifacts/ensemble_model_export/template_vocab.json
+artifacts/apache_attack_finetune_model/
+artifacts/openstack_model/
+*.pt
+*.pkl
