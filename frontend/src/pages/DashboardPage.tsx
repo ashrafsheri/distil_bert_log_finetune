@@ -1,23 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLogs } from '../hooks/useLogs';
 
 const DashboardPage: React.FC = () => {
-  const { logs, isLoading, error } = useLogs();
+  const { logs, isLoading, error, totalCount, infectedCount, safeCount } = useLogs();
+  const [statsUpdated, setStatsUpdated] = useState(false);
+  const [previousLogCount, setPreviousLogCount] = useState(0);
+
+  // Track when counts change to show update indicator
+  useEffect(() => {
+    if (totalCount !== previousLogCount) {
+      setStatsUpdated(true);
+      setPreviousLogCount(totalCount);
+      
+      // Reset the update indicator after 2 seconds
+      const timer = setTimeout(() => {
+        setStatsUpdated(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [totalCount, previousLogCount]);
 
   return (
     <div className="min-h-screen bg-vt-dark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-vt-light mb-2">Log Dashboard</h1>
-          <p className="text-vt-muted">Real-time monitoring of system logs and threat detection</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-vt-light mb-2">Log Dashboard</h1>
+              <p className="text-vt-muted">Real-time monitoring of system logs and threat detection</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                statsUpdated ? 'bg-vt-success animate-pulse' : 'bg-vt-muted'
+              }`}></div>
+              <span className="text-sm text-vt-muted">
+                {statsUpdated ? 'Live Updates' : 'Connected'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-vt-blue/50 backdrop-blur-sm rounded-xl p-6 border border-vt-muted/20">
+          <div className={`bg-vt-blue/50 backdrop-blur-sm rounded-xl p-6 border transition-all duration-500 ${
+            statsUpdated ? 'border-vt-primary/50 shadow-lg shadow-vt-primary/20' : 'border-vt-muted/20'
+          }`}>
             <div className="flex items-center">
               <div className="w-12 h-12 bg-vt-primary/20 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-vt-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,12 +57,16 @@ const DashboardPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-vt-muted">Total Logs</p>
-                <p className="text-2xl font-bold text-vt-light">{logs.length}</p>
+                <p className={`text-2xl font-bold text-vt-light transition-all duration-300 ${
+                  statsUpdated ? 'scale-110 text-vt-primary' : ''
+                }`}>{totalCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-vt-blue/50 backdrop-blur-sm rounded-xl p-6 border border-vt-muted/20">
+          <div className={`bg-vt-blue/50 backdrop-blur-sm rounded-xl p-6 border transition-all duration-500 ${
+            statsUpdated ? 'border-vt-error/50 shadow-lg shadow-vt-error/20' : 'border-vt-muted/20'
+          }`}>
             <div className="flex items-center">
               <div className="w-12 h-12 bg-vt-error/20 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-vt-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,8 +75,10 @@ const DashboardPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-vt-muted">Threats Detected</p>
-                <p className="text-2xl font-bold text-vt-error">
-                  {logs.filter(log => log.infected).length}
+                <p className={`text-2xl font-bold text-vt-error transition-all duration-300 ${
+                  statsUpdated ? 'scale-110' : ''
+                }`}>
+                  {infectedCount}
                 </p>
               </div>
             </div>
@@ -57,7 +94,7 @@ const DashboardPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-vt-muted">Safe Logs</p>
                 <p className="text-2xl font-bold text-vt-success">
-                  {logs.filter(log => !log.infected).length}
+                  {safeCount}
                 </p>
               </div>
             </div>
@@ -73,7 +110,7 @@ const DashboardPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-vt-muted">Threat Rate</p>
                 <p className="text-2xl font-bold text-vt-warning">
-                  {logs.length > 0 ? ((logs.filter(log => log.infected).length / logs.length) * 100).toFixed(1) : 0}%
+                  {totalCount > 0 ? ((infectedCount / totalCount) * 100).toFixed(1) : 0}%
                 </p>
               </div>
             </div>

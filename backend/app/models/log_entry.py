@@ -11,18 +11,18 @@ from datetime import datetime
 class LogEntry(BaseModel):
     """Log entry model matching frontend interface"""
     timestamp: str
-    ip_address: str
-    api_accessed: str
-    status_code: int
+    ipAddress: str
+    apiAccessed: str
+    statusCode: int
     infected: bool
 
     class Config:
         json_schema_extra = {
             "example": {
                 "timestamp": "12:04 7 Oct 2025",
-                "ip_address": "201.12.12.24",
-                "api_accessed": "/api/v1/fetch",
-                "status_code": 200,
+                "ipAddress": "201.12.12.24",
+                "apiAccessed": "/api/v1/fetch",
+                "statusCode": 200,
                 "infected": False
             }
         }
@@ -30,9 +30,9 @@ class LogEntry(BaseModel):
 
 class LogEntryCreate(BaseModel):
     """Model for creating new log entries"""
-    ip_address: str
-    api_accessed: str
-    status_code: int
+    ipAddress: str
+    apiAccessed: str
+    statusCode: int
     infected: bool = False
 
 

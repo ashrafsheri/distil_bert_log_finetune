@@ -8,6 +8,12 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 
+# Elasticsearch
+elasticsearch==8.11.0
+
+# HTTP client for anomaly detection
+httpx==0.25.2
+
 # Database (optional - add as needed)
 # sqlalchemy==2.0.23
 # alembic==1.13.1

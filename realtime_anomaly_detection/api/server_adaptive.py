@@ -78,9 +78,9 @@ async def startup_event():
     """Initialize adaptive detector on startup"""
     global detector
     
-    # Path to exported models
-    repo_root = Path(__file__).parent.parent.parent
-    model_dir = repo_root / 'artifacts/ensemble_model_export'
+    # Path to exported models - use environment variable if set, otherwise use relative path
+    import os
+    model_dir = Path(os.getenv('MODEL_DIR', '/app/artifacts/ensemble_model_export'))
     
     if not model_dir.exists():
         print(f"❌ Model directory not found: {model_dir}")

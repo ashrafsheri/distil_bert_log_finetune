@@ -20,30 +20,36 @@ class ConnectionManager:
     
     async def connect(self, websocket: WebSocket, client_id: str):
         """Accept WebSocket connection and store it"""
+        print(f"🔌 New WebSocket connection from client: {client_id}")
         await websocket.accept()
         self.active_connections[client_id] = websocket
+        print(f"✅ WebSocket connected. Total active connections: {len(self.active_connections)}")
     
     def disconnect(self, client_id: str):
         """Remove WebSocket connection"""
         if client_id in self.active_connections:
             del self.active_connections[client_id]
+            print(f"🔌 WebSocket disconnected: {client_id}. Total active connections: {len(self.active_connections)}")
     
     async def send_personal_message(self, message: dict, client_id: str):
         """Send message to specific client"""
         if client_id in self.active_connections:
             try:
+                print(f"📤 Sending message to {client_id}: {message}")
                 await self.active_connections[client_id].send_text(json.dumps(message))
             except Exception as e:
-                print(f"Error sending message to {client_id}: {e}")
+                print(f"❌ Error sending message to {client_id}: {e}")
                 self.disconnect(client_id)
     
     async def broadcast(self, message: dict):
         """Broadcast message to all connected clients"""
+        print(f"📢 Broadcasting message to {len(self.active_connections)} clients: {message}")
         for client_id, connection in self.active_connections.items():
             try:
+                print(f"📤 Broadcasting to {client_id}")
                 await connection.send_text(json.dumps(message))
             except Exception as e:
-                print(f"Error broadcasting to {client_id}: {e}")
+                print(f"❌ Error broadcasting to {client_id}: {e}")
                 self.disconnect(client_id)
 
 # Global connection manager
@@ -101,6 +107,7 @@ async def send_log_update(log_entry: dict, client_id: str = None):
         "data": log_entry,
         "timestamp": datetime.now().isoformat()
     }
+    print(f"📤 WebSocket message structure: {message}")
     
     if client_id:
         await manager.send_personal_message(message, client_id)

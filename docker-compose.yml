@@ -1,31 +1,85 @@
 services:
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - logguard-network
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+      - anomaly-detection
+      - elasticsearch
+
   # Frontend Service
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
     networks:
       - logguard-network
     restart: unless-stopped
-    depends_on:
-      - backend
 
   # Backend Service
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - logguard-network
     restart: unless-stopped
+
+  # Anomaly Detection Service
+  anomaly-detection:
+    build:
+      context: ./realtime_anomaly_detection
+      dockerfile: Dockerfile
+    expose:
+      - "8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_DIR=/app/artifacts/ensemble_model_export
+      - LOG_LEVEL=INFO
+      - ANOMALY_SERVICE_PORT=8001
+    volumes:
+      - ./artifacts/ensemble_model_export:/app/artifacts/ensemble_model_export:ro
+      - ./realtime_anomaly_detection/logs:/app/logs
+    networks:
+      - logguard-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # Elasticsearch Service
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    expose:
+      - "9200"
+      - "9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - logguard-network
+    restart: unless-stopped
+
+volumes:
+  elasticsearch_data:
 
 networks:
   logguard-network:
