@@ -1,5 +1,0 @@
-filename,size_mb,path
-best.pt,55.30225944519043,/home/tpi/distil_shahreyar/artifacts/hdfs_transformer/best.pt
-checkpoint_1M.pt,55.31900978088379,/home/tpi/distil_shahreyar/artifacts/hdfs_transformer/checkpoint_1M.pt
-checkpoint_2M.pt,55.31900978088379,/home/tpi/distil_shahreyar/artifacts/hdfs_transformer/checkpoint_2M.pt
-last.pt,55.30219841003418,/home/tpi/distil_shahreyar/artifacts/hdfs_transformer/last.pt
