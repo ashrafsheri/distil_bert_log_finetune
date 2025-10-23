@@ -136,6 +136,7 @@ async def receive_fluent_bit_logs(
             log_lines=raw_logs,
             session_id=f"fluent_bit_{batch_id}"
         )
+        print(anomaly_results)
         
         if anomaly_results is None:
             logger.warning("Anomaly detection failed, processing logs without detection")
