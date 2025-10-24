@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ThresholdSettings from '../components/ThresholdSettings';
+import ModelLegend from '../components/ModelLegend';
 import { useLogs } from '../hooks/useLogs';
 
 const DashboardPage: React.FC = () => {
@@ -33,13 +35,16 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-3xl font-bold text-vt-light mb-2">Log Dashboard</h1>
               <p className="text-vt-muted">Real-time monitoring of system logs and threat detection</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                statsUpdated ? 'bg-vt-success animate-pulse' : 'bg-vt-muted'
-              }`}></div>
-              <span className="text-sm text-vt-muted">
-                {statsUpdated ? 'Live Updates' : 'Connected'}
-              </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  statsUpdated ? 'bg-vt-success animate-pulse' : 'bg-vt-muted'
+                }`}></div>
+                <span className="text-sm text-vt-muted">
+                  {statsUpdated ? 'Live Updates' : 'Connected'}
+                </span>
+              </div>
+              <ThresholdSettings />
             </div>
           </div>
         </div>
@@ -115,6 +120,11 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Model Legend */}
+        <div className="mb-8">
+          <ModelLegend />
         </div>
 
         {/* Logs Table */}

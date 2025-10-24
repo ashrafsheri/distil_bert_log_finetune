@@ -167,7 +167,12 @@ async def receive_fluent_bit_logs(
                     "status_code": parsed_log["status_code"],
                     "infected": anomaly_result.get("is_anomaly", False),
                     "anomaly_score": anomaly_result.get("anomaly_score", 0.0),
-                    "anomaly_details": anomaly_result.get("details", {}),
+                    "anomaly_details": {
+                        "rule_based": anomaly_result.get("details", {}).get("rule_based", {}),
+                        "isolation_forest": anomaly_result.get("details", {}).get("isolation_forest", {}),
+                        "transformer": anomaly_result.get("details", {}).get("transformer", {}),
+                        "ensemble": anomaly_result.get("details", {}).get("ensemble", {})
+                    },
                     "raw_log": raw_log,
                     "method": parsed_log.get("method", ""),
                     "protocol": parsed_log.get("protocol", ""),
@@ -197,7 +202,9 @@ async def receive_fluent_bit_logs(
                         "ipAddress": log.get("ip_address", ""),
                         "apiAccessed": log.get("api_accessed", ""),
                         "statusCode": log.get("status_code", 0),
-                        "infected": log.get("infected", False)
+                        "infected": log.get("infected", False),
+                        "anomaly_score": log.get("anomaly_score", 0.0),
+                        "anomaly_details": log.get("anomaly_details", {})
                     }
                     await send_log_update(websocket_log)
                     logger.debug(f"Sent log to WebSocket: {websocket_log}")
@@ -242,12 +249,27 @@ async def get_anomaly_logs(
         # Convert to LogEntry format for frontend
         logs = []
         for log_data in result["logs"]:
+            # Extract anomaly details if available
+            anomaly_details = None
+            anomaly_score = log_data.get("anomaly_score", 0.0)
+            
+            if log_data.get("anomaly_details"):
+                from app.models.log_entry import AnomalyDetails
+                anomaly_details = AnomalyDetails(
+                    rule_based=log_data["anomaly_details"].get("rule_based"),
+                    isolation_forest=log_data["anomaly_details"].get("isolation_forest"),
+                    transformer=log_data["anomaly_details"].get("transformer"),
+                    ensemble=log_data["anomaly_details"].get("ensemble")
+                )
+            
             log_entry = LogEntry(
                 timestamp=log_data.get("timestamp", ""),
                 ipAddress=log_data.get("ip_address", ""),
                 apiAccessed=log_data.get("api_accessed", ""),
                 statusCode=log_data.get("status_code", 0),
-                infected=log_data.get("infected", False)
+                infected=log_data.get("infected", False),
+                anomaly_score=anomaly_score,
+                anomaly_details=anomaly_details
             )
             logs.append(log_entry)
         
