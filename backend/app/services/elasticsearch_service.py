@@ -118,7 +118,8 @@ class ElasticsearchService:
                 "query": {"match_all": {}},
                 "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
-                "size": limit
+                "size": limit,
+                "track_total_hits": True  # Ensure accurate total count beyond 10,000
             }
             
             response = self.client.search(
@@ -131,9 +132,18 @@ class ElasticsearchService:
                 log_data = hit["_source"]
                 logs.append(log_data)
             
+            # Get accurate total count
+            total_info = response["hits"]["total"]
+            if isinstance(total_info, dict):
+                total = total_info["value"]
+                logger.info(f"Total logs from ES: {total} (relation: {total_info.get('relation', 'eq')})")
+            else:
+                total = total_info
+                logger.info(f"Total logs from ES: {total}")
+            
             return {
                 "logs": logs,
-                "total": response["hits"]["total"]["value"],
+                "total": total,
                 "offset": offset,
                 "limit": limit
             }
@@ -155,7 +165,8 @@ class ElasticsearchService:
                 },
                 "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
-                "size": limit
+                "size": limit,
+                "track_total_hits": True  # Ensure accurate total count beyond 10,000
             }
             
             response = self.client.search(
@@ -187,7 +198,8 @@ class ElasticsearchService:
                     "term": {"ip_address": ip_address}
                 },
                 "sort": [{"created_at": {"order": "desc"}}],
-                "size": limit
+                "size": limit,
+                "track_total_hits": True  # Ensure accurate total count beyond 10,000
             }
             
             response = self.client.search(
