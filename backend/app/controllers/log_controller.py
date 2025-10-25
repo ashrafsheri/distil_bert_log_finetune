@@ -68,13 +68,13 @@ async def fetch_logs(
         # Generate WebSocket ID for real-time updates
         websocket_id = str(uuid.uuid4())
         
-        # Get statistics
+        # Get statistics - use accurate counts from count API
         stats = await elasticsearch_service.get_stats()
         
         return LogEntryResponse(
             logs=logs,
             websocket_id=websocket_id,
-            total_count=result["total"],
+            total_count=stats["total_logs"],  # Use accurate count from stats
             infected_count=stats["anomaly_logs"]
         )
         
