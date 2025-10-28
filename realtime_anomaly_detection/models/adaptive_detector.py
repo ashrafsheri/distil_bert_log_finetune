@@ -128,19 +128,27 @@ class AdaptiveEnsembleDetector:
         print(f"✓ Ready to collect templates for transformer training")
         print(f"✓ Base models loaded successfully!\n")
     
-    def parse_apache_log(self, log_line: str) -> Optional[Dict]:
-        """Parse Apache access log line (Common or Combined format)"""
-        # Try Combined Log Format first (with Referer and User-Agent)
-        COMBINED_PATTERN = re.compile(
-            r'^(?P<ip>\S+) \S+ \S+ '
-            r'\[(?P<timestamp>[^\]]+)\] '
-            r'"(?P<method>\S+) (?P<path>\S+) (?P<protocol>\S+)" '
-            r'(?P<status>\d+) '
-            r'(?P<size>\S+)'
-            r'(?: "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)")?'  # Optional fields
+    def parse_nginx_log(self, log_line: str) -> Optional[Dict]:
+        """Parse nginx access log line (Combined Log Format)
+        
+        Default nginx combined format:
+        $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+        
+        Example:
+        192.168.1.1 - - [27/Oct/2025:10:00:00 +0000] "GET /api/users HTTP/1.1" 200 1234 "-" "Mozilla/5.0"
+        """
+        # nginx Combined Log Format (same as Apache Combined)
+        NGINX_PATTERN = re.compile(
+            r'^(?P<ip>\S+) '                          # IP address
+            r'\S+ \S+ '                                # remote user fields (usually - -)
+            r'\[(?P<timestamp>[^\]]+)\] '             # [timestamp]
+            r'"(?P<method>\S+) (?P<path>\S+)(?: (?P<protocol>\S+))?" '  # "METHOD path PROTOCOL"
+            r'(?P<status>\d+) '                       # status code
+            r'(?P<size>\S+)'                          # bytes sent
+            r'(?: "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)")?'  # optional referer and user agent
         )
         
-        match = COMBINED_PATTERN.match(log_line.strip())
+        match = NGINX_PATTERN.match(log_line.strip())
         if not match:
             return None
         
@@ -151,25 +159,38 @@ class AdaptiveEnsembleDetector:
             'path': d.get('path', '/'),
             'protocol': d.get('protocol', 'HTTP/1.1'),
             'status': int(d.get('status', 200)),
+            'referer': d.get('referer', '-'),
+            'user_agent': d.get('user_agent', '-'),
             'raw_line': log_line.strip()
         }
     
     def extract_features(self, log_data: Dict, session_stats: Dict) -> np.ndarray:
         """Extract features for Isolation Forest"""
-        features = [
-            session_stats.get('request_count', 1),
-            session_stats.get('error_rate', 0.0),
-            session_stats.get('unique_paths', 1),
-            session_stats.get('error_count', 0),
-            1 if log_data['method'] == 'GET' else 0,
-            1 if log_data['method'] == 'POST' else 0,
-            1 if log_data['status'] >= 400 else 0,
-            len(log_data['path']),
-            log_data['path'].count('/'),
-            1 if '?' in log_data['path'] else 0,
-            0  # time_hour placeholder
-        ]
-        return np.array(features).reshape(1, -1)
+        try:
+            features = [
+                session_stats.get('request_count', 1),
+                session_stats.get('error_rate', 0.0),
+                session_stats.get('unique_paths', 1),
+                session_stats.get('error_count', 0),
+                1 if log_data.get('method', 'GET') == 'GET' else 0,
+                1 if log_data.get('method', 'GET') == 'POST' else 0,
+                1 if log_data.get('status', 200) >= 400 else 0,
+                len(log_data.get('path', '/')),
+                log_data.get('path', '/').count('/'),
+                1 if '?' in log_data.get('path', '/') else 0,
+                0  # time_hour placeholder
+            ]
+            
+            # Validate all features are numeric
+            features = [float(f) for f in features]
+            
+            return np.array(features, dtype=np.float64).reshape(1, -1)
+        except Exception as e:
+            print(f"⚠️  Feature extraction error: {e}")
+            print(f"   Log data: {log_data}")
+            print(f"   Session stats: {session_stats}")
+            # Return default safe features
+            return np.array([1, 0.0, 1, 0, 1, 0, 0, 1, 1, 0, 0], dtype=np.float64).reshape(1, -1)
     
     def get_template_id(self, log_data: Dict) -> int:
         """Convert log to template ID and collect for training"""
@@ -283,8 +304,8 @@ class AdaptiveEnsembleDetector:
             # Calculate adaptive threshold (95th percentile of training scores)
             self.transformer_threshold = self._calculate_adaptive_threshold(padded_sequences)
             
-            # Save trained model
-            save_path = self.model_dir / 'online_transformer.pt'
+            # Save trained model to writable directory (/app/logs instead of read-only /app/artifacts)
+            save_path = Path('/app/logs') / 'online_transformer.pt'
             torch.save({
                 'model_state_dict': self.transformer.state_dict(),
                 'vocab_size': vocab_size,
@@ -342,11 +363,18 @@ class AdaptiveEnsembleDetector:
         return float(threshold)
     
     def calculate_transformer_score(self, sequence: List[int]) -> float:
-        """Calculate anomaly score from transformer (NLL)"""
-        if not self.transformer_ready or len(sequence) < 2:
+        """
+        Calculate anomaly score from transformer (NLL)
+        
+        Improved to handle single-log sequences by:
+        1. For sequences with 1 template: Score based on start-of-sequence probability
+        2. For sequences with 2+ templates: Use standard sequence NLL
+        """
+        if not self.transformer_ready or len(sequence) < 1:
             return 0.0
         
-        # Pad or truncate
+        # Prepare sequence (pad or truncate)
+        original_length = len(sequence)
         if len(sequence) < self.window_size:
             sequence = sequence + [self.pad_id] * (self.window_size - len(sequence))
         else:
@@ -359,25 +387,47 @@ class AdaptiveEnsembleDetector:
         ).to(self.device)
         
         with torch.no_grad():
-            logits = self.transformer(input_ids, attention_mask)
-            
-            input_shifted = input_ids[:, 1:]
-            logits_shifted = logits[:, :-1, :]
-            log_probs = F.log_softmax(logits_shifted, dim=-1)
-            nll_per_pos = -log_probs.gather(2, input_shifted.unsqueeze(-1)).squeeze(-1)
-            mask = attention_mask[:, 1:] == 1
-            valid_nll = nll_per_pos[mask]
-            
-            if valid_nll.numel() > 0:
-                return valid_nll.mean().item()
-            return 0.0
+            try:
+                logits = self.transformer(input_ids, attention_mask)
+                
+                # For single-template sequences, use the probability of that template at position 0
+                if original_length == 1:
+                    # Get probability distribution at position 0
+                    probs = F.softmax(logits[0, 0, :], dim=-1)
+                    template_id = sequence[0]
+                    
+                    # NLL for this template appearing at start
+                    template_prob = probs[template_id].item()
+                    if template_prob > 0:
+                        nll = -math.log(template_prob)
+                        return float(nll)
+                    return self.transformer_threshold * 0.5  # Default moderate score
+                
+                # For multi-template sequences, use standard next-token prediction NLL
+                input_shifted = input_ids[:, 1:]
+                logits_shifted = logits[:, :-1, :]
+                log_probs = F.log_softmax(logits_shifted, dim=-1)
+                nll_per_pos = -log_probs.gather(2, input_shifted.unsqueeze(-1)).squeeze(-1)
+                
+                # Only average over valid (non-padding) positions
+                mask = attention_mask[:, 1:] == 1
+                valid_nll = nll_per_pos[mask]
+                
+                if valid_nll.numel() > 0:
+                    return valid_nll.mean().item()
+                return 0.0
+                
+            except Exception as e:
+                print(f"⚠️  Transformer scoring error: {e}")
+                print(f"   Sequence length: {original_length}, Padded: {len(sequence)}")
+                return 0.0
     
     def detect(self, log_line: str, session_id: Optional[str] = None) -> Dict:
         """
         Detect anomalies with adaptive learning
         """
-        # Parse log
-        log_data = self.parse_apache_log(log_line)
+        # Parse nginx log
+        log_data = self.parse_nginx_log(log_line)
         if not log_data:
             return {
                 'is_anomaly': False,
@@ -419,25 +469,37 @@ class AdaptiveEnsembleDetector:
         
         # Phase 1: Warmup - collect training data
         if self.logs_processed <= self.warmup_logs:
-            if len(session['templates']) >= self.window_size:
+            # Collect sequences more aggressively (min 5 instead of full window_size)
+            if len(session['templates']) >= 5:
                 self.training_templates.append(list(session['templates']))
             
             # Collect features for Isolation Forest training
             features = self.extract_features(log_data, session_stats)
             self.iso_training_features.append(features.flatten())  # Flatten to 1D
+        
+        # Train models when we cross the warmup threshold (not just exactly at 50k)
+        # This handles batch processing where logs_processed might skip 50,000
+        if (self.logs_processed >= self.warmup_logs and 
+            not self.iso_forest_ready and 
+            not self.training_in_progress and
+            len(self.iso_training_features) >= self.warmup_logs):
             
-            # Train Isolation Forest at warmup threshold
-            if self.logs_processed == self.warmup_logs and not self.training_in_progress:
-                # Train Isolation Forest on collected features
-                print(f"\n🔄 Training Isolation Forest on {len(self.iso_training_features):,} samples...")
-                self.iso_forest.fit(np.vstack(self.iso_training_features))  # Stack into 2D array
-                self.iso_forest_ready = True
-                print(f"✅ Isolation Forest trained successfully!\n")
-                
-                # Start transformer training in background thread
+            # Train Isolation Forest on collected features
+            print(f"\n🔄 Training Isolation Forest on {len(self.iso_training_features):,} samples...")
+            self.iso_forest.fit(np.vstack(self.iso_training_features))  # Stack into 2D array
+            self.iso_forest_ready = True
+            print(f"✅ Isolation Forest trained successfully!\n")
+            
+            # Start transformer training in background thread
+            if len(self.training_templates) > 0:
+                print(f"🚀 Starting Transformer training with {len(self.training_templates):,} sequences...")
                 training_thread = threading.Thread(target=self.train_transformer_background)
                 training_thread.daemon = True
                 training_thread.start()
+            else:
+                print(f"⚠️  WARNING: No training sequences collected!")
+                print(f"    Collected templates: {len(self.template_to_id):,}")
+                print(f"    Training will not start. Check session window collection.")
         
         # 1. Rule-based detection (always active)
         rule_result = self.rule_detector.detect(
@@ -448,13 +510,34 @@ class AdaptiveEnsembleDetector:
         
         # 2. Isolation Forest (only after warmup)
         if self.iso_forest_ready:
-            features = self.extract_features(log_data, session_stats)
-            iso_pred = self.iso_forest.predict(features)[0]
-            iso_score = -self.iso_forest.score_samples(features)[0]
-            iso_result = {
-                'is_anomaly': int(iso_pred == -1),
-                'score': float(iso_score)
-            }
+            try:
+                features = self.extract_features(log_data, session_stats)
+                
+                # Validate feature shape
+                if features.shape != (1, 11):
+                    print(f"⚠️  Warning: Invalid feature shape {features.shape}, expected (1, 11)")
+                    iso_result = {
+                        'is_anomaly': 0,
+                        'score': 0.0,
+                        'status': 'feature_error'
+                    }
+                else:
+                    iso_pred = self.iso_forest.predict(features)[0]
+                    iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_result = {
+                        'is_anomaly': int(iso_pred == -1),
+                        'score': float(iso_score)
+                    }
+            except Exception as e:
+                print(f"⚠️  Isolation Forest error: {e}")
+                print(f"   Features: {features if 'features' in locals() else 'not extracted'}")
+                print(f"   Session stats: {session_stats}")
+                print(f"   Log data: {log_data}")
+                iso_result = {
+                    'is_anomaly': 0,
+                    'score': 0.0,
+                    'status': f'error: {str(e)[:50]}'
+                }
         else:
             # During warmup, don't use Isolation Forest for detection
             iso_result = {
@@ -465,10 +548,14 @@ class AdaptiveEnsembleDetector:
         
         # 3. Transformer (only if trained)
         if self.transformer_ready:
+            sequence_length = len(session['templates'])
             transformer_score = self.calculate_transformer_score(list(session['templates']))
             transformer_result = {
                 'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
-                'score': float(transformer_score)
+                'score': float(transformer_score),
+                'threshold': float(self.transformer_threshold),
+                'sequence_length': sequence_length,
+                'context': 'single_log' if sequence_length == 1 else f'{sequence_length}_logs'
             }
         else:
             transformer_result = {
