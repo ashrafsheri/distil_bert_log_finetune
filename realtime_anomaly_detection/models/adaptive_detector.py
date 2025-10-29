@@ -10,6 +10,7 @@ import re
 import pickle
 import threading
 from pathlib import Path
+import os
 from typing import Dict, List, Tuple, Optional
 from collections import deque, Counter
 from urllib.parse import unquote
@@ -71,16 +72,29 @@ class AdaptiveEnsembleDetector:
         self.session_windows = {}
         
         # Training data collection
-        self.training_templates = []  # Collected templates for training
-        self.template_to_id = {}      # Template vocabulary
+        self.training_templates = []  # Collected template windows for transformer training
+        self.template_to_id = {}      # Template vocabulary (log template -> integer id)
         self.template_counts = Counter()
+        self.unseen_templates = Counter()  # Track templates seen after vocabulary freeze
+        self.persistence_dir = self._resolve_persistence_dir()
         self.logs_processed = 0
         self.transformer_ready = False
         self.training_in_progress = False
+        self.transformer_threshold = 0.0
+        self.vocab_frozen = False
+        self.pad_id: Optional[int] = None
+        self.unknown_id: Optional[int] = None
+        self.vocab_size: Optional[int] = None
         
         # Isolation Forest online learning
-        self.iso_training_features = []  # Collect features during warmup
+        self.iso_feature_store_max = max(200_000, warmup_logs * 2)
+        self.iso_training_features = deque(maxlen=self.iso_feature_store_max)
         self.iso_forest_ready = False
+        self.iso_retrain_interval = max(10_000, warmup_logs // 5)
+        self.iso_min_samples = max(1_000, warmup_logs // 10)
+        self.iso_last_retrain_log = 0
+        self.iso_retraining = False
+        self.iso_score_threshold: Optional[float] = None
         
         # Load initial models (rule-based + isolation forest)
         self._load_base_models()
@@ -94,17 +108,16 @@ class AdaptiveEnsembleDetector:
         print(f"{'='*70}\n")
     
     def _load_base_models(self):
-        """Load rule-based detector and isolation forest"""
+        """Load rule-based detector, isolation forest, and check for saved transformer"""
         print("Loading base models (Rule-based + Isolation Forest)...")
         
-        # 1. Initialize Isolation Forest (will be trained during warmup)
+        # 1. Initialize Isolation Forest
         self.iso_forest = IsolationForest(
             n_estimators=100,
             contamination=0.1,
             random_state=42,
             warm_start=True
         )
-        print(f"✓ Initialized Isolation Forest (will train on first {self.warmup_logs:,} logs)")
         
         # 2. Initialize Rule-based detector
         self.rule_detector = RuleBasedDetector()
@@ -120,13 +133,294 @@ class AdaptiveEnsembleDetector:
         else:
             initial_vocab = vocab_data
         
-        # Start with empty vocabulary (will build from incoming logs)
+        # Seed vocabulary (templates will be added dynamically during warmup)
         self.template_to_id = {}
         self.id_to_template = []
-        self.pad_id = 0  # Will be set after training
+        if initial_vocab:
+            self._initialize_template_vocab(initial_vocab)
         
-        print(f"✓ Ready to collect templates for transformer training")
-        print(f"✓ Base models loaded successfully!\n")
+        # 4. Try to load previously trained transformer and isolation forest
+        saved_state_path = self.persistence_dir / 'detector_state.pkl'
+        saved_transformer_path = self.persistence_dir / 'online_transformer.pt'
+        
+        # Case 1: Both state and transformer exist
+        if saved_state_path.exists() and saved_transformer_path.exists():
+            print(f"\n🔄 Found saved models, loading...")
+            try:
+                # Load detector state (vocabulary, counters, etc.)
+                with open(saved_state_path, 'rb') as f:
+                    state = pickle.load(f)
+                
+                self.logs_processed = state.get('logs_processed', 0)
+                self.template_to_id = state.get('template_to_id', {})
+                self.id_to_template = state.get('id_to_template', [])
+                self.template_counts = Counter(state.get('template_counts', {}))
+                self.iso_forest_ready = state.get('iso_forest_ready', False)
+                self.vocab_frozen = state.get('vocab_frozen', False)
+                self.pad_id = state.get('pad_id')
+                self.unknown_id = state.get('unknown_id')
+                self.vocab_size = state.get('vocab_size')
+                self.unseen_templates = Counter(state.get('unseen_templates', {}))
+                self.iso_score_threshold = state.get('iso_score_threshold')
+                self.iso_last_retrain_log = state.get('iso_last_retrain_log', 0)
+                
+                # Load isolation forest if it was trained
+                if self.iso_forest_ready and 'iso_forest_model' in state:
+                    self.iso_forest = state['iso_forest_model']
+                    print(f"✓ Loaded trained Isolation Forest")
+                
+                # Load transformer
+                checkpoint = torch.load(saved_transformer_path, map_location=self.device)
+                self._load_transformer_from_checkpoint(checkpoint)
+                
+                print(f"✓ Loaded trained Transformer")
+                print(f"  Logs processed: {self.logs_processed:,}")
+                print(f"  Vocabulary size: {len(self.id_to_template):,}")
+                print(f"  Transformer threshold: {self.transformer_threshold:.4f}")
+                print(f"  Isolation Forest ready: {self.iso_forest_ready}")
+                print(f"\n✅ Resumed from saved state - FULL ENSEMBLE ACTIVE!\n")
+                
+            except Exception as e:
+                print(f"⚠️  Failed to load saved models: {e}")
+                print(f"   Starting fresh...\n")
+                self.logs_processed = 0
+                self.template_to_id = {}
+                self.id_to_template = []
+                self.transformer_ready = False
+                self.iso_forest_ready = False
+        
+        # Case 2: Only transformer exists (old save, no state file)
+        elif saved_transformer_path.exists():
+            print(f"\n🔄 Found saved transformer, loading (partial restore)...")
+            try:
+                checkpoint = torch.load(saved_transformer_path, map_location=self.device)
+                
+                # Restore from checkpoint metadata
+                self.template_to_id = checkpoint.get('template_to_id', {})
+                self.id_to_template = checkpoint.get('id_to_template', [])
+                self.logs_processed = checkpoint.get('logs_trained_on', self.warmup_logs)
+                
+                self._load_transformer_from_checkpoint(checkpoint)
+                
+                # Mark isolation forest as ready (assume it was trained)
+                self.iso_forest_ready = True
+                
+                print(f"✓ Loaded trained Transformer (partial restore)")
+                print(f"  Vocabulary size: {len(self.id_to_template):,}")
+                print(f"  Transformer threshold: {self.transformer_threshold:.4f}")
+                print(f"  ⚠️  Isolation Forest state not saved - will retrain if needed")
+                print(f"\n✅ Transformer active! (Isolation Forest using defaults)\n")
+                
+            except Exception as e:
+                print(f"⚠️  Failed to load transformer: {e}")
+                print(f"   Starting fresh...\n")
+                self.logs_processed = 0
+                self.template_to_id = {}
+                self.id_to_template = []
+                self.transformer_ready = False
+                self.iso_forest_ready = False
+        
+        # Case 3: No saved models
+        else:
+            print(f"✓ No saved models found, starting fresh")
+            print(f"✓ Will train Isolation Forest on first {self.warmup_logs:,} logs")
+            print(f"✓ Ready to collect templates for transformer training\n")
+    
+    def _initialize_template_vocab(self, initial_vocab):
+        """Seed template vocabulary from exported metadata"""
+        if not initial_vocab:
+            return
+        
+        if isinstance(initial_vocab, dict):
+            # Sort by assigned id to preserve ordering if provided
+            items = sorted(initial_vocab.items(), key=lambda item: item[1])
+            for template, _ in items:
+                self._add_template_to_vocab(template)
+        elif isinstance(initial_vocab, list):
+            for template in initial_vocab:
+                self._add_template_to_vocab(template)
+    
+    def _add_template_to_vocab(self, template: str) -> int:
+        """Add template string to vocabulary if unseen"""
+        if not template:
+            return self.template_to_id.get(template, -1)
+        
+        if template in self.template_to_id:
+            return self.template_to_id[template]
+        
+        template_id = len(self.id_to_template)
+        self.template_to_id[template] = template_id
+        self.id_to_template.append(template)
+        return template_id
+    
+    def _load_transformer_from_checkpoint(self, checkpoint: Dict):
+        """Restore transformer weights and metadata from checkpoint"""
+        saved_state = checkpoint['model_state_dict']
+        original_vocab_size = checkpoint['vocab_size']
+        pad_id = checkpoint.get('pad_id', original_vocab_size - 1)
+        unknown_id = checkpoint.get('unknown_id')
+        threshold = checkpoint['threshold']
+        
+        # Expand vocabulary for unknown token if legacy checkpoint
+        if unknown_id is None:
+            vocab_size = original_vocab_size + 1
+            unknown_id = vocab_size - 1
+            print("ℹ️  Expanding transformer vocabulary with <UNK> token (legacy checkpoint)")
+        else:
+            vocab_size = original_vocab_size
+        
+        self.vocab_size = vocab_size
+        self.pad_id = pad_id
+        self.unknown_id = unknown_id
+        self.vocab_frozen = True
+        self.transformer_threshold = threshold
+        self.transformer_ready = True
+        
+        # Instantiate transformer with target vocab size
+        transformer = TemplateTransformer(
+            vocab_size=vocab_size,
+            pad_id=self.pad_id,
+            d_model=256,
+            n_heads=8,
+            n_layers=4,
+            ffn_dim=1024,
+            max_length=self.window_size,
+            dropout=0.1
+        ).to(self.device)
+        
+        current_state = transformer.state_dict()
+        
+        # Copy weights from checkpoint (handles vocab expansion gracefully)
+        for name, tensor in saved_state.items():
+            if name in ('embedding.weight', 'output.weight'):
+                current_state[name][:tensor.size(0)] = tensor
+            elif name == 'output.bias':
+                current_state[name][:tensor.size(0)] = tensor
+            else:
+                current_state[name].copy_(tensor)
+        
+        transformer.load_state_dict(current_state)
+        transformer.eval()
+        
+        self.transformer = transformer
+        
+        # Carry over optional calibration metadata
+        if 'iso_score_threshold' in checkpoint:
+            self.iso_score_threshold = checkpoint['iso_score_threshold']
+
+    def _resolve_persistence_dir(self) -> Path:
+        """
+        Determine writable directory for saving detector state.
+        Prefers ADAPTIVE_STATE_DIR env, then /app/logs, then local ./adaptive_state.
+        """
+        candidates = [
+            os.getenv('ADAPTIVE_STATE_DIR'),
+            '/app/logs',
+            str(Path.cwd() / 'adaptive_state')
+        ]
+        for candidate in candidates:
+            if not candidate:
+                continue
+            path = Path(candidate)
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+                test_file = path / '.write_test'
+                with open(test_file, 'w') as f:
+                    f.write('ok')
+                test_file.unlink(missing_ok=True)
+                return path
+            except Exception:
+                continue
+        # Fallback to current directory
+        fallback = Path.cwd()
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+    def _record_iso_feature(self, features: Optional[np.ndarray]):
+        """Store latest feature vector for Isolation Forest training/retraining"""
+        if features is None:
+            return
+        try:
+            flat = np.asarray(features, dtype=np.float64).reshape(-1)
+        except Exception:
+            return
+        if flat.size == 0:
+            return
+        self.iso_training_features.append(flat)
+    
+    def _maybe_fit_iso_forest(self):
+        """Fit or periodically refit Isolation Forest based on collected features"""
+        if self.iso_retraining:
+            return
+        if len(self.iso_training_features) < self.iso_min_samples:
+            return
+        
+        if not self.iso_forest_ready:
+            if self.logs_processed >= self.warmup_logs:
+                self._fit_iso_forest(initial=True)
+        else:
+            if self.logs_processed - self.iso_last_retrain_log >= self.iso_retrain_interval:
+                self._fit_iso_forest(initial=False)
+    
+    def _fit_iso_forest(self, initial: bool):
+        """Train or retrain the Isolation Forest using accumulated features"""
+        if self.iso_retraining:
+            return
+        
+        feature_matrix = np.vstack(self.iso_training_features)
+        if feature_matrix.shape[0] < self.iso_min_samples:
+            return
+        
+        self.iso_retraining = True
+        phase = "initial" if initial and not self.iso_forest_ready else "incremental"
+        try:
+            print(f"\n🔄 Isolation Forest ({phase}) training on {feature_matrix.shape[0]:,} samples...")
+            self.iso_forest.fit(feature_matrix)
+            self.iso_forest_ready = True
+            self.iso_last_retrain_log = self.logs_processed
+            
+            # Derive anomaly score threshold for calibration (95th percentile)
+            scores = -self.iso_forest.score_samples(feature_matrix)
+            self.iso_score_threshold = float(np.percentile(scores, 95))
+            
+            print("✅ Isolation Forest training complete!")
+            
+            if initial and not self.transformer_ready:
+                self._start_transformer_training()
+            
+            self._save_detector_state()
+        except Exception as exc:
+            print(f"⚠️  Isolation Forest training failed: {exc}")
+        finally:
+            self.iso_retraining = False
+    
+    def _start_transformer_training(self):
+        """Kick off background transformer training if data is ready"""
+        if self.training_in_progress or self.transformer_ready:
+            return
+        
+        if len(self.training_templates) == 0:
+            print("⚠️  WARNING: No training sequences collected!")
+            print(f"    Collected templates: {len(self.template_to_id):,}")
+            print(f"    Training will not start. Check session window collection.")
+            return
+        
+        print(f"🚀 Starting Transformer training with {len(self.training_templates):,} sequences...")
+        training_thread = threading.Thread(target=self.train_transformer_background)
+        training_thread.daemon = True
+        training_thread.start()
+
+    @staticmethod
+    def _normalize_anomaly_score(score: float, threshold: Optional[float], width: float = 0.4) -> float:
+        """Convert raw anomaly score into [0,1] confidence using a sigmoid around threshold"""
+        if threshold is None:
+            threshold = max(score, 1.0)
+        margin = max(abs(threshold) * width, 1e-3)
+        try:
+            confidence = 1.0 / (1.0 + math.exp(-(score - threshold) / margin))
+        except OverflowError:
+            confidence = 1.0 if score > threshold else 0.0
+        return float(confidence)
     
     def parse_nginx_log(self, log_line: str) -> Optional[Dict]:
         """Parse nginx access log line (Combined Log Format)
@@ -197,16 +491,18 @@ class AdaptiveEnsembleDetector:
         message = f"{log_data['method']} {log_data['path']} {log_data['protocol']} {log_data['status']}"
         normalized = self.normalizer.normalize(message)
         
-        # Add to vocabulary if new
-        if normalized not in self.template_to_id:
-            tid = len(self.id_to_template)
-            self.template_to_id[normalized] = tid
-            self.id_to_template.append(normalized)
-        else:
+        if normalized in self.template_to_id:
             tid = self.template_to_id[normalized]
+        else:
+            if self.vocab_frozen and self.unknown_id is not None:
+                tid = self.unknown_id
+                self.unseen_templates[normalized] += 1
+            else:
+                tid = self._add_template_to_vocab(normalized)
         
-        # Track for training
-        self.template_counts[tid] += 1
+        # Track for training statistics (ignore special tokens)
+        if tid not in (self.pad_id, self.unknown_id):
+            self.template_counts[tid] += 1
         
         return tid
     
@@ -226,6 +522,10 @@ class AdaptiveEnsembleDetector:
         """Train transformer model in background thread"""
         if self.training_in_progress:
             return
+        base_vocab_size = len(self.id_to_template)
+        if base_vocab_size == 0:
+            print("⚠️  No templates collected; skipping transformer training.")
+            return
         
         self.training_in_progress = True
         
@@ -238,20 +538,29 @@ class AdaptiveEnsembleDetector:
         print(f"{'='*70}\n")
         
         try:
-            # Prepare training data
-            vocab_size = len(self.id_to_template) + 1  # +1 for PAD
-            self.pad_id = vocab_size - 1
+            # Freeze vocabulary and reserve special tokens
+            self.vocab_frozen = True
+            self.pad_id = base_vocab_size
+            self.unknown_id = base_vocab_size + 1
+            self.vocab_size = self.unknown_id + 1
             
             # Create sequences with padding
             padded_sequences = []
-            for seq in self.training_templates:
-                if len(seq) < self.window_size:
-                    seq = seq + [self.pad_id] * (self.window_size - len(seq))
-                padded_sequences.append(seq)
+            for seq in list(self.training_templates):
+                sanitized = [t if t < self.pad_id else (self.pad_id - 1) for t in seq]
+                if len(sanitized) < self.window_size:
+                    sanitized = sanitized + [self.pad_id] * (self.window_size - len(sanitized))
+                else:
+                    sanitized = sanitized[-self.window_size:]
+                padded_sequences.append(sanitized)
+            
+            if not padded_sequences:
+                print("⚠️  No training sequences available; aborting transformer training.")
+                return
             
             # Initialize transformer
             self.transformer = TemplateTransformer(
-                vocab_size=vocab_size,
+                vocab_size=self.vocab_size,
                 pad_id=self.pad_id,
                 d_model=256,
                 n_heads=8,
@@ -284,7 +593,7 @@ class AdaptiveEnsembleDetector:
                     logits_shifted = logits[:, :-1, :]
                     
                     loss = F.cross_entropy(
-                        logits_shifted.reshape(-1, vocab_size),
+                        logits_shifted.reshape(-1, self.vocab_size),
                         targets.reshape(-1),
                         ignore_index=self.pad_id
                     )
@@ -304,22 +613,29 @@ class AdaptiveEnsembleDetector:
             # Calculate adaptive threshold (95th percentile of training scores)
             self.transformer_threshold = self._calculate_adaptive_threshold(padded_sequences)
             
-            # Save trained model to writable directory (/app/logs instead of read-only /app/artifacts)
-            save_path = Path('/app/logs') / 'online_transformer.pt'
+            # Save trained model to writable directory
+            save_path = self.persistence_dir / 'online_transformer.pt'
+            save_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save({
                 'model_state_dict': self.transformer.state_dict(),
-                'vocab_size': vocab_size,
+                'vocab_size': self.vocab_size,
+                'pad_id': self.pad_id,
+                'unknown_id': self.unknown_id,
                 'template_to_id': self.template_to_id,
                 'id_to_template': self.id_to_template,
                 'threshold': self.transformer_threshold,
-                'logs_trained_on': self.logs_processed
+                'logs_trained_on': self.logs_processed,
+                'iso_score_threshold': self.iso_score_threshold
             }, save_path)
+            
+            # Save detector state (for persistence across restarts)
+            self._save_detector_state()
             
             print(f"\n{'='*70}")
             print(f"✅ TRANSFORMER TRAINING COMPLETE")
             print(f"{'='*70}")
             print(f"  Model saved: {save_path}")
-            print(f"  Vocabulary: {vocab_size:,} templates")
+            print(f"  Vocabulary: {self.vocab_size:,} tokens (templates + specials)")
             print(f"  Threshold: {self.transformer_threshold:.4f}")
             print(f"  Now using FULL ENSEMBLE (Rule + Iso + Transformer)")
             print(f"{'='*70}\n")
@@ -332,6 +648,37 @@ class AdaptiveEnsembleDetector:
             traceback.print_exc()
         finally:
             self.training_in_progress = False
+    
+    def _save_detector_state(self):
+        """Save detector state for persistence across restarts"""
+        try:
+            state_path = self.persistence_dir / 'detector_state.pkl'
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            state = {
+                'logs_processed': self.logs_processed,
+                'template_to_id': self.template_to_id,
+                'id_to_template': self.id_to_template,
+                'template_counts': dict(self.template_counts),
+                'iso_forest_ready': self.iso_forest_ready,
+                'iso_forest_model': self.iso_forest if self.iso_forest_ready else None,
+                'vocab_frozen': self.vocab_frozen,
+                'pad_id': self.pad_id,
+                'unknown_id': self.unknown_id,
+                'vocab_size': self.vocab_size,
+                'unseen_templates': dict(self.unseen_templates),
+                'iso_score_threshold': self.iso_score_threshold,
+                'iso_last_retrain_log': self.iso_last_retrain_log,
+                'saved_at': datetime.now().isoformat()
+            }
+            
+            with open(state_path, 'wb') as f:
+                pickle.dump(state, f)
+            
+            print(f"💾 Detector state saved to {state_path}")
+            
+        except Exception as e:
+            print(f"⚠️  Failed to save detector state: {e}")
     
     def _calculate_adaptive_threshold(self, sequences: List[List[int]]) -> float:
         """Calculate adaptive threshold from training data"""
@@ -369,20 +716,46 @@ class AdaptiveEnsembleDetector:
         Improved to handle single-log sequences by:
         1. For sequences with 1 template: Score based on start-of-sequence probability
         2. For sequences with 2+ templates: Use standard sequence NLL
+        3. Handles unknown templates (IDs beyond training vocabulary)
         """
-        if not self.transformer_ready or len(sequence) < 1:
+        if not self.transformer_ready or len(sequence) < 1 or self.vocab_size is None:
             return 0.0
         
-        # Prepare sequence (pad or truncate)
-        original_length = len(sequence)
-        if len(sequence) < self.window_size:
-            sequence = sequence + [self.pad_id] * (self.window_size - len(sequence))
-        else:
-            sequence = sequence[-self.window_size:]
+        # Replace unknown template IDs (beyond vocab) with dedicated <UNK> token
+        has_unknown = False
+        unknown_count = 0
+        cleaned_sequence = []
+        for tid in sequence:
+            if tid == self.unknown_id:
+                cleaned_sequence.append(self.unknown_id)
+                has_unknown = True
+                unknown_count += 1
+            elif tid is None:
+                cleaned_sequence.append(self.unknown_id)
+                has_unknown = True
+                unknown_count += 1
+            elif tid >= self.vocab_size:
+                cleaned_sequence.append(self.unknown_id)
+                has_unknown = True
+                unknown_count += 1
+            else:
+                cleaned_sequence.append(tid)
         
-        input_ids = torch.tensor([sequence], dtype=torch.long).to(self.device)
+        unknown_penalty = 0.0
+        if has_unknown and self.transformer_threshold:
+            ratio = unknown_count / max(len(cleaned_sequence), 1)
+            unknown_penalty = 0.4 * self.transformer_threshold * ratio
+        
+        # Prepare sequence (pad or truncate)
+        original_length = len(cleaned_sequence)
+        if len(cleaned_sequence) < self.window_size:
+            cleaned_sequence = cleaned_sequence + [self.pad_id] * (self.window_size - len(cleaned_sequence))
+        else:
+            cleaned_sequence = cleaned_sequence[-self.window_size:]
+        
+        input_ids = torch.tensor([cleaned_sequence], dtype=torch.long).to(self.device)
         attention_mask = torch.tensor(
-            [[1 if t != self.pad_id else 0 for t in sequence]], 
+            [[1 if t != self.pad_id else 0 for t in cleaned_sequence]], 
             dtype=torch.long
         ).to(self.device)
         
@@ -394,7 +767,7 @@ class AdaptiveEnsembleDetector:
                 if original_length == 1:
                     # Get probability distribution at position 0
                     probs = F.softmax(logits[0, 0, :], dim=-1)
-                    template_id = sequence[0]
+                    template_id = cleaned_sequence[0]
                     
                     # NLL for this template appearing at start
                     template_prob = probs[template_id].item()
@@ -414,13 +787,15 @@ class AdaptiveEnsembleDetector:
                 valid_nll = nll_per_pos[mask]
                 
                 if valid_nll.numel() > 0:
-                    return valid_nll.mean().item()
-                return 0.0
+                    base_score = valid_nll.mean().item()
+                    return base_score + unknown_penalty
+                return unknown_penalty
                 
             except Exception as e:
                 print(f"⚠️  Transformer scoring error: {e}")
-                print(f"   Sequence length: {original_length}, Padded: {len(sequence)}")
-                return 0.0
+                print(f"   Sequence length: {original_length}, Padded: {len(cleaned_sequence)}")
+                print(f"   Vocab size: {self.vocab_size}, Template IDs: {sequence[:5]}")
+                return self.transformer_threshold + unknown_penalty  # Return threshold score on error (moderate anomaly)
     
     def detect(self, log_line: str, session_id: Optional[str] = None) -> Dict:
         """
@@ -468,38 +843,16 @@ class AdaptiveEnsembleDetector:
         session['templates'].append(template_id)
         
         # Phase 1: Warmup - collect training data
+        features = self.extract_features(log_data, session_stats)
+        self._record_iso_feature(features)
+        
         if self.logs_processed <= self.warmup_logs:
             # Collect sequences more aggressively (min 5 instead of full window_size)
             if len(session['templates']) >= 5:
                 self.training_templates.append(list(session['templates']))
-            
-            # Collect features for Isolation Forest training
-            features = self.extract_features(log_data, session_stats)
-            self.iso_training_features.append(features.flatten())  # Flatten to 1D
         
-        # Train models when we cross the warmup threshold (not just exactly at 50k)
-        # This handles batch processing where logs_processed might skip 50,000
-        if (self.logs_processed >= self.warmup_logs and 
-            not self.iso_forest_ready and 
-            not self.training_in_progress and
-            len(self.iso_training_features) >= self.warmup_logs):
-            
-            # Train Isolation Forest on collected features
-            print(f"\n🔄 Training Isolation Forest on {len(self.iso_training_features):,} samples...")
-            self.iso_forest.fit(np.vstack(self.iso_training_features))  # Stack into 2D array
-            self.iso_forest_ready = True
-            print(f"✅ Isolation Forest trained successfully!\n")
-            
-            # Start transformer training in background thread
-            if len(self.training_templates) > 0:
-                print(f"🚀 Starting Transformer training with {len(self.training_templates):,} sequences...")
-                training_thread = threading.Thread(target=self.train_transformer_background)
-                training_thread.daemon = True
-                training_thread.start()
-            else:
-                print(f"⚠️  WARNING: No training sequences collected!")
-                print(f"    Collected templates: {len(self.template_to_id):,}")
-                print(f"    Training will not start. Check session window collection.")
+        # Evaluate whether Isolation Forest needs (re)training
+        self._maybe_fit_iso_forest()
         
         # 1. Rule-based detection (always active)
         rule_result = self.rule_detector.detect(
@@ -511,85 +864,116 @@ class AdaptiveEnsembleDetector:
         # 2. Isolation Forest (only after warmup)
         if self.iso_forest_ready:
             try:
-                features = self.extract_features(log_data, session_stats)
-                
-                # Validate feature shape
-                if features.shape != (1, 11):
-                    print(f"⚠️  Warning: Invalid feature shape {features.shape}, expected (1, 11)")
+                if features is None or features.shape != (1, 11):
+                    print(f"⚠️  Warning: Invalid feature shape {features.shape if features is not None else 'None'}, expected (1, 11)")
                     iso_result = {
                         'is_anomaly': 0,
                         'score': 0.0,
-                        'status': 'feature_error'
+                        'status': 'feature_error',
+                        'threshold': self.iso_score_threshold,
+                        'confidence': 0.0
                     }
                 else:
                     iso_pred = self.iso_forest.predict(features)[0]
                     iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_confidence = self._normalize_anomaly_score(
+                        iso_score,
+                        self.iso_score_threshold,
+                        width=0.5
+                    )
                     iso_result = {
                         'is_anomaly': int(iso_pred == -1),
-                        'score': float(iso_score)
+                        'score': float(iso_score),
+                        'threshold': self.iso_score_threshold,
+                        'confidence': iso_confidence,
+                        'samples_tracked': len(self.iso_training_features)
                     }
             except Exception as e:
                 print(f"⚠️  Isolation Forest error: {e}")
-                print(f"   Features: {features if 'features' in locals() else 'not extracted'}")
+                print(f"   Features: {features if features is not None else 'not extracted'}")
                 print(f"   Session stats: {session_stats}")
                 print(f"   Log data: {log_data}")
                 iso_result = {
                     'is_anomaly': 0,
                     'score': 0.0,
-                    'status': f'error: {str(e)[:50]}'
+                    'status': f'error: {str(e)[:50]}',
+                    'threshold': self.iso_score_threshold,
+                    'confidence': 0.0
                 }
         else:
             # During warmup, don't use Isolation Forest for detection
             iso_result = {
                 'is_anomaly': 0,
                 'score': 0.0,
-                'status': 'collecting_baseline'
+                'status': 'collecting_baseline',
+                'threshold': self.iso_score_threshold,
+                'confidence': 0.0
             }
         
         # 3. Transformer (only if trained)
         if self.transformer_ready:
             sequence_length = len(session['templates'])
-            transformer_score = self.calculate_transformer_score(list(session['templates']))
+            sequence_snapshot = list(session['templates'])
+            unknown_count = sum(1 for t in sequence_snapshot if t == self.unknown_id)
+            transformer_score = self.calculate_transformer_score(sequence_snapshot)
+            base_confidence = self._normalize_anomaly_score(
+                transformer_score,
+                self.transformer_threshold,
+                width=0.3
+            )
+            if unknown_count > 0:
+                ratio = unknown_count / max(sequence_length, 1)
+                transformer_confidence = min(1.0, base_confidence + 0.5 * ratio)
+            else:
+                transformer_confidence = base_confidence
             transformer_result = {
                 'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
                 'score': float(transformer_score),
                 'threshold': float(self.transformer_threshold),
                 'sequence_length': sequence_length,
-                'context': 'single_log' if sequence_length == 1 else f'{sequence_length}_logs'
+                'context': 'single_log' if sequence_length == 1 else f'{sequence_length}_logs',
+                'confidence': transformer_confidence,
+                'unknown_count': unknown_count
             }
         else:
             transformer_result = {
                 'is_anomaly': 0,
                 'score': 0.0,
-                'status': 'training' if self.training_in_progress else 'collecting_data'
+                'status': 'training' if self.training_in_progress else 'collecting_data',
+                'confidence': 0.0
             }
         
-        # Ensemble voting
-        votes = []
-        weights = []
+        # Ensemble voting with confidence-weighted signals
+        votes = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
+        weights = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
+        weighted_sum = 0.0
+        total_weight = 0.0
         
-        # Rule-based (always active)
-        if rule_result['is_attack']:
-            votes.append(1)
-            weights.append(rule_result['confidence'])
-        else:
-            votes.append(0)
-            weights.append(0.3)
+        rule_weight = 0.2 + 0.5 * rule_result.get('confidence', 0.0)
+        rule_signal = 1.0 if rule_result.get('is_attack') else 0.0
+        votes['rule'] = rule_signal
+        weights['rule'] = rule_weight
+        weighted_sum += rule_signal * rule_weight
+        total_weight += rule_weight
         
-        # Isolation Forest (only if trained)
         if self.iso_forest_ready:
-            votes.append(iso_result['is_anomaly'])
-            weights.append(0.6)
+            iso_weight = 0.5
+            iso_signal = iso_result.get('confidence', 0.0)
+            votes['iso'] = iso_signal
+            weights['iso'] = iso_weight
+            weighted_sum += iso_signal * iso_weight
+            total_weight += iso_weight
         
-        # Transformer (only if ready)
         if self.transformer_ready:
-            votes.append(transformer_result['is_anomaly'])
-            weights.append(0.7)
+            transformer_weight = 0.7
+            transformer_signal = transformer_result.get('confidence', 0.0)
+            votes['transformer'] = transformer_signal
+            weights['transformer'] = transformer_weight
+            weighted_sum += transformer_signal * transformer_weight
+            total_weight += transformer_weight
         
-        total_weight = sum(weights)
-        weighted_sum = sum(v * w for v, w in zip(votes, weights))
         ensemble_score = weighted_sum / total_weight if total_weight > 0 else 0.0
-        is_anomaly = ensemble_score > 0.5
+        is_anomaly = ensemble_score >= 0.5
         
         return {
             'is_anomaly': is_anomaly,
@@ -605,9 +989,10 @@ class AdaptiveEnsembleDetector:
             'transformer': transformer_result,
             'ensemble': {
                 'score': ensemble_score,
-                'votes': dict(zip(['rule', 'iso', 'transformer'], votes)),
-                'weights': dict(zip(['rule', 'iso', 'transformer'], weights)),
-                'active_models': sum([1, int(self.iso_forest_ready), int(self.transformer_ready)])
+                'votes': votes,
+                'weights': weights,
+                'active_models': sum(1 for w in weights.values() if w > 0.0),
+                'total_weight': total_weight
             },
             'log_data': log_data
         }

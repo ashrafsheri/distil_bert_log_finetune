@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ThresholdSettings from '../components/ThresholdSettings';
 import ModelLegend from '../components/ModelLegend';
 import { useLogs } from '../hooks/useLogs';
+import StreamControls from '../components/StreamControls';
 
 const DashboardPage: React.FC = () => {
-  const { logs, isLoading, error, totalCount, infectedCount, safeCount } = useLogs();
+  const {
+    logs,
+    isLoading,
+    error,
+    totalCount,
+    infectedCount,
+    safeCount,
+    isStreamPaused,
+    pendingCount,
+    pendingThreatCount,
+    lastUpdate,
+    pauseStream,
+    resumeStream,
+    stepPending,
+    applyPending,
+    discardPending,
+  } = useLogs();
   const [statsUpdated, setStatsUpdated] = useState(false);
   const [previousLogCount, setPreviousLogCount] = useState(0);
+  const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
+  const [focusedIp, setFocusedIp] = useState<string | null>(null);
 
   // Track when counts change to show update indicator
   useEffect(() => {
@@ -24,6 +43,39 @@ const DashboardPage: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [totalCount, previousLogCount]);
+
+  const displayLogs = useMemo(() => {
+    if (!showAnomaliesOnly) {
+      return logs;
+    }
+    return logs.filter(log => {
+      const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
+      return log.infected || transformerAnomaly;
+    });
+  }, [logs, showAnomaliesOnly]);
+
+  const focusedLogs = useMemo(() => {
+    if (!focusedIp) {
+      return [];
+    }
+    return logs.filter(log => log.ipAddress === focusedIp).slice(0, 12);
+  }, [logs, focusedIp]);
+
+  const handleTogglePause = useCallback(() => {
+    if (isStreamPaused) {
+      resumeStream();
+    } else {
+      pauseStream();
+    }
+  }, [isStreamPaused, pauseStream, resumeStream]);
+
+  const handleToggleAnomalies = useCallback(() => {
+    setShowAnomaliesOnly(prev => !prev);
+  }, []);
+
+  const handleFocusIp = useCallback((ip: string | null) => {
+    setFocusedIp(ip);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -166,6 +218,89 @@ const DashboardPage: React.FC = () => {
           <ModelLegend />
         </div>
 
+        {/* Stream Controls */}
+        <div className="mb-6">
+          <StreamControls
+            isPaused={isStreamPaused}
+            pendingCount={pendingCount}
+            pendingThreatCount={pendingThreatCount}
+            onTogglePause={handleTogglePause}
+            onStep={stepPending}
+            onApplyAll={applyPending}
+            onDiscard={discardPending}
+            showAnomaliesOnly={showAnomaliesOnly}
+            onToggleAnomalies={handleToggleAnomalies}
+            lastUpdate={lastUpdate}
+          />
+        </div>
+
+        {/* Focused Trail Summary */}
+        {focusedIp && (
+          <div className="mb-6 glass-strong rounded-2xl border border-vt-warning/30 p-6 animate-slide-up stagger-1">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-vt-warning/70">Focused Trail</p>
+                <h3 className="text-2xl font-bold text-vt-light">Activity for {focusedIp}</h3>
+              </div>
+              <button
+                onClick={() => setFocusedIp(null)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-vt-muted/10 text-xs text-vt-muted hover:bg-vt-muted/20 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Focus
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {focusedLogs.length === 0 ? (
+                <div className="text-vt-muted text-sm">No recent activity in current window.</div>
+              ) : (
+                focusedLogs.map((log, index) => {
+                  const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
+                  return (
+                    <div
+                      key={`${log.timestamp}-${index}`}
+                      className={`rounded-xl px-4 py-3 border ${
+                        log.infected || isTransformerAnomaly
+                          ? 'border-vt-error/40 bg-vt-error/10'
+                          : 'border-vt-muted/20 bg-vt-muted/5'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-vt-muted">{log.timestamp}</span>
+                        <span className={`text-xs font-semibold ${log.infected ? 'text-vt-error' : 'text-vt-success'}`}>
+                          {log.statusCode}
+                        </span>
+                      </div>
+                      <p className="text-sm text-vt-light font-mono break-all mb-2">{log.apiAccessed}</p>
+                      <div className="flex items-center gap-3 text-xs text-vt-muted">
+                        {log.infected && (
+                          <span className="inline-flex items-center gap-1 text-vt-error">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                            </svg>
+                            Ensemble
+                          </span>
+                        )}
+                        {isTransformerAnomaly && (
+                          <span className="inline-flex items-center gap-1 text-vt-warning">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Transformer
+                          </span>
+                        )}
+                        <span>{((log.anomaly_score || 0) * 100).toFixed(1)}% risk</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Logs Table */}
         <div className="glass-strong rounded-2xl border border-vt-muted/20 overflow-hidden shadow-2xl animate-slide-up stagger-1">
           <div className="px-6 py-5 border-b border-vt-muted/20 bg-gradient-to-r from-vt-blue/50 to-transparent">
@@ -198,7 +333,13 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <LogsTable logs={logs} />
+            <LogsTable
+              logs={displayLogs}
+              sourceLogs={logs}
+              focusedIp={focusedIp}
+              onFocusIp={handleFocusIp}
+              highlightTransformerTrail
+            />
           )}
         </div>
       </div>

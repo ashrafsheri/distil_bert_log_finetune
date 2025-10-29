@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { LogEntry } from '../components/LogsTable';
 import { API_ENDPOINTS, WEBSOCKET_RECONNECT_DELAY, MAX_LOGS_DISPLAY } from '../utils/constants';
 
@@ -10,6 +10,15 @@ interface UseLogsReturn {
   totalCount: number;
   infectedCount: number;
   safeCount: number;
+  isStreamPaused: boolean;
+  pendingCount: number;
+  pendingThreatCount: number;
+  lastUpdate?: Date | null;
+  pauseStream: () => void;
+  resumeStream: () => void;
+  stepPending: () => void;
+  applyPending: () => void;
+  discardPending: () => void;
 }
 
 export const useLogs = (): UseLogsReturn => {
@@ -19,6 +28,11 @@ export const useLogs = (): UseLogsReturn => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [infectedCount, setInfectedCount] = useState(0);
+  const [isStreamPaused, setIsStreamPaused] = useState(false);
+  const [pendingLogs, setPendingLogs] = useState<LogEntry[]>([]);
+  const [pendingThreatCount, setPendingThreatCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const isStreamPausedRef = useRef(false);
 
   const fetchInitialLogs = useCallback(async () => {
     try {
@@ -41,6 +55,7 @@ export const useLogs = (): UseLogsReturn => {
         // Set counts from backend response
         setTotalCount(data.total_count || 0);
         setInfectedCount(data.infected_count || 0);
+        setLastUpdate(new Date());
         console.log('📊 Backend counts - Total:', data.total_count, 'Infected:', data.infected_count);
         
         // If we get a websocket ID, establish WebSocket connection
@@ -60,6 +75,49 @@ export const useLogs = (): UseLogsReturn => {
       setIsLoading(false);
     }
   }, []);
+
+  const enqueuePendingLog = useCallback((log: LogEntry) => {
+    setPendingLogs(prev => [log, ...prev].slice(0, MAX_LOGS_DISPLAY));
+    if (log.infected) {
+      setPendingThreatCount(prev => prev + 1);
+    }
+  }, []);
+
+  const applyLogToDisplay = useCallback((log: LogEntry) => {
+    setLogs(prevLogs => [log, ...prevLogs].slice(0, MAX_LOGS_DISPLAY));
+    setLastUpdate(new Date());
+  }, []);
+
+  const applyAllPending = useCallback(() => {
+    setPendingLogs(currentPending => {
+      if (currentPending.length === 0) {
+        return currentPending;
+      }
+      setLogs(prevLogs => [...currentPending, ...prevLogs].slice(0, MAX_LOGS_DISPLAY));
+      setLastUpdate(new Date());
+      setPendingThreatCount(0);
+      return [];
+    });
+  }, []);
+
+  const discardPending = useCallback(() => {
+    setPendingLogs([]);
+    setPendingThreatCount(0);
+  }, []);
+
+  const stepPending = useCallback(() => {
+    setPendingLogs(prev => {
+      if (prev.length === 0) {
+        return prev;
+      }
+      const [next, ...rest] = prev;
+      applyLogToDisplay(next);
+      if (next.infected) {
+        setPendingThreatCount(count => Math.max(0, count - 1));
+      }
+      return rest;
+    });
+  }, [applyLogToDisplay]);
 
   const establishWebSocketConnection = useCallback((websocketId: string) => {
     try {
@@ -95,10 +153,11 @@ export const useLogs = (): UseLogsReturn => {
              console.log('🔍 WebSocket log fields - IP:', newLog.ipAddress, 'API:', newLog.apiAccessed, 'Status:', newLog.statusCode);
              
              // Update logs array
-             setLogs(prevLogs => {
-               const updatedLogs = [newLog, ...prevLogs].slice(0, MAX_LOGS_DISPLAY);
-               return updatedLogs;
-             });
+             if (isStreamPausedRef.current) {
+               enqueuePendingLog(newLog);
+             } else {
+               applyLogToDisplay(newLog);
+             }
              
              // Update counts
              setTotalCount(prev => prev + 1);
@@ -113,10 +172,11 @@ export const useLogs = (): UseLogsReturn => {
              console.log('🔍 WebSocket log fields - IP:', message.ipAddress, 'API:', message.apiAccessed, 'Status:', message.statusCode);
              
              // Update logs array
-             setLogs(prevLogs => {
-               const updatedLogs = [message, ...prevLogs].slice(0, MAX_LOGS_DISPLAY);
-               return updatedLogs;
-             });
+             if (isStreamPausedRef.current) {
+               enqueuePendingLog(message);
+             } else {
+               applyLogToDisplay(message);
+             }
              
              // Update counts
              setTotalCount(prev => prev + 1);
@@ -155,7 +215,7 @@ export const useLogs = (): UseLogsReturn => {
       console.error('❌ Error establishing WebSocket connection:', err);
       setError('Failed to establish real-time connection');
     }
-  }, [ws]);
+  }, [ws, enqueuePendingLog, applyLogToDisplay]);
 
   const refetch = useCallback(() => {
     fetchInitialLogs();
@@ -183,6 +243,23 @@ export const useLogs = (): UseLogsReturn => {
     };
   }, [ws]);
 
+  useEffect(() => {
+    isStreamPausedRef.current = isStreamPaused;
+  }, [isStreamPaused]);
+
+  const pauseStream = useCallback(() => {
+    setIsStreamPaused(true);
+    isStreamPausedRef.current = true;
+  }, []);
+
+  const resumeStream = useCallback(() => {
+    setIsStreamPaused(false);
+    isStreamPausedRef.current = false;
+    applyAllPending();
+  }, [applyAllPending]);
+
+  const pendingCount = pendingLogs.length;
+
   // Calculate safe count
   const safeCount = totalCount - infectedCount;
 
@@ -194,5 +271,14 @@ export const useLogs = (): UseLogsReturn => {
     totalCount,
     infectedCount,
     safeCount,
+    isStreamPaused,
+    pendingCount,
+    pendingThreatCount,
+    lastUpdate,
+    pauseStream,
+    resumeStream,
+    stepPending,
+    applyPending: applyAllPending,
+    discardPending,
   };
 };
