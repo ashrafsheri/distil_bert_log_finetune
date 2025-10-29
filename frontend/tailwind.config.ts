@@ -14,33 +14,37 @@ const config: Config = {
       colors: {
         // VirusTotal Dark Theme Palette
         'vt': {
-          // Primary Background (Deep Dark Indigo)
-          'dark': '#1a1a2e',
-          // Secondary Background (Header/Surface)
-          'blue': '#16213e',
-          // Primary Accent Blue (Logo, Active Elements)
-          'primary': '#7B9EFF',
+          // Primary Background (Deep navy)
+          'dark': '#0B1220',
+          // Secondary Surface
+          'blue': '#121C32',
+          // Elevated Surface
+          'surface': '#19253F',
+          // Primary Accent Blue
+          'primary': '#4F8DF9',
+          // Secondary Accent
+          'accent': '#8B5CF6',
           // Light Text/Icons
-          'light': '#f5f5f5',
+          'light': '#E8F1FF',
           // Muted/Secondary Text
-          'muted': '#A0A8C0',
-          // Error/Abnormal (Red)
-          'error': '#e94560',
+          'muted': '#98A4C4',
+          // Error/Abnormal
+          'error': '#F87171',
           // Success
-          'success': '#10B981',
+          'success': '#22D3A6',
           // Warning
-          'warning': '#F59E0B',
+          'warning': '#F4C15D',
         },
         // Light Theme Variants
         'vt-light': {
-          'bg': '#ffffff',
-          'surface': '#f8fafc',
+          'bg': '#F8FAFF',
+          'surface': '#EEF2FF',
           'primary': '#3B82F6',
-          'text': '#1f2937',
-          'muted': '#6b7280',
-          'error': '#dc2626',
-          'success': '#059669',
-          'warning': '#d97706',
+          'text': '#1F2937',
+          'muted': '#6B7280',
+          'error': '#EF4444',
+          'success': '#10B981',
+          'warning': '#F59E0B',
         }
       },
       spacing: {

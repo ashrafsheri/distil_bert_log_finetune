@@ -9,18 +9,37 @@ html {
   scroll-behavior: smooth;
 }
 
+:root {
+  --vt-bg: #0b1220;
+  --vt-surface: #121c32;
+  --vt-elevated: #19253f;
+  --vt-primary: #4f8df9;
+  --vt-primary-soft: rgba(79, 141, 249, 0.18);
+  --vt-accent: #8b5cf6;
+  --vt-text: #e8f1ff;
+  --vt-muted: #98a4c4;
+  --vt-success: #22d3a6;
+  --vt-error: #f87171;
+  --vt-warning: #f4c15d;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+  font-size: clamp(14px, 0.9vw + 0.35rem, 16px);
+  background: radial-gradient(circle at 20% -10%, rgba(139, 92, 246, 0.18), transparent 55%),
+              radial-gradient(circle at 80% 0%, rgba(79, 141, 249, 0.22), transparent 60%),
+              linear-gradient(140deg, var(--vt-bg) 0%, #0f1733 45%, #0b1220 100%);
   background-attachment: fixed;
-  color: #f5f5f5;
+  color: var(--vt-text);
 }
 
 #root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom scrollbar */
@@ -30,29 +49,29 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(22, 33, 62, 0.5);
+  background: rgba(25, 37, 63, 0.55);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7B9EFF 0%, #5B7EDF 100%);
+  background: linear-gradient(180deg, rgba(79, 141, 249, 0.8) 0%, rgba(139, 92, 246, 0.85) 100%);
   border-radius: 5px;
-  border: 2px solid rgba(22, 33, 62, 0.5);
+  border: 2px solid rgba(18, 28, 50, 0.6);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #8BAEFF 0%, #6B8EEF 100%);
+  background: linear-gradient(180deg, rgba(118, 171, 255, 0.85) 0%, rgba(167, 139, 250, 0.9) 100%);
 }
 
 /* Selection styles */
 ::selection {
-  background-color: rgba(123, 158, 255, 0.4);
-  color: #f5f5f5;
+  background-color: rgba(79, 141, 249, 0.35);
+  color: var(--vt-text);
 }
 
 /* Focus styles */
 *:focus {
-  outline: 2px solid rgba(123, 158, 255, 0.5);
+  outline: 2px solid rgba(79, 141, 249, 0.45);
   outline-offset: 2px;
 }
 
@@ -159,22 +178,23 @@ body {
 
 /* Glassmorphism effect */
 .glass {
-  background: rgba(22, 33, 62, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(123, 158, 255, 0.1);
+  background: rgba(18, 28, 50, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(79, 141, 249, 0.12);
 }
 
 .glass-strong {
-  background: rgba(22, 33, 62, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(123, 158, 255, 0.15);
+  background: rgba(18, 28, 50, 0.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(79, 141, 249, 0.18);
+  box-shadow: 0 24px 32px rgba(2, 8, 23, 0.45);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #7B9EFF 0%, #9BBAFF 100%);
+  background: linear-gradient(135deg, #4f8df9 0%, #8b5cf6 45%, #6dd5ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -205,3 +225,71 @@ body {
 .stagger-2 { animation-delay: 0.2s; }
 .stagger-3 { animation-delay: 0.3s; }
 .stagger-4 { animation-delay: 0.4s; }
+
+/* Line clamp utilities for text truncation */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.line-clamp-none {
+  overflow: visible;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+/* Responsive table improvements */
+@media (max-width: 640px) {
+  table {
+    font-size: 0.875rem;
+  }
+  
+  th, td {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Better text wrapping */
+.break-word {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
+/* Ensure tables don't cause horizontal scroll */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    max-width: 100vw;
+  }
+}

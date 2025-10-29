@@ -212,16 +212,21 @@ async def receive_fluent_bit_logs(
                 except Exception as e:
                     logger.error(f"Error sending log to WebSocket: {e}")
         
-        logger.info(f"Successfully processed {len(processed_logs)} logs")
-        processed_logs = []
-        return {
+        processed_count = len(processed_logs)
+        anomalies_detected = sum(1 for log in processed_logs if log.get("infected", False))
+        logger.info(f"Successfully processed {processed_count} logs")
+        
+        response = {
             "message": "Logs received and processed successfully",
             "batch_id": batch_id,
-            "processed_count": len(processed_logs),
-            "anomalies_detected": sum(1 for log in processed_logs if log.get("infected", False)),
+            "processed_count": processed_count,
+            "anomalies_detected": anomalies_detected,
             "status": "success",
             "source": "fluent_bit"
         }
+        
+        processed_logs.clear()
+        return response
         
     except Exception as e:
         logger.error(f"Error processing logs: {str(e)}")

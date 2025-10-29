@@ -109,10 +109,19 @@ class RuleBasedDetector:
         
         # Command Injection patterns
         self.command_injection_patterns = [
-            r"[;&|`$]",
-            r"(?i)(bash|sh|cmd|powershell|nc|netcat)",
+            # Semicolon followed by suspicious binary or shell keyword
+            r"(?ix)(?<!\w);\s*(?:bash|sh|cmd|powershell|pwsh|nc|netcat|python|perl|php|ruby|wget|curl|ftp|tftp|scp|nc|telnet|rm|cat|ls|sleep)\b",
+            # Pipe into suspicious command
+            r"(?ix)\|\s*(?:bash|sh|cmd|powershell|pwsh|nc|netcat|python|perl|php|ruby|wget|curl|ftp|tftp|scp|nc|telnet|rm|cat|ls|sleep)\b",
+            # Double operators commonly used to chain commands
+            r"(?:&&|\|\|)",
+            # Command substitution patterns
             r"\$\([^)]+\)",
             r"`[^`]+`",
+            # Environment variable expansion with braces often seen in payloads
+            r"\$\{[^}]+\}",
+            # Direct invocation of suspicious binaries
+            r"(?ix)(?:^|[\s=/])(bash|sh|cmd|powershell|pwsh|nc|netcat|python|perl|php|ruby|wget|curl|ftp|tftp|scp|telnet)(?:\.exe)?(?=$|[\s/?&])",
         ]
         
         # Compile all patterns

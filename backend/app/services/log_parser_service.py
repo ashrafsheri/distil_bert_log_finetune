@@ -27,10 +27,9 @@ class LogParserService:
         """
         try:
             logger.debug(f"Parsing log line: {log_line[:200]}...")
-            print(f"Parsing log line: {log_line[:200]}...")
             # Clean the log line
             log_line = log_line.strip()
-            print(f"Cleaned log line: {log_line[:200]}...")
+            logger.debug(f"Cleaned log line: {log_line[:200]}...")
             # Extract timestamp using regex (only part that needs regex)
             timestamp_match = self.timestamp_pattern.search(log_line)
             if not timestamp_match:
@@ -44,7 +43,6 @@ class LogParserService:
             
             if len(parts) < 8:
                 logger.warning(f"Not enough parts in log line: {len(parts)} parts")
-                print(f"Not enough parts in log line: {len(parts)} parts")
                 return None
             
             # Extract basic fields
@@ -66,7 +64,7 @@ class LogParserService:
             
             request_line = log_line[request_start + 1:request_end]
             request_parts = request_line.split()
-            print(request_parts)
+            logger.debug(f"Request parts: {request_parts}")
             if len(request_parts) < 2:
                 logger.warning(f"Invalid request format: {request_line}")
                 return None
@@ -121,18 +119,16 @@ class LogParserService:
                 except:
                     referer = ""
                     user_agent = ""
-                print("--------------------------------")
-                print(ip_address)
-                print(timestamp_str)
-                print(method)
-                print(path)
-                print(protocol)
-                print(status_code)
-                print(size)
-                print(referer)
-                print(user_agent)
-                print(log_line)
-                print("--------------------------------")
+                logger.debug(
+                    "Parsed combined log -> ip=%s method=%s path=%s status=%s size=%s referer=%s ua=%s",
+                    ip_address,
+                    method,
+                    path,
+                    status_code,
+                    size,
+                    referer,
+                    user_agent
+                )
                 return {
                     "ip_address": ip_address,
                     "timestamp": self._parse_timestamp(timestamp_str),
