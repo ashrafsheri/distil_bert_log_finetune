@@ -219,13 +219,16 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
                   id="role"
                   value={role}
                   onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'employee')}
-                  className="w-full pl-12 pr-4 py-3 bg-vt-muted/10 border border-vt-muted/20 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer"
+                  className="w-full pl-12 pr-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer"
                   required
                   disabled={loading}
+                  style={{
+                    colorScheme: 'dark'
+                  }}
                 >
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
+                  <option value="employee" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Employee</option>
+                  <option value="manager" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Manager</option>
+                  <option value="admin" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Admin</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                   <svg className="w-5 h-5 text-vt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -5,17 +5,26 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
+  requiredRoles?: ('admin' | 'manager' | 'employee')[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { currentUser, loading } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRoles }) => {
+  const { currentUser, userInfo, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!currentUser) {
+  if (!currentUser || !userInfo) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check role-based access if requiredRoles is specified
+  if (requiredRoles && requiredRoles.length > 0) {
+    if (!requiredRoles.includes(userInfo.role)) {
+      // Redirect to dashboard if user doesn't have required role
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;

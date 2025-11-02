@@ -8,7 +8,6 @@ import Card from '../components/Card';
 const UpdatePasswordPage: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +20,7 @@ const UpdatePasswordPage: React.FC = () => {
     setSuccess(false);
 
     // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError('All fields are required');
       return;
     }
@@ -36,11 +35,6 @@ const UpdatePasswordPage: React.FC = () => {
       return;
     }
 
-    if (currentPassword === newPassword) {
-      setError('New password must be different from current password');
-      return;
-    }
-
     if (!currentUser?.uid) {
       setError('User ID not found');
       return;
@@ -50,14 +44,12 @@ const UpdatePasswordPage: React.FC = () => {
       setLoading(true);
       const passwordData: PasswordUpdate = {
         new_password: newPassword,
-        current_password: currentPassword,
       };
       
       await userService.updateUserPassword(currentUser.uid, passwordData);
       setSuccess(true);
       
       // Clear form
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       
@@ -120,22 +112,6 @@ const UpdatePasswordPage: React.FC = () => {
         {/* Password Update Form */}
         <Card variant="strong" className="p-8 animate-slide-up">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-vt-light mb-2">
-                Current Password
-              </label>
-              <input
-                type="password"
-                id="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all"
-                placeholder="Enter current password"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-vt-light mb-2">
                 New Password

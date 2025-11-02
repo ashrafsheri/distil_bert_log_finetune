@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
-import ThresholdSettings from '../components/ThresholdSettings';
-import ModelLegend from '../components/ModelLegend';
 import { useLogs } from '../hooks/useLogs';
 import StreamControls from '../components/StreamControls';
 
@@ -82,25 +80,10 @@ const DashboardPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8 animate-slide-down">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="flex flex-col">
               <h1 className="text-4xl font-bold gradient-text mb-2">Security Dashboard</h1>
               <p className="text-vt-muted text-lg">Real-time log monitoring and threat detection analytics</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="glass rounded-xl px-4 py-3 flex items-center gap-3">
-                <div className={`relative w-3 h-3 rounded-full transition-all duration-300 ${
-                  statsUpdated ? 'bg-vt-success' : 'bg-vt-primary'
-                }`}>
-                  {statsUpdated && (
-                    <span className="absolute inset-0 rounded-full bg-vt-success animate-ping"></span>
-                  )}
-                </div>
-                <span className="text-sm font-medium text-vt-light">
-                  {statsUpdated ? 'New Activity' : 'Live Monitoring'}
-                </span>
-              </div>
-              <ThresholdSettings />
             </div>
           </div>
         </div>
@@ -211,11 +194,6 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Model Legend */}
-        <div className="mb-8 animate-slide-up">
-          <ModelLegend />
         </div>
 
         {/* Stream Controls */}

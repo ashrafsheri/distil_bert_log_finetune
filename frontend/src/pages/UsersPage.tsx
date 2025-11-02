@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { userService, User } from '../services/userService';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import UserPage from './UserPage';
 
 const UsersPage: React.FC = () => {
+  const { userInfo } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,12 +18,12 @@ const UsersPage: React.FC = () => {
   const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
 
-  // Fetch all users
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // Check if user has permission to access this page
+  const isAdmin = userInfo?.role === 'admin';
+  const isManager = userInfo?.role === 'manager';
+  const canAccess = isAdmin || isManager;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -31,7 +35,19 @@ const UsersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Redirect if user doesn't have permission
+    if (userInfo && !canAccess) {
+      navigate('/dashboard');
+      return;
+    }
+
+    if (canAccess) {
+      fetchUsers();
+    }
+  }, [userInfo, canAccess, navigate, fetchUsers]);
 
   const handleEnable = async (uid: string) => {
     try {
@@ -126,6 +142,11 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  // Show loading or redirect if user info is not loaded or user doesn't have permission
+  if (!userInfo || !canAccess) {
+    return null; // Will redirect via useEffect
+  }
+
   if (showCreateModal) {
     return (
       <div className="min-h-screen">
@@ -165,16 +186,18 @@ const UsersPage: React.FC = () => {
                 <p className="text-vt-muted text-lg">Manage all system users</p>
               </div>
             </div>
-            <Button
-              variant="primary"
-              onClick={() => setShowCreateModal(true)}
-              size="lg"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Create User
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="primary"
+                onClick={() => setShowCreateModal(true)}
+                size="lg"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                Create User
+              </Button>
+            )}
           </div>
         </div>
 
@@ -215,32 +238,34 @@ const UsersPage: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
               <p className="text-vt-muted text-lg">No users found</p>
-              <Button
-                variant="primary"
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4"
-              >
-                Create First User
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="primary"
+                  onClick={() => setShowCreateModal(true)}
+                  className="mt-4"
+                >
+                  Create First User
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-vt-muted/20">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-vt-light">Created At</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-vt-light">Updated At</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Created At</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Updated At</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((user) => (
                     <tr key={user.uid} className="border-b border-vt-muted/10 hover:bg-vt-muted/5 transition-colors">
                       <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vt-primary to-vt-success flex items-center justify-center">
                             <span className="text-xs font-bold text-white">
                               {user.email.charAt(0).toUpperCase()}
@@ -249,12 +274,12 @@ const UsersPage: React.FC = () => {
                           <span className="text-vt-light font-medium">{user.email}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </span>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 text-center">
                         {user.enabled ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
                             Enabled
@@ -265,29 +290,31 @@ const UsersPage: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-4 text-sm text-vt-muted">
+                      <td className="py-4 px-4 text-sm text-vt-muted text-center">
                         {formatDate(user.created_at)}
                       </td>
-                      <td className="py-4 px-4 text-sm text-vt-muted">
+                      <td className="py-4 px-4 text-sm text-vt-muted text-center">
                         {formatDate(user.updated_at)}
                       </td>
                       <td className="py-4 px-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {
-                              setShowRoleModal(user.uid);
-                              setSelectedRole(user.role);
-                            }}
-                            isLoading={actionLoading === user.uid}
-                            disabled={actionLoading !== null}
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Role
-                          </Button>
+                        <div className="flex items-center justify-center gap-2">
+                          {isAdmin && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setShowRoleModal(user.uid);
+                                setSelectedRole(user.role);
+                              }}
+                              isLoading={actionLoading === user.uid}
+                              disabled={actionLoading !== null}
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Role
+                            </Button>
+                          )}
                           {user.enabled ? (
                             <Button
                               variant="warning"
@@ -339,7 +366,7 @@ const UsersPage: React.FC = () => {
 
         {/* Role Update Modal */}
         {showRoleModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-vt-dark/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <Card variant="strong" className="relative w-full max-w-md p-6">
               <Button
                 onClick={() => setShowRoleModal(null)}
@@ -361,11 +388,14 @@ const UsersPage: React.FC = () => {
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'manager' | 'employee')}
-                  className="w-full px-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                  className="w-full px-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer"
+                  style={{
+                    colorScheme: 'dark'
+                  }}
                 >
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
+                  <option value="employee" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Employee</option>
+                  <option value="manager" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Manager</option>
+                  <option value="admin" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Admin</option>
                 </select>
               </div>
 

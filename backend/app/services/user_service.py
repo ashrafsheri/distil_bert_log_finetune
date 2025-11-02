@@ -3,7 +3,7 @@ User Service
 Business logic for user management with PostgreSQL
 """
 
-from typing import Optional, List
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
@@ -125,30 +125,6 @@ class UserService:
             logger.error(f"Error getting user by uid: {e}")
             raise
     
-    async def get_user_by_email(self, email: str) -> Optional[User]:
-        """
-        Get a user by email
-        
-        Args:
-            email: User email address
-            
-        Returns:
-            User object if found, None otherwise
-        """
-        try:
-            result = await self.db.execute(
-                select(UserDB).where(UserDB.email == email)
-            )
-            db_user = result.scalar_one_or_none()
-            
-            if db_user is None:
-                return None
-            
-            return _db_to_pydantic(db_user)
-        except Exception as e:
-            logger.error(f"Error getting user by email: {e}")
-            raise
-    
     async def get_all_users(self) -> List[User]:
         """
         Get all users
@@ -167,17 +143,17 @@ class UserService:
     
     async def update_user(self, uid: str, user_data: UserUpdate) -> User:
         """
-        Update an existing user
+        Update user enabled status
         
         Args:
             uid: User ID (Firebase UID)
-            user_data: User update data (only provided fields will be updated)
+            user_data: User update data (only enabled field)
             
         Returns:
             Updated User object
             
         Raises:
-            ValueError: If user not found or email already in use by another user
+            ValueError: If user not found
         """
         try:
             # Get existing user
@@ -189,32 +165,13 @@ class UserService:
             if db_user is None:
                 raise ValueError(f"User with uid '{uid}' not found")
             
-            # Check email uniqueness if email is being updated
-            if user_data.email and user_data.email != db_user.email:
-                existing_result = await self.db.execute(
-                    select(UserDB).where(UserDB.email == user_data.email)
-                )
-                existing_user = existing_result.scalar_one_or_none()
-                if existing_user and existing_user.uid != uid:
-                    raise ValueError(f"Email '{user_data.email}' is already in use by another user")
-            
-            # Update fields
-            update_data = {}
-            if user_data.email is not None:
-                update_data['email'] = user_data.email
-            if user_data.role is not None:
-                update_data['role'] = _map_role_to_enum(user_data.role)
-            if user_data.enabled is not None:
-                update_data['enabled'] = user_data.enabled  # Boolean value
-            
-            # Perform update
-            if update_data:
-                await self.db.execute(
-                    update(UserDB)
-                    .where(UserDB.uid == uid)
-                    .values(**update_data)
-                )
-                await self.db.flush()  # Flush to apply changes
+            # Update only enabled field
+            await self.db.execute(
+                update(UserDB)
+                .where(UserDB.uid == uid)
+                .values(enabled=user_data.enabled)
+            )
+            await self.db.flush()  # Flush to apply changes
             
             # Re-fetch user to get updated data including timestamps
             result = await self.db.execute(
@@ -222,22 +179,65 @@ class UserService:
             )
             updated_db_user = result.scalar_one()
             
-            logger.info(f"Updated user: {uid} - email: {updated_db_user.email}, role: {updated_db_user.role.value}")
+            logger.info(f"Updated user enabled status: {uid} - enabled: {updated_db_user.enabled}")
             
             return _db_to_pydantic(updated_db_user)
             
         except ValueError:
             raise
-        except IntegrityError as e:
-            await self.db.rollback()
-            error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
-            if 'email' in error_msg.lower():
-                raise ValueError(f"Email '{user_data.email}' is already in use by another user")
-            raise ValueError(f"Failed to update user: {error_msg}")
         except Exception as e:
             await self.db.rollback()
             logger.error(f"Error updating user: {e}")
             raise ValueError(f"Failed to update user: {str(e)}")
+    
+    async def update_user_role(self, uid: str, role: RoleType) -> User:
+        """
+        Update user role
+        
+        Args:
+            uid: User ID (Firebase UID)
+            role: New role
+            
+        Returns:
+            Updated User object
+            
+        Raises:
+            ValueError: If user not found
+        """
+        try:
+            # Get existing user
+            result = await self.db.execute(
+                select(UserDB).where(UserDB.uid == uid)
+            )
+            db_user = result.scalar_one_or_none()
+            
+            if db_user is None:
+                raise ValueError(f"User with uid '{uid}' not found")
+            
+            # Update role
+            await self.db.execute(
+                update(UserDB)
+                .where(UserDB.uid == uid)
+                .values(role=_map_role_to_enum(role))
+            )
+            await self.db.flush()  # Flush to apply changes
+            
+            # Re-fetch user to get updated data including timestamps
+            result = await self.db.execute(
+                select(UserDB).where(UserDB.uid == uid)
+            )
+            updated_db_user = result.scalar_one()
+            
+            logger.info(f"Updated user role: {uid} - role: {updated_db_user.role.value}")
+            
+            return _db_to_pydantic(updated_db_user)
+            
+        except ValueError:
+            raise
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error updating user role: {e}")
+            raise ValueError(f"Failed to update user role: {str(e)}")
     
     async def remove_user(self, uid: str) -> bool:
         """

@@ -103,20 +103,19 @@ async def _init_default_permissions():
         # Admin - Full access to all user endpoints
         (RoleEnum.ADMIN, "/api/v1/users/create", "POST"),
         (RoleEnum.ADMIN, "/api/v1/users/", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/users/email/{email}", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/users/uid", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/enabled", "PUT"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/role", "PATCH"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/password", "PUT"),
         
-        # Manager - Can view users and update some fields
+        # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/users/email/{email}", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/users/uid", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}/enabled", "PUT"),
         
         # Employee - Limited access, only their own profile
-        (RoleEnum.EMPLOYEE, "/api/v1/users/uid/{uid}", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid/{uid}/password", "PUT"),
         
         # All roles - Log endpoints (you can customize these)
