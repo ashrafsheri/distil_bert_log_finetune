@@ -21,10 +21,15 @@ const LoginPage: React.FC = () => {
 
     try {
       setLoading(true);
+      setError('');
       await login({ email, password });
+      // Only navigate if login and user info fetch were successful
+      // If user info fetch fails, login will throw an error and we stay on login page
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Failed to log in');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to log in';
+      setError(errorMessage);
+      // Don't navigate if login fails
     } finally {
       setLoading(false);
     }
@@ -98,13 +103,6 @@ const LoginPage: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-vt-muted">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-vt-primary hover:text-vt-primary/80 font-medium transition-colors">
-              Sign up
-            </Link>
-          </p>
         </div>
       </div>
     </div>

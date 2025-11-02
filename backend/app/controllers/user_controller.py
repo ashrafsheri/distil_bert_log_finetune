@@ -50,7 +50,7 @@ async def create_user(
             firebase_user = auth.create_user(
                 email=user_data.email,
                 password=user_data.password,
-                email_verified=False  # Email verification can be done separately
+                email_verified=True  # Email verification can be done separately
             )
             firebase_uid = firebase_user.uid
         except auth.EmailAlreadyExistsError:
@@ -124,51 +124,6 @@ async def create_user(
             detail=f"Failed to create user: {str(e)}"
         )
 
-
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user_data: UserCreate,
-    db: AsyncSession = Depends(get_db)
-    # Note: Registration endpoint is public (no auth required) as it's called during user creation
-):
-    """
-    Register a new user with user ID and role
-    This endpoint receives user information after Firebase account creation
-    DEPRECATED: Use /create endpoint instead for complete user creation
-    
-    Args:
-        user_data: User creation data (uid, email, role)
-        user_service: User service dependency
-        
-    Returns:
-        Created user data
-        
-    Raises:
-        HTTPException: If user already exists or validation fails
-    """
-    try:
-        user_service = get_user_service(db)
-        user = await user_service.create_user(user_data)
-        return UserResponse(
-            email=user.email,
-            uid=user.uid,
-            role=user.role,
-            enabled=user.enabled,
-            created_at=user.created_at,
-            updated_at=user.updated_at
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to register user: {str(e)}"
-        )
-
-
 @router.get("/", response_model=List[UserResponse])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
@@ -204,77 +159,31 @@ async def get_all_users(
         )
 
 
-@router.get("/email/{email}", response_model=UserResponse)
-async def get_user_by_email(
-    email: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/email/{email}", "GET"))
-):
-    """
-    Get a user by email address
-    
-    Args:
-        email: User email address
-        user_service: User service dependency
-        
-    Returns:
-        User data
-        
-    Raises:
-        HTTPException: If user not found
-    """
-    try:
-        user_service = get_user_service(db)
-        user = await user_service.get_user_by_email(email)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with email '{email}' not found"
-            )
-        
-        return UserResponse(
-            email=user.email,
-            uid=user.uid,
-            role=user.role,
-            enabled=user.enabled,
-            created_at=user.created_at,
-            updated_at=user.updated_at
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve user: {str(e)}"
-        )
-
-
-@router.get("/uid/{uid}", response_model=UserResponse)
+@router.get("/uid", response_model=UserResponse)
 async def get_user(
-    uid: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}", "GET"))
+    current_user: dict = Depends(check_permission("/api/v1/users/uid", "GET"))
 ):
     """
-    Get a user by uid
+    Get current user's data
     
     Args:
-        uid: User ID (Firebase UID)
-        user_service: User service dependency
+        db: Database session
+        current_user: Current authenticated user (from JWT)
         
     Returns:
-        User data
+        Current user's data
         
     Raises:
         HTTPException: If user not found
     """
     try:
         user_service = get_user_service(db)
-        user = await user_service.get_user(uid)
+        user = await user_service.get_user(current_user["uid"])
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with uid '{uid}' not found"
+                detail=f"User with uid '{current_user['uid']}' not found"
             )
         
         return UserResponse(
@@ -294,20 +203,21 @@ async def get_user(
         )
 
 
-@router.put("/uid/{uid}", response_model=UserResponse)
-async def update_user(
+@router.put("/uid/{uid}/enabled", response_model=UserResponse)
+async def update_user_enabled(
     uid: str,
     user_data: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}", "PUT"))
+    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}/enabled", "PUT"))
 ):
     """
-    Update an existing user
+    Update user enabled status
     
     Args:
         uid: User ID (Firebase UID)
-        user_data: User update data (only provided fields will be updated)
-        user_service: User service dependency
+        user_data: User update data (only enabled field)
+        db: Database session
+        current_user: Current authenticated user (permission checked via dependency)
         
     Returns:
         Updated user data
@@ -362,7 +272,7 @@ async def update_user_role(
     """
     try:
         user_service = get_user_service(db)
-        user = await user_service.update_user(uid, UserUpdate(role=role_data.role))
+        user = await user_service.update_user_role(uid, role_data.role)
         return UserResponse(
             email=user.email,
             uid=user.uid,

@@ -15,9 +15,7 @@ export interface User {
 }
 
 export interface UserUpdate {
-  email?: string;
-  role?: 'admin' | 'manager' | 'employee';
-  enabled?: boolean;
+  enabled: boolean;
 }
 
 export interface PasswordUpdate {
@@ -35,18 +33,18 @@ export const userService = {
   },
 
   /**
-   * Get a user by UID
+   * Get current user's data
    */
-  async getUser(uid: string): Promise<User> {
-    const response = await apiService.get<User>(`/api/v1/users/uid/${uid}`);
+  async getCurrentUser(): Promise<User> {
+    const response = await apiService.get<User>('/api/v1/users/uid');
     return response.data;
   },
 
   /**
-   * Update a user
+   * Update user enabled status
    */
-  async updateUser(uid: string, userData: UserUpdate): Promise<User> {
-    const response = await apiService.put<User>(`/api/v1/users/uid/${uid}`, userData);
+  async updateUserEnabled(uid: string, enabled: boolean): Promise<User> {
+    const response = await apiService.put<User>(`/api/v1/users/uid/${uid}/enabled`, { enabled });
     return response.data;
   },
 
@@ -61,14 +59,14 @@ export const userService = {
    * Enable a user
    */
   async enableUser(uid: string): Promise<User> {
-    return this.updateUser(uid, { enabled: true });
+    return this.updateUserEnabled(uid, true);
   },
 
   /**
    * Disable a user
    */
   async disableUser(uid: string): Promise<User> {
-    return this.updateUser(uid, { enabled: false });
+    return this.updateUserEnabled(uid, false);
   },
 
   /**

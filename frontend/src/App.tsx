@@ -39,7 +39,7 @@ function App() {
               } />
               
               <Route path="/users" element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <MainLayout>
                     <UsersPage />
                   </MainLayout>

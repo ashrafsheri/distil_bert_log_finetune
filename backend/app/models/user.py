@@ -43,10 +43,8 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    """Model for updating user information"""
-    email: Optional[EmailStr] = None
-    role: Optional[RoleType] = None
-    enabled: Optional[bool] = None
+    """Model for updating user enabled status"""
+    enabled: bool
 
 
 class RoleUpdate(BaseModel):
