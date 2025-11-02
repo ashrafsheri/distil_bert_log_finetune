@@ -1,25 +1,72 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import WelcomePage from './pages/WelcomePage';
+import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import UsersPage from './pages/UsersPage';
+import ProfilePage from './pages/ProfilePage';
+import UpdatePasswordPage from './pages/UpdatePasswordPage';
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <Router>
-          <MainLayout>
+      <AuthProvider>
+        <ThemeProvider>
+          <Router>
             <Routes>
-              <Route path="/" element={<WelcomePage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* Public routes with MainLayout */}
+              <Route path="/" element={
+                <MainLayout>
+                  <WelcomePage />
+                </MainLayout>
+              } />
+              
+              {/* Protected routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <DashboardPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <UsersPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ProfilePage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/update-password" element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <UpdatePasswordPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </MainLayout>
-        </Router>
-      </ThemeProvider>
+          </Router>
+        </ThemeProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

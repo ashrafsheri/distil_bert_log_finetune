@@ -15,6 +15,7 @@ from app.services.elasticsearch_service import ElasticsearchService
 from app.services.log_parser_service import LogParserService
 from app.services.anomaly_detection_service import AnomalyDetectionService
 from app.controllers.websocket_controller import send_log_update
+from app.utils.firebase_auth import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -36,7 +37,8 @@ def get_anomaly_detection_service() -> AnomalyDetectionService:
 async def fetch_logs(
     limit: int = 100,
     offset: int = 0,
-    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service)
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Fetch latest logs for the frontend dashboard from Elasticsearch
@@ -50,9 +52,7 @@ async def fetch_logs(
     """
     try:
         # Fetch logs from Elasticsearch
-        print("Fetching logs")
         result = await elasticsearch_service.get_logs(limit=limit, offset=offset)
-        print("Logs fetched")
         # Convert to LogEntry format for frontend
         logs = []
         for log_data in result["logs"]:
@@ -236,7 +236,8 @@ async def receive_fluent_bit_logs(
 async def get_anomaly_logs(
     limit: int = 100,
     offset: int = 0,
-    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service)
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Get only anomaly logs from Elasticsearch
@@ -291,7 +292,8 @@ async def get_anomaly_logs(
 
 @router.get("/stats")
 async def get_log_stats(
-    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service)
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Get log statistics from Elasticsearch

@@ -58,6 +58,11 @@ mlruns/
 *.bak
 .DS_Store
 
+# Firebase Service Account Key (contains sensitive credentials)
+serviceAccountKey.json
+**/serviceAccountKey.json
+backend/serviceAccountKey.json
+
 # --------------------
 # IDEs / Editors
 # --------------------
