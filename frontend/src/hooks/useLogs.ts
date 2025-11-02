@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { LogEntry } from '../components/LogsTable';
 import { API_ENDPOINTS, WEBSOCKET_RECONNECT_DELAY, MAX_LOGS_DISPLAY } from '../utils/constants';
+import { apiService, websocketService } from '../services/apiService';
 
 interface UseLogsReturn {
   logs: LogEntry[];
@@ -39,14 +40,12 @@ export const useLogs = (): UseLogsReturn => {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch(API_ENDPOINTS.FETCH_LOGS);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Use apiService for authenticated request
+      const response = await apiService.get<{ logs: LogEntry[]; total_count: number; infected_count: number; websocket_id?: string }>(API_ENDPOINTS.FETCH_LOGS);
+      const data = response.data;
       
-      const data = await response.json();
       console.log('📡 Fetch response received:', data);
-      console.log('🔍 Checking for websocketId:', data.websocketId);
+      console.log('🔍 Checking for websocketId:', data.websocket_id);
       
       if (Array.isArray(data.logs)) {
         setLogs(data.logs);
@@ -119,7 +118,7 @@ export const useLogs = (): UseLogsReturn => {
     });
   }, [applyLogToDisplay]);
 
-  const establishWebSocketConnection = useCallback((websocketId: string) => {
+  const establishWebSocketConnection = useCallback(async (websocketId: string) => {
     try {
       console.log('🚀 Starting WebSocket connection establishment...');
       console.log('🔗 WebSocket ID:', websocketId);
@@ -131,89 +130,98 @@ export const useLogs = (): UseLogsReturn => {
         ws.close();
       }
 
-      // Create new WebSocket connection
+      // Create authenticated WebSocket connection
       const websocketUrl = `${API_ENDPOINTS.WEBSOCKET_BASE}/${websocketId}`;
-      console.log('🔌 Creating WebSocket connection to:', websocketUrl);
-      const websocket = new WebSocket(websocketUrl);
+      console.log('🔌 Creating authenticated WebSocket connection to:', websocketUrl);
       
-      websocket.onopen = () => {
-        console.log('✅ WebSocket connection established successfully!');
-        setError(null);
-      };
-
-       websocket.onmessage = (event) => {
-         console.log('📨 WebSocket message received:', event.data);
-         try {
-           const message = JSON.parse(event.data);
-           
-           // Handle wrapped WebSocket message format
-           if (message && message.type === 'log_update' && message.data) {
-             const newLog = message.data;
-             console.log('📝 New log added via WebSocket (wrapped):', newLog);
-             console.log('🔍 WebSocket log fields - IP:', newLog.ipAddress, 'API:', newLog.apiAccessed, 'Status:', newLog.statusCode);
-             
-             // Update logs array
-             if (isStreamPausedRef.current) {
-               enqueuePendingLog(newLog);
-             } else {
-               applyLogToDisplay(newLog);
-             }
-             
-             // Update counts
-             setTotalCount(prev => prev + 1);
-             if (newLog.infected) {
-               setInfectedCount(prev => prev + 1);
-             }
-             
-             console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (newLog.infected ? 1 : 0));
-           } else if (message && typeof message === 'object' && message.ipAddress) {
-             // Handle direct log format (fallback)
-             console.log('📝 New log added via WebSocket (direct):', message);
-             console.log('🔍 WebSocket log fields - IP:', message.ipAddress, 'API:', message.apiAccessed, 'Status:', message.statusCode);
-             
-             // Update logs array
-             if (isStreamPausedRef.current) {
-               enqueuePendingLog(message);
-             } else {
-               applyLogToDisplay(message);
-             }
-             
-             // Update counts
-             setTotalCount(prev => prev + 1);
-             if (message.infected) {
-               setInfectedCount(prev => prev + 1);
-             }
-             
-             console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (message.infected ? 1 : 0));
-           } else {
-             console.log('⚠️ Unknown WebSocket message format:', message);
-           }
-         } catch (err) {
-           console.error('❌ Error parsing WebSocket message:', err);
-         }
-       };
-
-      websocket.onclose = (event) => {
-        console.log('🔌 WebSocket connection closed:', event.code, event.reason);
-        // Attempt to reconnect after delay
-        setTimeout(() => {
-          if (websocket.readyState === WebSocket.CLOSED) {
+      const websocket = await websocketService.createConnection(
+        websocketUrl,
+        () => {
+          console.log('✅ Authenticated WebSocket connection established successfully!');
+          setError(null);
+        },
+        (event) => {
+          console.log('📨 WebSocket message received:', event.data);
+          try {
+            const message = JSON.parse(event.data);
+            
+            // Handle wrapped WebSocket message format
+            if (message && message.type === 'log_update' && message.data) {
+              const newLog = message.data;
+              console.log('📝 New log added via WebSocket (wrapped):', newLog);
+              console.log('🔍 WebSocket log fields - IP:', newLog.ipAddress, 'API:', newLog.apiAccessed, 'Status:', newLog.statusCode);
+              
+              // Update logs array
+              if (isStreamPausedRef.current) {
+                enqueuePendingLog(newLog);
+              } else {
+                applyLogToDisplay(newLog);
+              }
+              
+              // Update counts
+              setTotalCount(prev => prev + 1);
+              if (newLog.infected) {
+                setInfectedCount(prev => prev + 1);
+              }
+              
+              console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (newLog.infected ? 1 : 0));
+            } else if (message && typeof message === 'object' && message.ipAddress) {
+              // Handle direct log format (fallback)
+              console.log('📝 New log added via WebSocket (direct):', message);
+              console.log('🔍 WebSocket log fields - IP:', message.ipAddress, 'API:', message.apiAccessed, 'Status:', message.statusCode);
+              
+              // Update logs array
+              if (isStreamPausedRef.current) {
+                enqueuePendingLog(message);
+              } else {
+                applyLogToDisplay(message);
+              }
+              
+              // Update counts
+              setTotalCount(prev => prev + 1);
+              if (message.infected) {
+                setInfectedCount(prev => prev + 1);
+              }
+              
+              console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (message.infected ? 1 : 0));
+            } else {
+              console.log('⚠️ Unknown WebSocket message format:', message);
+            }
+          } catch (err) {
+            console.error('❌ Error parsing WebSocket message:', err);
+          }
+        },
+        (err) => {
+          console.error('❌ WebSocket error:', err);
+          setError('WebSocket connection failed');
+        },
+        (event) => {
+          console.log('🔌 WebSocket connection closed:', event.code, event.reason);
+          setWs(null);
+          // Attempt to reconnect after delay
+          setTimeout(() => {
             console.log('🔄 Attempting to reconnect WebSocket...');
             establishWebSocketConnection(websocketId);
-          }
-        }, WEBSOCKET_RECONNECT_DELAY);
-      };
-
-      websocket.onerror = (err) => {
-        console.error('❌ WebSocket error:', err);
-        setError('WebSocket connection failed');
-      };
+          }, WEBSOCKET_RECONNECT_DELAY);
+        }
+      );
 
       setWs(websocket);
       console.log('🎯 WebSocket object created and set in state');
     } catch (err) {
       console.error('❌ Error establishing WebSocket connection:', err);
-      setError('Failed to establish real-time connection');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to establish real-time connection';
+      setError(errorMessage);
+      setWs(null);
+      
+      // Attempt to reconnect after delay if it's an auth error
+      if (errorMessage.includes('Authentication') || errorMessage.includes('token')) {
+        console.log('🔄 Authentication error - will retry after delay');
+        setTimeout(() => {
+          console.log('🔄 Retrying WebSocket connection...');
+          establishWebSocketConnection(websocketId);
+        }, WEBSOCKET_RECONNECT_DELAY);
+      }
     }
   }, [ws, enqueuePendingLog, applyLogToDisplay]);
 

@@ -6,10 +6,39 @@ LogGuard Backend - Real-time Log Monitoring System
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import uvicorn
 
 from app.api.v1.router import api_router
 from app.controllers.websocket_controller import router as websocket_router
+from app.utils.database import init_db, close_db
+from app.utils.firebase_auth import initialize_firebase_admin
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events"""
+    # Startup: Initialize database and Firebase Admin SDK
+    try:
+        await init_db()
+        print("✅ Database initialized successfully")
+    except Exception as e:
+        print(f"⚠️  Database initialization warning: {e}")
+    
+    try:
+        initialize_firebase_admin()
+        print("✅ Firebase Admin SDK initialized successfully")
+    except Exception as e:
+        print(f"⚠️  Firebase Admin SDK initialization warning: {e}")
+    
+    yield
+    
+    # Shutdown: Close database connections
+    try:
+        await close_db()
+        print("✅ Database connections closed")
+    except Exception as e:
+        print(f"⚠️  Database shutdown warning: {e}")
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -17,7 +46,8 @@ app = FastAPI(
     description="Real-time Log Monitoring and Anomaly Detection API",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS middleware for frontend communication

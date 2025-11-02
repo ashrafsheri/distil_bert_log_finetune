@@ -92,16 +92,16 @@ const WelcomePage: React.FC = () => {
           {/* CTA Button */}
           <div className="pt-8">
             <Link
-              to="/dashboard"
+              to="/login"
               className="group inline-flex items-center px-10 py-5 bg-gradient-to-r from-vt-primary to-vt-success text-white font-bold rounded-2xl hover:shadow-2xl hover:shadow-vt-primary/40 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105"
             >
-              <span className="text-lg">Launch Dashboard</span>
+              <span className="text-lg">Get Started</span>
               <svg className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>
             <p className="text-sm text-vt-muted mt-4">
-              Start monitoring your system logs instantly
+              Sign in to start monitoring your system logs instantly
             </p>
           </div>
         </div>

@@ -3,13 +3,14 @@ WebSocket Controller
 Handles real-time WebSocket connections for live log updates
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Dict, List
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Query, status
+from typing import Dict, List, Optional
 import json
 import uuid
 from datetime import datetime
 
 from app.models.log_entry import WebSocketMessage
+from app.utils.firebase_auth import verify_firebase_token
 
 router = APIRouter()
 
@@ -19,9 +20,8 @@ class ConnectionManager:
         self.active_connections: Dict[str, WebSocket] = {}
     
     async def connect(self, websocket: WebSocket, client_id: str):
-        """Accept WebSocket connection and store it"""
-        print(f"🔌 New WebSocket connection from client: {client_id}")
-        await websocket.accept()
+        """Store WebSocket connection (connection must already be accepted)"""
+        print(f"🔌 Storing WebSocket connection for client: {client_id}")
         self.active_connections[client_id] = websocket
         print(f"✅ WebSocket connected. Total active connections: {len(self.active_connections)}")
     
@@ -56,15 +56,46 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 @router.websocket("/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    client_id: str,
+    token: Optional[str] = Query(None)
+):
     """
     WebSocket endpoint for real-time log updates
+    
+    Requires authentication via Firebase JWT token in query parameter
     
     Args:
         websocket: WebSocket connection
         client_id: Unique client identifier
+        token: Firebase JWT token (passed as query parameter since WebSocket doesn't support headers)
     """
-    await manager.connect(websocket, client_id)
+    # Accept connection first (required in FastAPI)
+    await websocket.accept()
+    
+    # Verify authentication token
+    if not token:
+        print(f"❌ WebSocket connection rejected: Missing authentication token for client {client_id}")
+        await websocket.close(code=1008, reason="Authentication token required")
+        return
+    
+    try:
+        # Verify Firebase token
+        user_info = await verify_firebase_token(token)
+        print(f"✅ WebSocket authenticated for user: {user_info.get('uid')}")
+    except HTTPException as e:
+        print(f"❌ WebSocket connection rejected: Invalid token for client {client_id} - {e.detail}")
+        await websocket.close(code=1008, reason=f"Authentication failed: {e.detail}")
+        return
+    except Exception as e:
+        print(f"❌ WebSocket connection error: {e}")
+        await websocket.close(code=1011, reason=f"Server error: {str(e)}")
+        return
+    
+    # Connection authenticated successfully, add to manager
+    manager.active_connections[client_id] = websocket
+    print(f"✅ WebSocket connected. Total active connections: {len(manager.active_connections)}")
     
     try:
         while True:
