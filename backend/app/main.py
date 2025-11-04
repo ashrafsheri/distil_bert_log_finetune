@@ -11,8 +11,12 @@ import uvicorn
 
 from app.api.v1.router import api_router
 from app.controllers.websocket_controller import router as websocket_router
-from app.utils.database import init_db, close_db
+from app.utils.database import init_db, close_db, AsyncSessionLocal
 from app.utils.firebase_auth import initialize_firebase_admin
+from sqlalchemy import select
+from app.models.user_db import UserDB, RoleEnum
+from app.services.email_service import send_email
+import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +33,19 @@ async def lifespan(app: FastAPI):
         print("✅ Firebase Admin SDK initialized successfully")
     except Exception as e:
         print(f"⚠️  Firebase Admin SDK initialization warning: {e}")
+
+    # Startup: Notify admins via email (best-effort)
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(UserDB).where(UserDB.role == RoleEnum.ADMIN))
+            admins = result.scalars().all()
+            recipients = [u.email for u in admins if getattr(u, 'enabled', True)]
+            if recipients:
+                subject = "LogGuard: Server Started"
+                body = "The LogGuard backend server has started successfully."
+                await asyncio.to_thread(send_email, subject, body, recipients)
+    except Exception as e:
+        print(f"⚠️  Startup email notification failed: {e}")
     
     yield
     

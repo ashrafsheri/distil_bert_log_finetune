@@ -51,6 +51,16 @@ services:
       - POSTGRES_DB=logguard_db
       - POSTGRES_USER=logguard_user
       - POSTGRES_PASSWORD=logguard_password
+      # Firebase Admin
+      - FIREBASE_SERVICE_ACCOUNT_KEY=/app/serviceAccountKey.json
+      # SMTP / Alerts (provide these in your shell or .env)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - SMTP_FROM=${SMTP_FROM}
+      - ALERT_COOLDOWN_SECONDS=${ALERT_COOLDOWN_SECONDS}
     networks:
       - logguard-network
     restart: unless-stopped
