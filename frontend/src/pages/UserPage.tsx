@@ -1,3 +1,4 @@
+import Select from '../components/Select';
 import React, { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
@@ -215,21 +216,18 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <select
+                <Select
                   id="role"
+                  name="role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'employee')}
-                  className="w-full pl-12 pr-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer"
-                  required
+                  onChange={(val) => setRole(val as 'admin' | 'manager' | 'employee')}
+                  options={[
+                    { label: 'Employee', value: 'employee' },
+                    { label: 'Manager', value: 'manager' },
+                    { label: 'Admin', value: 'admin' },
+                  ]}
                   disabled={loading}
-                  style={{
-                    colorScheme: 'dark'
-                  }}
-                >
-                  <option value="employee" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Employee</option>
-                  <option value="manager" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Manager</option>
-                  <option value="admin" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Admin</option>
-                </select>
+                />
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                   <svg className="w-5 h-5 text-vt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

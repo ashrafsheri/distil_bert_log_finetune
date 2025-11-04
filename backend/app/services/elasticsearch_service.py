@@ -259,3 +259,74 @@ class ElasticsearchService:
                 "normal_logs": 0,
                 "anomaly_rate": 0
             }
+
+    async def search_logs(
+        self,
+        ip: Optional[str] = None,
+        api: Optional[str] = None,
+        status_code: Optional[int] = None,
+        infected: Optional[bool] = None,
+        from_datetime: Optional[str] = None,
+        to_datetime: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict:
+        """Search logs with optional filters.
+
+        Filters:
+        - ip: exact match on ip_address
+        - api: exact match on api_accessed (keyword)
+        - status_code: exact match on status_code
+        - infected: boolean match
+        """
+        if self.client is None:
+            logger.warning("Elasticsearch not available, returning empty logs for search")
+            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+
+        try:
+            must_clauses: List[Dict] = []
+
+            if ip:
+                must_clauses.append({"term": {"ip_address": ip}})
+            if api:
+                must_clauses.append({"term": {"api_accessed": api}})
+            if status_code is not None:
+                must_clauses.append({"term": {"status_code": status_code}})
+            if infected is not None:
+                must_clauses.append({"term": {"infected": infected}})
+
+            range_clause: Dict = {}
+            if from_datetime or to_datetime:
+                range_params: Dict[str, str] = {}
+                if from_datetime:
+                    range_params["gte"] = from_datetime
+                if to_datetime:
+                    range_params["lte"] = to_datetime
+                range_clause = {"range": {"timestamp": range_params}}
+
+            query_body = {
+                "query": {
+                    "bool": {
+                        "must": ([range_clause] if range_clause else []) + (must_clauses if must_clauses else ([{"match_all": {}}] if not range_clause else []))
+                    }
+                },
+                "sort": [{"created_at": {"order": "desc"}}],
+                "from": offset,
+                "size": limit,
+                "track_total_hits": True
+            }
+
+            response = self.client.search(index=self.index_name, body=query_body)
+
+            logs: List[Dict] = []
+            for hit in response["hits"]["hits"]:
+                logs.append(hit["_source"])
+
+            total_info = response["hits"]["total"]
+            total = total_info["value"] if isinstance(total_info, dict) else total_info
+
+            return {"logs": logs, "total": total, "offset": offset, "limit": limit}
+
+        except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
+            logger.error(f"Error searching logs in Elasticsearch: {e}")
+            return {"logs": [], "total": 0, "offset": offset, "limit": limit}

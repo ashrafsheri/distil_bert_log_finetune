@@ -3,6 +3,10 @@ import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLogs } from '../hooks/useLogs';
 import StreamControls from '../components/StreamControls';
+import { useAuth } from '../context/AuthContext';
+import Select from '../components/Select';
+import Button from '../components/Button';
+import { logService } from '../services/logService';
 
 const DashboardPage: React.FC = () => {
   const {
@@ -26,6 +30,25 @@ const DashboardPage: React.FC = () => {
   const [previousLogCount, setPreviousLogCount] = useState(0);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
   const [focusedIp, setFocusedIp] = useState<string | null>(null);
+  const { userInfo } = useAuth();
+  const isPrivileged = userInfo?.role === 'admin' || userInfo?.role === 'manager';
+
+  // Search state
+  const [searchIp, setSearchIp] = useState('');
+  const [searchApi, setSearchApi] = useState('');
+  const [searchStatus, setSearchStatus] = useState('');
+  const [searchMalicious, setSearchMalicious] = useState(''); // '', 'malicious', 'clean'
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<typeof logs | null>(null);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [browseResults, setBrowseResults] = useState<typeof logs | null>(null);
+  const [browseTotal, setBrowseTotal] = useState(0);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Track when counts change to show update indicator
   useEffect(() => {
@@ -43,14 +66,14 @@ const DashboardPage: React.FC = () => {
   }, [totalCount, previousLogCount]);
 
   const displayLogs = useMemo(() => {
-    if (!showAnomaliesOnly) {
-      return logs;
-    }
+    if (searchResults) return searchResults;
+    if (browseResults) return browseResults;
+    if (!showAnomaliesOnly) return logs;
     return logs.filter(log => {
       const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
       return log.infected || transformerAnomaly;
     });
-  }, [logs, showAnomaliesOnly]);
+  }, [logs, showAnomaliesOnly, searchResults, browseResults]);
 
   const focusedLogs = useMemo(() => {
     if (!focusedIp) {
@@ -75,6 +98,72 @@ const DashboardPage: React.FC = () => {
     setFocusedIp(ip);
   }, []);
 
+  const handleSearch = useCallback(async () => {
+    if (!isPrivileged) return;
+    try {
+      setSearchLoading(true);
+      setSearchError(null);
+      const currentOffset = (page - 1) * pageSize;
+      const params: Record<string, unknown> = {};
+      if (searchIp.trim()) params.ip = searchIp.trim();
+      if (searchApi.trim()) params.api = searchApi.trim();
+      if (searchStatus.trim()) params.status_code = Number(searchStatus.trim());
+      if (searchMalicious === 'malicious') params.malicious = true;
+      if (searchMalicious === 'clean') params.malicious = false;
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+      params.limit = pageSize;
+      params.offset = currentOffset;
+
+      const res = await logService.searchLogs(params);
+      const mapped = res.logs.map(l => ({
+        ...l,
+      }));
+      setSearchResults(mapped);
+      setSearchTotal(res.total_count || 0);
+      setBrowseResults(null);
+      setBrowseTotal(0);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Search failed';
+      setSearchError(msg);
+      setSearchResults([]);
+      setSearchTotal(0);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [isPrivileged, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate, page, pageSize]);
+
+  const clearSearch = useCallback(() => {
+    setSearchIp('');
+    setSearchApi('');
+    setSearchStatus('');
+    setSearchMalicious('');
+    setSearchResults(null);
+    setSearchError(null);
+    setFromDate('');
+    setToDate('');
+    setPage(1);
+    setPageSize(25);
+    setSearchTotal(0);
+    // Load browse defaults
+    (async () => {
+      const res = await logService.fetchLogs(25, 0);
+      setBrowseResults(res.logs as typeof logs);
+      setBrowseTotal(res.total_count || 0);
+    })();
+  }, []);
+
+  // Browse pagination loader when not searching
+  useEffect(() => {
+    if (searchResults) return; // search mode controls its own fetch
+    (async () => {
+      const offset = (page - 1) * pageSize;
+      const res = await logService.fetchLogs(pageSize, offset);
+      setBrowseResults(res.logs as typeof logs);
+      setBrowseTotal(res.total_count || 0);
+    })();
+  }, [searchResults, page, pageSize]);
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -87,6 +176,105 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Search (Admin/Manager only) */}
+        {isPrivileged && (
+          <div className="glass-strong rounded-2xl p-6 border border-vt-primary/20 mb-8 animate-slide-up">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs text-vt-muted mb-2">IP Address</label>
+                <input
+                  value={searchIp}
+                  onChange={(e) => setSearchIp(e.target.value)}
+                  placeholder="e.g. 192.168.1.5"
+                  className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-vt-muted mb-2">API URL</label>
+                <input
+                  value={searchApi}
+                  onChange={(e) => setSearchApi(e.target.value)}
+                  placeholder="e.g. /api/v1/users"
+                  className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                />
+              </div>
+              <div className="w-40">
+                <label className="block text-xs text-vt-muted mb-2">Type</label>
+                <Select
+                  value={searchMalicious}
+                  onChange={(val) => setSearchMalicious(val as string)}
+                  options={[
+                    { label: 'All', value: '' },
+                    { label: 'Malicious', value: 'malicious' },
+                    { label: 'Clean', value: 'clean' },
+                  ]}
+                  density="sm"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleSearch}
+                  isLoading={searchLoading}
+                  variant="primary"
+                  size="md"
+                >
+                  Search
+                </Button>
+                <Button
+                  onClick={clearSearch}
+                  variant="secondary"
+                  size="md"
+                >
+                  Clear
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  variant="secondary"
+                  size="md"
+                >
+                  {showAdvanced ? 'Hide Advanced' : 'Advanced Filters'}
+                </Button>
+              </div>
+            </div>
+            {showAdvanced && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="w-36">
+                  <label className="block text-xs text-vt-muted mb-2">Status Code</label>
+                  <input
+                    value={searchStatus}
+                    onChange={(e) => setSearchStatus(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="e.g. 404"
+                    inputMode="numeric"
+                    className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="w-44">
+                  <label className="block text-xs text-vt-muted mb-2">From</label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="w-44">
+                  <label className="block text-xs text-vt-muted mb-2">To</label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
+            {searchError && (
+              <p className="mt-3 text-sm text-vt-error">{searchError}</p>
+            )}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -296,7 +484,7 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
           
-          {isLoading ? (
+          {isLoading && !browseResults && !searchResults ? (
             <LoadingSpinner text="Loading logs..." />
           ) : error ? (
             <div className="flex items-center justify-center py-16">
@@ -319,6 +507,44 @@ const DashboardPage: React.FC = () => {
               highlightTransformerTrail
             />
           )}
+        </div>
+
+        {/* Bottom Pagination (works for both normal fetch and search) */}
+        <div className="mt-4 flex items-center justify-between text-sm text-vt-muted">
+          <span>
+            {searchResults ? searchTotal : browseTotal} total results
+          </span>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || searchLoading}
+              variant="secondary"
+              size="sm"
+            >
+              Prev
+            </Button>
+            <span>Page {page}</span>
+            <Button
+              onClick={() => setPage((p) => p * pageSize < (searchResults ? searchTotal : browseTotal) ? p + 1 : p)}
+              disabled={page * pageSize >= (searchResults ? searchTotal : browseTotal) || searchLoading}
+              variant="secondary"
+              size="sm"
+            >
+              Next
+            </Button>
+            <Select
+              value={String(pageSize)}
+              onChange={(val) => { setPage(1); setPageSize(Number(val)); }}
+              options={[
+                { label: '10', value: '10' },
+                { label: '25', value: '25' },
+                { label: '50', value: '50' },
+                { label: '100', value: '100' },
+              ]}
+              density="sm"
+              className="w-24"
+            />
+          </div>
         </div>
       </div>
     </div>

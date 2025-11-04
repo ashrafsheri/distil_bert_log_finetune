@@ -1,3 +1,4 @@
+import Select from '../components/Select';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -385,18 +386,15 @@ const UsersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-vt-light mb-2">
                   Select Role
                 </label>
-                <select
+                <Select
                   value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'manager' | 'employee')}
-                  className="w-full px-4 py-3 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer"
-                  style={{
-                    colorScheme: 'dark'
-                  }}
-                >
-                  <option value="employee" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Employee</option>
-                  <option value="manager" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Manager</option>
-                  <option value="admin" style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}>Admin</option>
-                </select>
+                  onChange={(val) => setSelectedRole(val as 'admin' | 'manager' | 'employee')}
+                  options={[
+                    { label: 'Employee', value: 'employee' },
+                    { label: 'Manager', value: 'manager' },
+                    { label: 'Admin', value: 'admin' },
+                  ]}
+                />
               </div>
 
               <div className="flex gap-3">
