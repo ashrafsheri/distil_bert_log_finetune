@@ -67,13 +67,39 @@ const DashboardPage: React.FC = () => {
 
   const displayLogs = useMemo(() => {
     if (searchResults) return searchResults;
+    
+    // When page = 1 and browseResults exist, combine live logs + browseResults
+    if (browseResults && page === 1) {
+      // Combine browseResults with live logs, avoiding duplicates
+      const browseIds = new Set(browseResults.map(log => `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}`));
+      const uniqueLiveLogs = logs.filter(log => {
+        const logId = `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}`;
+        return !browseIds.has(logId);
+      });
+      
+      // Apply showAnomaliesOnly filter to live logs if needed
+      let filteredLiveLogs = uniqueLiveLogs;
+      if (showAnomaliesOnly) {
+        filteredLiveLogs = uniqueLiveLogs.filter(log => {
+          const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
+          return log.infected || transformerAnomaly;
+        });
+      }
+      
+      // Combine: live logs first (newest), then browseResults
+      return [...filteredLiveLogs, ...browseResults];
+    }
+    
+    // When page > 1, only show browseResults
     if (browseResults) return browseResults;
+    
+    // Fallback: show live logs (when no browseResults yet)
     if (!showAnomaliesOnly) return logs;
     return logs.filter(log => {
       const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
       return log.infected || transformerAnomaly;
     });
-  }, [logs, showAnomaliesOnly, searchResults, browseResults]);
+  }, [logs, showAnomaliesOnly, searchResults, browseResults, page]);
 
   const focusedLogs = useMemo(() => {
     if (!focusedIp) {
@@ -152,6 +178,23 @@ const DashboardPage: React.FC = () => {
       setBrowseTotal(res.total_count || 0);
     })();
   }, []);
+
+  // Pause/resume stream based on page number
+  useEffect(() => {
+    if (searchResults) return; // Don't control stream in search mode
+    
+    if (page === 1) {
+      // Resume stream on page 1
+      if (isStreamPaused) {
+        resumeStream();
+      }
+    } else {
+      // Pause stream on other pages
+      if (!isStreamPaused) {
+        pauseStream();
+      }
+    }
+  }, [page, searchResults, isStreamPaused, pauseStream, resumeStream]);
 
   // Browse pagination loader when not searching
   useEffect(() => {
