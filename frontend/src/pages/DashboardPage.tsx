@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLogs } from '../hooks/useLogs';
-import StreamControls from '../components/StreamControls';
+// import StreamControls from '../components/StreamControls';
 import { useAuth } from '../context/AuthContext';
 import Select from '../components/Select';
 import Button from '../components/Button';
@@ -17,17 +17,19 @@ const DashboardPage: React.FC = () => {
     infectedCount,
     safeCount,
     isStreamPaused,
-    pendingCount,
-    pendingThreatCount,
-    lastUpdate,
+    // pendingCount,
+    // pendingThreatCount,
+    // lastUpdate,
     pauseStream,
     resumeStream,
-    stepPending,
-    applyPending,
-    discardPending,
+    // stepPending,
+    // applyPending,
+    // discardPending,
   } = useLogs();
   const [statsUpdated, setStatsUpdated] = useState(false);
   const [previousLogCount, setPreviousLogCount] = useState(0);
+  // showAnomaliesOnly is still used in displayLogs logic, but setter is unused since StreamControls is commented out
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
   const [focusedIp, setFocusedIp] = useState<string | null>(null);
   const { userInfo } = useAuth();
@@ -108,17 +110,17 @@ const DashboardPage: React.FC = () => {
     return logs.filter(log => log.ipAddress === focusedIp).slice(0, 12);
   }, [logs, focusedIp]);
 
-  const handleTogglePause = useCallback(() => {
-    if (isStreamPaused) {
-      resumeStream();
-    } else {
-      pauseStream();
-    }
-  }, [isStreamPaused, pauseStream, resumeStream]);
+  // const handleTogglePause = useCallback(() => {
+  //   if (isStreamPaused) {
+  //     resumeStream();
+  //   } else {
+  //     pauseStream();
+  //   }
+  // }, [isStreamPaused, pauseStream, resumeStream]);
 
-  const handleToggleAnomalies = useCallback(() => {
-    setShowAnomaliesOnly(prev => !prev);
-  }, []);
+  // const handleToggleAnomalies = useCallback(() => {
+  //   setShowAnomaliesOnly(prev => !prev);
+  // }, []);
 
   const handleFocusIp = useCallback((ip: string | null) => {
     setFocusedIp(ip);
@@ -428,7 +430,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Stream Controls */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <StreamControls
             isPaused={isStreamPaused}
             pendingCount={pendingCount}
@@ -441,7 +443,7 @@ const DashboardPage: React.FC = () => {
             onToggleAnomalies={handleToggleAnomalies}
             lastUpdate={lastUpdate}
           />
-        </div>
+        </div> */}
 
         {/* Focused Trail Summary */}
         {focusedIp && (
