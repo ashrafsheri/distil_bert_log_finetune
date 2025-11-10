@@ -528,11 +528,11 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                     </div>
                                     <div className="glass rounded-lg px-2 sm:px-3 py-2 text-center border border-vt-warning/30">
                                       <div className="text-xs text-vt-muted mb-1">ISO</div>
-                                      <div className="text-base sm:text-lg font-bold text-vt-warning">{log.anomaly_details.ensemble.votes.iso}</div>
+                                      <div className="text-base sm:text-lg font-bold text-vt-warning">{(log.anomaly_details.ensemble.votes.iso || 0).toFixed(2)}</div>
                                     </div>
                                     <div className="glass rounded-lg px-2 sm:px-3 py-2 text-center border border-vt-success/30">
                                       <div className="text-xs text-vt-muted mb-1">Trans</div>
-                                      <div className="text-base sm:text-lg font-bold text-vt-success">{log.anomaly_details.ensemble.votes.transformer}</div>
+                                      <div className="text-base sm:text-lg font-bold text-vt-success">{(log.anomaly_details.ensemble.votes.transformer || 0).toFixed(2)}</div>
                                     </div>
                                   </div>
                                 </div>
