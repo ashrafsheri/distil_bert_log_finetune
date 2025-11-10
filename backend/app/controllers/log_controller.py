@@ -10,7 +10,7 @@ import asyncio
 import json
 import logging
 
-from app.models.log_entry import LogEntry, LogEntryResponse
+from app.models.log_entry import LogEntry, LogEntryResponse, AnomalyDetails
 from app.services.log_service import LogService
 from app.services.elasticsearch_service import ElasticsearchService
 from app.services.log_parser_service import LogParserService
@@ -66,12 +66,26 @@ async def fetch_logs(
         # Convert to LogEntry format for frontend
         logs = []
         for log_data in result["logs"]:
+            # Extract anomaly_details if present
+            anomaly_details = log_data.get("anomaly_details")
+            if anomaly_details and isinstance(anomaly_details, dict):
+                anomaly_details_obj = AnomalyDetails(
+                    rule_based=anomaly_details.get("rule_based"),
+                    isolation_forest=anomaly_details.get("isolation_forest"),
+                    transformer=anomaly_details.get("transformer"),
+                    ensemble=anomaly_details.get("ensemble")
+                )
+            else:
+                anomaly_details_obj = None
+            
             log_entry = LogEntry(
                 timestamp=log_data.get("timestamp", ""),
                 ipAddress=log_data.get("ip_address", ""),
                 apiAccessed=log_data.get("api_accessed", ""),
                 statusCode=log_data.get("status_code", 0),
-                infected=log_data.get("infected", False)
+                infected=log_data.get("infected", False),
+                anomaly_score=log_data.get("anomaly_score"),
+                anomaly_details=anomaly_details_obj
             )
             logs.append(log_entry)
         
@@ -137,6 +151,18 @@ async def search_logs(
         # Convert to LogEntry format for frontend
         logs: List[LogEntry] = []
         for log_data in result["logs"]:
+            # Extract anomaly_details if present
+            anomaly_details = log_data.get("anomaly_details")
+            if anomaly_details and isinstance(anomaly_details, dict):
+                anomaly_details_obj = AnomalyDetails(
+                    rule_based=anomaly_details.get("rule_based"),
+                    isolation_forest=anomaly_details.get("isolation_forest"),
+                    transformer=anomaly_details.get("transformer"),
+                    ensemble=anomaly_details.get("ensemble")
+                )
+            else:
+                anomaly_details_obj = None
+            
             logs.append(
                 LogEntry(
                     timestamp=log_data.get("timestamp", ""),
@@ -144,6 +170,8 @@ async def search_logs(
                     apiAccessed=log_data.get("api_accessed", ""),
                     statusCode=log_data.get("status_code", 0),
                     infected=log_data.get("infected", False),
+                    anomaly_score=log_data.get("anomaly_score"),
+                    anomaly_details=anomaly_details_obj
                 )
             )
 
