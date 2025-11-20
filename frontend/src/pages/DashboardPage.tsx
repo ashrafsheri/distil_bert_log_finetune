@@ -28,9 +28,8 @@ const DashboardPage: React.FC = () => {
   } = useLogs();
   const [statsUpdated, setStatsUpdated] = useState(false);
   const [previousLogCount, setPreviousLogCount] = useState(0);
-  // showAnomaliesOnly is still used in displayLogs logic, but setter is unused since StreamControls is commented out
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
+  // showAnomaliesOnly is still used in displayLogs logic
+  const showAnomaliesOnly = false; // Set to constant since StreamControls is commented out
   const [focusedIp, setFocusedIp] = useState<string | null>(null);
   const { userInfo } = useAuth();
   const isPrivileged = userInfo?.role === 'admin' || userInfo?.role === 'manager';
@@ -183,9 +182,13 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!isPrivileged) return;
+    if (!isPrivileged) {
+      setSearchError('Export requires admin or manager role');
+      return;
+    }
     try {
       setExportLoading(true);
+      setSearchError(''); // Clear any previous errors
       const params: Record<string, unknown> = {};
       if (searchIp.trim()) params.ip = searchIp.trim();
       if (searchApi.trim()) params.api = searchApi.trim();
@@ -195,7 +198,9 @@ const DashboardPage: React.FC = () => {
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
 
+      console.log('Exporting logs with params:', params);
       const blob = await logService.exportLogs(params);
+      console.log('Export blob received:', blob.size, 'bytes');
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -206,8 +211,11 @@ const DashboardPage: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      console.log('Export completed successfully');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Export failed';
+      console.error('Export error:', e);
       setSearchError(msg);
     } finally {
       setExportLoading(false);
