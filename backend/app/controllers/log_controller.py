@@ -4,6 +4,7 @@ Handles log-related API endpoints
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import StreamingResponse
 from typing import List
 import uuid
 import asyncio
@@ -185,6 +186,67 @@ async def search_logs(
     except Exception as e:
         logger.error(f"Error searching logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to search logs: {str(e)}")
+
+@router.get("/export")
+async def export_logs_to_csv(
+    ip: str | None = None,
+    api: str | None = None,
+    status_code: int | None = None,
+    malicious: bool | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    log_service: LogService = Depends(get_log_service),
+    current_user: dict = Depends(check_permission("/api/v1/export", "GET"))
+):
+    """
+    Export logs to CSV with anomaly scores for each model.
+    
+    Only accessible to admin and manager roles (enforced via RBAC).
+    Supports the same filters as search endpoint.
+    """
+    try:
+        infected = None
+        if malicious is not None:
+            infected = True if malicious else False
+
+        # Convert YYYY-MM-DD to ISO datetimes covering full days
+        from_dt = None
+        to_dt = None
+        if from_date:
+            from_dt = f"{from_date}T00:00:00Z"
+        if to_date:
+            to_dt = f"{to_date}T23:59:59Z"
+
+        # Get all matching logs (up to 10000 for export)
+        result = await elasticsearch_service.search_logs(
+            ip=ip,
+            api=api,
+            status_code=status_code,
+            infected=infected,
+            from_datetime=from_dt,
+            to_datetime=to_dt,
+            limit=10000,
+            offset=0,
+        )
+
+        # Generate CSV content
+        csv_content = await log_service.export_logs_to_csv(result["logs"])
+
+        # Create filename with timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"logguard_export_{timestamp}.csv"
+
+        # Return as downloadable file
+        return StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting logs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export logs: {str(e)}")
 
 @router.post("/agent/sendLogs")
 async def receive_fluent_bit_logs(

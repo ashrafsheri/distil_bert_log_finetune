@@ -6,6 +6,8 @@ Business logic for log processing and management
 from typing import List, Optional
 from datetime import datetime
 import uuid
+import csv
+import io
 
 from app.models.log_entry import LogEntry, LogEntryCreate
 
@@ -143,6 +145,84 @@ class LogService:
             Unique WebSocket ID string
         """
         return str(uuid.uuid4())
+    
+    async def export_logs_to_csv(self, logs: List[dict]) -> str:
+        """
+        Export logs to CSV format with anomaly scores for each model
+        
+        Args:
+            logs: List of log dictionaries from Elasticsearch
+            
+        Returns:
+            CSV string content
+        """
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write CSV header
+        writer.writerow([
+            'Timestamp',
+            'IP Address',
+            'API Accessed',
+            'Status Code',
+            'Infected',
+            'Ensemble Anomaly Score',
+            'Rule-Based Detection',
+            'Rule-Based Confidence',
+            'Rule-Based Attack Types',
+            'Isolation Forest Detection',
+            'Isolation Forest Score',
+            'Transformer Detection',
+            'Transformer NLL Score',
+            'Transformer Threshold',
+            'Transformer Sequence Length'
+        ])
+        
+        # Write log data
+        for log in logs:
+            anomaly_details = log.get('anomaly_details', {})
+            
+            # Extract rule-based details
+            rule_based = anomaly_details.get('rule_based', {})
+            rule_attack = rule_based.get('is_attack', False)
+            rule_confidence = rule_based.get('confidence', 0.0)
+            rule_attack_types = ', '.join(rule_based.get('attack_types', []))
+            
+            # Extract isolation forest details
+            iso_forest = anomaly_details.get('isolation_forest', {})
+            iso_anomaly = iso_forest.get('is_anomaly', 0)
+            iso_score = iso_forest.get('score', 0.0)
+            
+            # Extract transformer details
+            transformer = anomaly_details.get('transformer', {})
+            trans_anomaly = transformer.get('is_anomaly', 0)
+            trans_score = transformer.get('score', 0.0)
+            trans_threshold = transformer.get('threshold', 0.0)
+            trans_seq_len = transformer.get('sequence_length', 0)
+            
+            # Extract ensemble details
+            ensemble = anomaly_details.get('ensemble', {})
+            ensemble_score = ensemble.get('score', 0.0)
+            
+            writer.writerow([
+                log.get('timestamp', ''),
+                log.get('ip_address', ''),
+                log.get('api_accessed', ''),
+                log.get('status_code', ''),
+                log.get('infected', False),
+                ensemble_score,
+                'Yes' if rule_attack else 'No',
+                rule_confidence,
+                rule_attack_types,
+                'Yes' if iso_anomaly == 1 else 'No',
+                iso_score,
+                'Yes' if trans_anomaly == 1 else 'No',
+                trans_score,
+                trans_threshold,
+                trans_seq_len
+            ])
+        
+        return output.getvalue()
     
     async def get_log_statistics(self) -> dict:
         """

@@ -50,6 +50,18 @@ export const logService = {
     const response = await apiService.get<LogSearchResponse>(url);
     return response.data;
   },
+  async exportLogs(params: LogSearchParams): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.ip) qs.set('ip', params.ip);
+    if (params.api) qs.set('api', params.api);
+    if (typeof params.status_code === 'number') qs.set('status_code', String(params.status_code));
+    if (typeof params.malicious === 'boolean') qs.set('malicious', String(params.malicious));
+    if (params.from_date) qs.set('from_date', params.from_date);
+    if (params.to_date) qs.set('to_date', params.to_date);
+    const url = qs.toString() ? `/api/v1/export?${qs.toString()}` : '/api/v1/export';
+    const response = await apiService.getBlob(url);
+    return response.data;
+  },
 };
 
 
