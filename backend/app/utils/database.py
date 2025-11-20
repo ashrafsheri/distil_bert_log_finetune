@@ -125,6 +125,9 @@ async def _init_default_permissions():
         # Search logs - restricted to admin and manager
         (RoleEnum.ADMIN, "/api/v1/search", "GET"),
         (RoleEnum.MANAGER, "/api/v1/search", "GET"),
+        # Export logs - restricted to admin and manager
+        (RoleEnum.ADMIN, "/api/v1/export", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/export", "GET"),
         
         # All roles - WebSocket (you may want to restrict this)
         (RoleEnum.ADMIN, "/ws", "GET"),
