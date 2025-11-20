@@ -206,6 +206,71 @@ export const apiService = {
       body: body ? JSON.stringify(body) : undefined,
     });
   },
+
+  /**
+   * GET request for Blob data (file downloads)
+   */
+  async getBlob(url: string, options: Omit<ApiRequestOptions, 'method'> = {}): Promise<ApiResponse<Blob>> {
+    const { requireAuth = true, headers = {}, ...fetchOptions } = options;
+    
+    // Build headers
+    const requestHeaders: Record<string, string> = {
+      ...(headers as Record<string, string>),
+    };
+    
+    // Add authorization header if auth is required
+    if (requireAuth) {
+      const token = await getIdToken();
+      if (token) {
+        requestHeaders['Authorization'] = `Bearer ${token}`;
+      } else {
+        throw new ApiError(
+          'Authentication required. Please log in.',
+          401,
+          'Unauthorized'
+        );
+      }
+    }
+    
+    // Make the request
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        method: 'GET',
+        headers: requestHeaders,
+      });
+      
+      // Handle error responses
+      if (!response.ok) {
+        const text = await response.text();
+        throw new ApiError(
+          text || `HTTP error! status: ${response.status}`,
+          response.status,
+          response.statusText
+        );
+      }
+      
+      const blob = await response.blob();
+      
+      return {
+        data: blob,
+        status: response.status,
+        statusText: response.statusText,
+      };
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // Network or other errors
+      throw new ApiError(
+        error instanceof Error ? error.message : 'Network error occurred',
+        0,
+        'Network Error',
+        error
+      );
+    }
+  },
 };
 
 /**
