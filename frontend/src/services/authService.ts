@@ -96,7 +96,6 @@ class AuthServiceImpl implements AuthService {
    */
   async logout(): Promise<void> {
     if (!auth) {
-      console.warn('Firebase auth is not initialized. Cannot logout.');
       return;
     }
     try {
@@ -135,8 +134,7 @@ class AuthServiceImpl implements AuthService {
     try {
       const token = await currentUser.getIdToken();
       return token;
-    } catch (error: unknown) {
-      console.error('Error getting ID token:', error);
+    } catch {
       return null;
     }
   }
@@ -148,7 +146,6 @@ class AuthServiceImpl implements AuthService {
    */
   onAuthStateChange(callback: (user: User | null) => void): () => void {
     if (!auth) {
-      console.error('Firebase auth is not initialized');
       // Return a no-op unsubscribe function and immediately call callback with null
       callback(null);
       return () => {};

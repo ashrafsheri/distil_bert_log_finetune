@@ -34,8 +34,8 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
         const parsed = JSON.parse(saved);
         setThresholds(parsed);
         setTempThresholds(parsed);
-      } catch (e) {
-        console.error('Failed to load thresholds from localStorage', e);
+      } catch {
+        // Failed to load thresholds from localStorage - silently fail
       }
     }
   }, []);

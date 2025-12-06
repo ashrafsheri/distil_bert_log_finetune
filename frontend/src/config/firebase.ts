@@ -12,32 +12,8 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
 
-// Debug: Log environment variable status (only in development)
-if (import.meta.env.DEV) {
-  console.log('Firebase Config Status:', {
-    hasApiKey: !!firebaseConfig.apiKey,
-    hasProjectId: !!firebaseConfig.projectId,
-    hasAuthDomain: !!firebaseConfig.authDomain,
-    envVarsFound: {
-      VITE_FIREBASE_API_KEY: !!import.meta.env.VITE_FIREBASE_API_KEY,
-      VITE_FIREBASE_PROJECT_ID: !!import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      VITE_FIREBASE_AUTH_DOMAIN: !!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    }
-  });
-}
-
 // Validate that Firebase config has required values
 const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.authDomain;
-
-if (!isConfigValid) {
-  console.error('Firebase configuration is missing required values:', {
-    apiKey: firebaseConfig.apiKey ? '✓' : '✗ Missing',
-    projectId: firebaseConfig.projectId ? '✓' : '✗ Missing',
-    authDomain: firebaseConfig.authDomain ? '✓' : '✗ Missing',
-  });
-  console.error('Please create a .env file in the frontend directory with your Firebase configuration.');
-  console.error('Required variables: VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_AUTH_DOMAIN');
-}
 
 // Initialize Firebase
 let app: ReturnType<typeof initializeApp> | null = null;
@@ -55,15 +31,9 @@ try {
     // Admin app for creating users without switching sessions
     adminApp = initializeApp(firebaseConfig, 'ADMIN_APP');
     adminAuth = getAuth(adminApp);
-    
-    console.log('Firebase initialized successfully');
-    console.log('Admin auth instance created for user management');
-  } else {
-    console.error('Firebase configuration is incomplete. Cannot initialize.');
-    console.error('Auth features will be disabled until configuration is provided.');
   }
 } catch (error) {
-  console.error('Error initializing Firebase:', error);
+  // Firebase initialization error - silently fail
 }
 
 // Initialize Firebase Authentication and get a reference to the service
