@@ -45,8 +45,7 @@ async function getIdToken(): Promise<string | null> {
     // Get fresh ID token
     const token = await currentUser.getIdToken();
     return token;
-  } catch (error) {
-    console.error('Error getting ID token:', error);
+  } catch {
     return null;
   }
 }
@@ -305,7 +304,6 @@ export function createAuthenticatedWebSocket(
         
         websocket.onopen = (event) => {
           opened = true;
-          console.log('✅ Authenticated WebSocket connection established');
           if (onOpen) {
             onOpen(event);
           }
@@ -319,7 +317,6 @@ export function createAuthenticatedWebSocket(
         };
         
         websocket.onerror = (event) => {
-          console.error('❌ WebSocket error:', event);
           if (onError) {
             onError(event);
           }
@@ -330,12 +327,9 @@ export function createAuthenticatedWebSocket(
         };
         
         websocket.onclose = (event) => {
-          console.log('🔌 WebSocket connection closed:', event.code, event.reason);
-          
           // If closed before opening (connection rejected), reject the promise
           if (!opened && (event.code === 1008 || event.code === 1011)) {
             const reason = event.reason || `Connection rejected: ${event.code}`;
-            console.error('❌ WebSocket connection rejected:', reason);
             reject(new Error(reason));
             return;
           }

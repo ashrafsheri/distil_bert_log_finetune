@@ -23,7 +23,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.utils.database import get_db
 from app.models.user_db import UserDB, RoleEnum
+from app.models.ip_db import IPDB, IPStatusEnum
 from app.services.email_service import can_send_alert, mark_alert_sent, send_email
+from pydantic import BaseModel
+
+
+class CorrectLogRequest(BaseModel):
+    """Request model for correctLog endpoint"""
+    ip: str
+    status: str  # "clean" or "malicious"
+
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -248,6 +257,89 @@ async def export_logs_to_csv(
         logger.error(f"Error exporting logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to export logs: {str(e)}")
 
+
+@router.post("/correctLog")
+async def correct_log(
+    request: CorrectLogRequest,
+    db: AsyncSession = Depends(get_db),
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    current_user: dict = Depends(check_permission("/api/v1/correctLog", "POST"))
+):
+    """
+    Correct log status for an IP address.
+    
+    Stores IP and status in PostgreSQL, then updates all logs for that IP in Elasticsearch.
+    
+    Args:
+        request: Contains ip (str) and status (str: "clean" or "malicious")
+        
+    Returns:
+        dict: Confirmation message with update details
+    """
+    try:
+        # Validate status
+        if request.status.lower() not in ["clean", "malicious"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Status must be either 'clean' or 'malicious'"
+            )
+        
+        status_enum = IPStatusEnum.CLEAN if request.status.lower() == "clean" else IPStatusEnum.MALICIOUS
+        infected = status_enum == IPStatusEnum.MALICIOUS
+        
+        # Check if IP already exists in database
+        result = await db.execute(select(IPDB).where(IPDB.ip == request.ip))
+        existing_ip = result.scalar_one_or_none()
+        
+        if existing_ip:
+            # Update existing IP record
+            existing_ip.status = status_enum
+            await db.commit()
+            logger.info(f"Updated IP {request.ip} status to {request.status}")
+        else:
+            # Create new IP record
+            new_ip = IPDB(
+                ip=request.ip,
+                status=status_enum
+            )
+            db.add(new_ip)
+            await db.commit()
+            logger.info(f"Created new IP {request.ip} with status {request.status}")
+        
+        # Update all logs for this IP in Elasticsearch
+        update_result = await elasticsearch_service.update_logs_by_ip(
+            ip_address=request.ip,
+            infected=infected
+        )
+        
+        if update_result["status"] == "error":
+            logger.error(f"Failed to update logs in Elasticsearch: {update_result.get('message')}")
+            # Still return success for database update, but note Elasticsearch issue
+            return {
+                "message": "IP status updated in database, but Elasticsearch update failed",
+                "ip": request.ip,
+                "status": request.status,
+                "database_updated": True,
+                "elasticsearch_updated": False,
+                "elasticsearch_error": update_result.get("message"),
+                "logs_updated_count": 0
+            }
+        
+        return {
+            "message": "IP status updated successfully",
+            "ip": request.ip,
+            "status": request.status,
+            "database_updated": True,
+            "elasticsearch_updated": True,
+            "logs_updated_count": update_result.get("update_count", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error correcting log status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to correct log status: {str(e)}")
+
 @router.post("/agent/sendLogs")
 async def receive_fluent_bit_logs(
     request: Request,
@@ -271,7 +363,6 @@ async def receive_fluent_bit_logs(
         # Generate internal batch ID for tracking
         batch_id = str(uuid.uuid4())
         raw_logs = []
-        print("Recieved Log")
         # Parse the raw request body
         body = await request.body()
         request_data = json.loads(body)
@@ -303,21 +394,57 @@ async def receive_fluent_bit_logs(
             log_lines=raw_logs,
             session_id=f"fluent_bit_{batch_id}"
         )
-        print(anomaly_results)
         
         if anomaly_results is None:
             logger.warning("Anomaly detection failed, processing logs without detection")
             anomaly_results = [{"is_anomaly": False, "anomaly_score": 0.0, "details": {}}] * len(raw_logs)
         
-        # Parse and format logs for storage
-        processed_logs = []
+        # Parse logs first to get IP addresses
+        parsed_logs_data = []
         for i, raw_log in enumerate(raw_logs):
             try:
-                # Parse Apache log
                 parsed_log = log_parser_service.parse_apache_log(raw_log)
                 if parsed_log is None:
                     logger.warning(f"Could not parse log: {raw_log[:100]}...")
                     continue
+                parsed_logs_data.append({
+                    "parsed_log": parsed_log,
+                    "raw_log": raw_log,
+                    "anomaly_index": i
+                })
+            except Exception as e:
+                logger.error(f"Error parsing log: {e}")
+                continue
+        
+        # Get unique IP addresses from parsed logs
+        unique_ips = set()
+        for log_data in parsed_logs_data:
+            ip = log_data["parsed_log"].get("ip_address")
+            if ip:
+                unique_ips.add(ip)
+        
+        # Query IP table for all unique IPs in this batch
+        ip_status_map = {}
+        if unique_ips:
+            try:
+                result = await db.execute(
+                    select(IPDB).where(IPDB.ip.in_(list(unique_ips)))
+                )
+                ip_records = result.scalars().all()
+                for ip_record in ip_records:
+                    # Map status to infected boolean: malicious = True, clean = False
+                    ip_status_map[ip_record.ip] = ip_record.status == IPStatusEnum.MALICIOUS
+                logger.debug(f"Found {len(ip_status_map)} IPs in IP table out of {len(unique_ips)} unique IPs")
+            except Exception as e:
+                logger.error(f"Error querying IP table: {e}")
+        
+        # Parse and format logs for storage
+        processed_logs = []
+        for log_data in parsed_logs_data:
+            try:
+                parsed_log = log_data["parsed_log"]
+                raw_log = log_data["raw_log"]
+                i = log_data["anomaly_index"]
                 
                 # Get anomaly result for this log
                 anomaly_result = anomaly_results[i] if i < len(anomaly_results) else {
@@ -326,13 +453,22 @@ async def receive_fluent_bit_logs(
                     "details": {}
                 }
                 
+                # Check IP table for status override
+                ip_address = parsed_log["ip_address"]
+                infected_status = anomaly_result.get("is_anomaly", False)
+                
+                # Override infected status if IP is in the IP table
+                if ip_address in ip_status_map:
+                    infected_status = ip_status_map[ip_address]
+                    logger.debug(f"Overriding infected status for IP {ip_address} to {infected_status} based on IP table")
+                
                 # Format for storage - use original ISO timestamp for Elasticsearch
                 formatted_log = {
                     "timestamp": parsed_log["timestamp"],  # Keep original ISO format for Elasticsearch
-                    "ip_address": parsed_log["ip_address"],
+                    "ip_address": ip_address,
                     "api_accessed": parsed_log["path"],
                     "status_code": parsed_log["status_code"],
-                    "infected": anomaly_result.get("is_anomaly", False),
+                    "infected": infected_status,
                     "anomaly_score": anomaly_result.get("anomaly_score", 0.0),
                     "anomaly_details": {
                         "rule_based": anomaly_result.get("details", {}).get("rule_based", {}),

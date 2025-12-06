@@ -17,6 +17,7 @@ const DashboardPage: React.FC = () => {
     infectedCount,
     safeCount,
     isStreamPaused,
+    refetch,
     // pendingCount,
     // pendingThreatCount,
     // lastUpdate,
@@ -126,6 +127,17 @@ const DashboardPage: React.FC = () => {
     setFocusedIp(ip);
   }, []);
 
+  const handleCorrectLog = useCallback(async (ip: string, status: 'clean' | 'malicious') => {
+    try {
+      await logService.correctLog(ip, status);
+      // Refetch logs after successful correction
+      refetch();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to correct log status';
+      setSearchError(errorMessage);
+    }
+  }, [refetch]);
+
   const handleSearch = useCallback(async () => {
     if (!isPrivileged) return;
     try {
@@ -198,9 +210,7 @@ const DashboardPage: React.FC = () => {
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
 
-      console.log('Exporting logs with params:', params);
       const blob = await logService.exportLogs(params);
-      console.log('Export blob received:', blob.size, 'bytes');
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -211,11 +221,8 @@ const DashboardPage: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      console.log('Export completed successfully');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Export failed';
-      console.error('Export error:', e);
       setSearchError(msg);
     } finally {
       setExportLoading(false);
@@ -306,18 +313,6 @@ const DashboardPage: React.FC = () => {
                   size="md"
                 >
                   Search
-                </Button>
-                <Button
-                  onClick={handleExport}
-                  isLoading={exportLoading}
-                  variant="secondary"
-                  size="md"
-                  title="Export filtered logs to CSV"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Export CSV
                 </Button>
                 <Button
                   onClick={clearSearch}
@@ -569,9 +564,26 @@ const DashboardPage: React.FC = () => {
         <div className="glass-strong rounded-2xl border border-vt-muted/20 overflow-hidden shadow-2xl animate-slide-up stagger-1">
           <div className="px-6 py-5 border-b border-vt-muted/20 bg-gradient-to-r from-vt-blue/50 to-transparent">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-vt-light">Recent Activity</h2>
-                <p className="text-sm text-vt-muted mt-1">Real-time log entries with anomaly detection results</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-vt-light">Recent Activity</h2>
+                  <p className="text-sm text-vt-muted mt-1">Real-time log entries with anomaly detection results</p>
+                </div>
+                {isPrivileged && (
+                  <Button
+                    onClick={handleExport}
+                    isLoading={exportLoading}
+                    variant="secondary"
+                    size="sm"
+                    title="Export logs to CSV"
+                    className="ml-4"
+                  >
+                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export CSV
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
@@ -603,6 +615,8 @@ const DashboardPage: React.FC = () => {
               focusedIp={focusedIp}
               onFocusIp={handleFocusIp}
               highlightTransformerTrail
+              onCorrectLog={handleCorrectLog}
+              canCorrectLogs={isPrivileged}
             />
           )}
         </div>
