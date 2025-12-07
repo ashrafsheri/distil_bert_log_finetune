@@ -112,6 +112,12 @@ const DashboardPage: React.FC = () => {
     return logs.filter(log => log.ipAddress === focusedIp).slice(0, 12);
   }, [logs, focusedIp]);
 
+  // Calculate detection rate
+  const detectionRate = useMemo(() => {
+    if (totalCount === 0) return 0;
+    return ((infectedCount / totalCount) * 100).toFixed(1);
+  }, [totalCount, infectedCount]);
+
   // const handleTogglePause = useCallback(() => {
   //   if (isStreamPaused) {
   //     resumeStream();
