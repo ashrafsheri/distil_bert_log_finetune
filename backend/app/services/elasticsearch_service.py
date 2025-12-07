@@ -330,3 +330,96 @@ class ElasticsearchService:
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error searching logs in Elasticsearch: {e}")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+
+    async def update_logs_by_ip(self, ip_address: str, infected: bool) -> Dict:
+        """Update all logs for a specific IP address with new infected status.
+        
+        Args:
+            ip_address: The IP address to update logs for
+            infected: The new infected status (True for malicious, False for clean)
+            
+        Returns:
+            Dict with update_count and status
+        """
+        if self.client is None:
+            logger.warning("Elasticsearch not available, cannot update logs")
+            return {"update_count": 0, "status": "error", "message": "Elasticsearch not available"}
+        
+        try:
+            # First, get all document IDs for this IP address
+            query = {
+                "query": {
+                    "term": {"ip_address": ip_address}
+                },
+                "_source": False,  # We don't need the document content, just IDs
+                "size": 10000  # Adjust if you expect more logs per IP
+            }
+            
+            response = self.client.search(
+                index=self.index_name,
+                body=query,
+                scroll="2m"  # Use scroll API for large result sets
+            )
+            
+            scroll_id = response.get("_scroll_id")
+            hits = response["hits"]["hits"]
+            all_doc_ids = [hit["_id"] for hit in hits]
+            
+            # Continue scrolling if there are more results
+            while len(hits) > 0:
+                if scroll_id:
+                    response = self.client.scroll(
+                        scroll_id=scroll_id,
+                        scroll="2m"
+                    )
+                    hits = response["hits"]["hits"]
+                    all_doc_ids.extend([hit["_id"] for hit in hits])
+                else:
+                    break
+            
+            if not all_doc_ids:
+                logger.info(f"No logs found for IP address: {ip_address}")
+                return {"update_count": 0, "status": "success", "message": "No logs found for this IP"}
+            
+            # Use bulk update API to update all documents
+            bulk_body = []
+            for doc_id in all_doc_ids:
+                bulk_body.append({
+                    "update": {
+                        "_index": self.index_name,
+                        "_id": doc_id
+                    }
+                })
+                bulk_body.append({
+                    "doc": {
+                        "infected": infected
+                    }
+                })
+            
+            if bulk_body:
+                update_response = self.client.bulk(body=bulk_body)
+                
+                if update_response.get("errors"):
+                    logger.error(f"Some documents failed to update: {update_response}")
+                    return {
+                        "update_count": 0,
+                        "status": "error",
+                        "message": "Some updates failed"
+                    }
+                
+                # Count successful updates
+                update_count = sum(1 for item in update_response.get("items", []) 
+                                 if item.get("update", {}).get("status") in ["200", "201"])
+                
+                logger.info(f"Successfully updated {update_count} logs for IP {ip_address} with infected={infected}")
+                return {
+                    "update_count": update_count,
+                    "status": "success",
+                    "message": f"Updated {update_count} logs"
+                }
+            
+            return {"update_count": 0, "status": "success", "message": "No updates needed"}
+            
+        except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
+            logger.error(f"Error updating logs by IP in Elasticsearch: {e}")
+            return {"update_count": 0, "status": "error", "message": str(e)}

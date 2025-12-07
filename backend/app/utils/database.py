@@ -54,6 +54,7 @@ async def init_db():
     from app.models import user_db  # noqa: F401
     from app.models.user_db import UserDB, RoleEnum
     from app.models.role_permission_db import RolePermissionDB  # noqa: F401
+    from app.models.ip_db import IPDB  # noqa: F401
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -108,11 +109,13 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/role", "PATCH"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/password", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/correctLog", "POST"),
         
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid", "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}/enabled", "PUT"),
+        (RoleEnum.MANAGER, "/api/v1/correctLog", "POST"),
         
         # Employee - Limited access, only their own profile
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
