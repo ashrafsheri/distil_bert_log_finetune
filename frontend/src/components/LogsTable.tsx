@@ -53,6 +53,8 @@ interface LogsTableProps {
   focusedIp?: string | null;
   onFocusIp?: (ip: string | null) => void;
   highlightTransformerTrail?: boolean;
+  onCorrectLog?: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
+  canCorrectLogs?: boolean; // Whether user has permission to correct logs
 }
 
 const LogsTable: React.FC<LogsTableProps> = ({
@@ -61,9 +63,13 @@ const LogsTable: React.FC<LogsTableProps> = ({
   focusedIp = null,
   onFocusIp,
   highlightTransformerTrail = false,
+  onCorrectLog,
+  canCorrectLogs = false,
 }) => {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [correctingLogs, setCorrectingLogs] = useState<Set<string>>(new Set());
   const datasetForTrail = sourceLogs ?? logs;
+
 
   const trailLookup = useMemo(() => {
     const map = new Map<string, LogEntry[]>();
@@ -79,6 +85,23 @@ const LogsTable: React.FC<LogsTableProps> = ({
 
   const toggleRow = (index: number) => {
     setExpandedRow(expandedRow === index ? null : index);
+  };
+
+  const handleCorrectLog = async (ip: string, status: 'clean' | 'malicious') => {
+    if (!onCorrectLog) return;
+    
+    setCorrectingLogs(prev => new Set(prev).add(ip));
+    try {
+      await onCorrectLog(ip, status);
+    } catch {
+      // Error correcting log - silently fail
+    } finally {
+      setCorrectingLogs(prev => {
+        const next = new Set(prev);
+        next.delete(ip);
+        return next;
+      });
+    }
   };
 
   if (logs.length === 0) {
@@ -268,38 +291,84 @@ const LogsTable: React.FC<LogsTableProps> = ({
                     )}
                   </td>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleRow(index)}
-                      className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
-                      title={expandedRow === index ? "Hide details" : "Show details"}
-                    >
-                      {expandedRow === index ? (
-                        <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleRow(index)}
+                        className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
+                        title={expandedRow === index ? "Hide details" : "Show details"}
+                      >
+                        {expandedRow === index ? (
+                          <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onFocusIp) {
+                            onFocusIp(isFocused ? null : log.ipAddress);
+                          }
+                        }}
+                        className={`p-2 rounded-lg transition-all duration-200 ${
+                          isFocused
+                            ? 'bg-vt-warning/20 text-vt-warning hover:bg-vt-warning/30'
+                            : 'text-vt-muted hover:text-vt-primary hover:bg-vt-primary/10'
+                        }`}
+                        title={isFocused ? 'Clear focus' : 'Focus on this IP trail'}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276a1 1 0 011.447.894V15.38a1 1 0 01-.553.894L15 18m0-8l-4.553-2.276A1 1 0 009 8.618V15.38a1 1 0 00.553.894L15 18m0-8v8m-6-6H5m4-6H5" />
                         </svg>
-                      ) : (
-                        <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                      </button>
+                      {canCorrectLogs && onCorrectLog && (
+                        <div className="flex items-center gap-1 ml-1 border-l border-vt-muted/20 pl-1.5">
+                          <button
+                            onClick={() => handleCorrectLog(log.ipAddress, 'clean')}
+                            disabled={correctingLogs.has(log.ipAddress)}
+                            className={`p-1.5 rounded transition-all duration-200 ${
+                              correctingLogs.has(log.ipAddress)
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'text-vt-success hover:bg-vt-success/20 hover:scale-110'
+                            }`}
+                            title="Mark IP as clean"
+                          >
+                            {correctingLogs.has(log.ipAddress) ? (
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleCorrectLog(log.ipAddress, 'malicious')}
+                            disabled={correctingLogs.has(log.ipAddress)}
+                            className={`p-1.5 rounded transition-all duration-200 ${
+                              correctingLogs.has(log.ipAddress)
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'text-vt-error hover:bg-vt-error/20 hover:scale-110'
+                            }`}
+                            title="Mark IP as malicious"
+                          >
+                            {correctingLogs.has(log.ipAddress) ? (
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (onFocusIp) {
-                          onFocusIp(isFocused ? null : log.ipAddress);
-                        }
-                      }}
-                      className={`ml-2 p-2 rounded-lg transition-all duration-200 ${
-                        isFocused
-                          ? 'bg-vt-warning/20 text-vt-warning hover:bg-vt-warning/30'
-                          : 'text-vt-muted hover:text-vt-primary hover:bg-vt-primary/10'
-                      }`}
-                      title={isFocused ? 'Clear focus' : 'Focus on this IP trail'}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276a1 1 0 011.447.894V15.38a1 1 0 01-.553.894L15 18m0-8l-4.553-2.276A1 1 0 009 8.618V15.38a1 1 0 00.553.894L15 18m0-8v8m-6-6H5m4-6H5" />
-                      </svg>
-                    </button>
+                    </div>
                   </td>
                 </tr>
                 {expandedRow === index && log.anomaly_details && (

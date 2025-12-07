@@ -13,8 +13,8 @@ const ProfilePage: React.FC = () => {
       setLogoutLoading(true);
       await logout();
       navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out:', error);
+    } catch {
+      // Error during logout - silently fail
     } finally {
       setLogoutLoading(false);
     }

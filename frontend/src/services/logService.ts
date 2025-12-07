@@ -62,6 +62,13 @@ export const logService = {
     const response = await apiService.getBlob(url);
     return response.data;
   },
+  async correctLog(ip: string, status: 'clean' | 'malicious'): Promise<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }> {
+    const response = await apiService.post<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }>(
+      '/api/v1/correctLog',
+      { ip, status }
+    );
+    return response.data;
+  },
 };
 
 

@@ -32,7 +32,6 @@ const UsersPage: React.FC = () => {
       setUsers(allUsers);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
-      console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
     }

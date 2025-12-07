@@ -45,12 +45,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userInfoData = await userService.getCurrentUser();
         setUserInfo(userInfoData);
       } catch (error) {
-        console.error('Error fetching user info:', error);
         // If fetching user info fails, logout the user
         try {
           await authService.logout();
-        } catch (logoutError) {
-          console.error('Error during logout:', logoutError);
+        } catch {
+          // Error during logout - silently fail
         }
         setUserInfo(null);
         setCurrentUser(null);
@@ -62,7 +61,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Set a timeout to ensure loading doesn't hang forever
     const timeoutId = setTimeout(() => {
       if (mounted) {
-        console.warn('Auth initialization taking longer than expected');
         setLoading(false);
       }
     }, 5000); // 5 second timeout
@@ -82,8 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearTimeout(timeoutId);
         unsubscribe();
       };
-    } catch (error) {
-      console.error('Error initializing auth:', error);
+    } catch {
       if (mounted) {
         setLoading(false);
       }
@@ -99,12 +96,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserInfo(userInfoData);
       // State will update automatically via onAuthStateChange
     } catch (error) {
-      console.error('Error fetching user info after login:', error);
       // If fetching user info fails, logout and throw error
       try {
         await authService.logout();
-      } catch (logoutError) {
-        console.error('Error during logout:', logoutError);
+      } catch {
+        // Error during logout - silently fail
       }
       setUserInfo(null);
       setCurrentUser(null);

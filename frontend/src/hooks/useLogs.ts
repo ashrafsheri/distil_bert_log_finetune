@@ -44,32 +44,23 @@ export const useLogs = (): UseLogsReturn => {
       const response = await apiService.get<{ logs: LogEntry[]; total_count: number; infected_count: number; websocket_id?: string }>(API_ENDPOINTS.FETCH_LOGS);
       const data = response.data;
       
-      console.log('📡 Fetch response received:', data);
-      console.log('🔍 Checking for websocketId:', data.websocket_id);
-      
       if (Array.isArray(data.logs)) {
         setLogs(data.logs);
-        console.log('📋 Logs set, count:', data.logs.length);
         
         // Set counts from backend response
         setTotalCount(data.total_count || 0);
         setInfectedCount(data.infected_count || 0);
         setLastUpdate(new Date());
-        console.log('📊 Backend counts - Total:', data.total_count, 'Infected:', data.infected_count);
         
         // If we get a websocket ID, establish WebSocket connection
         if (data.websocket_id) {
-          console.log('🔌 WebSocket ID found, establishing connection:', data.websocket_id);
           establishWebSocketConnection(data.websocket_id);
-        } else {
-          console.log('❌ No websocket_id in response');
         }
       } else {
         throw new Error('Invalid data format received');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch logs');
-      console.error('Error fetching logs:', err);
     } finally {
       setIsLoading(false);
     }
@@ -120,36 +111,26 @@ export const useLogs = (): UseLogsReturn => {
 
   const establishWebSocketConnection = useCallback(async (websocketId: string) => {
     try {
-      console.log('🚀 Starting WebSocket connection establishment...');
-      console.log('🔗 WebSocket ID:', websocketId);
-      console.log('🌐 WebSocket Base URL:', API_ENDPOINTS.WEBSOCKET_BASE);
-      
       // Close existing connection if any
       if (ws) {
-        console.log('🔄 Closing existing WebSocket connection');
         ws.close();
       }
 
       // Create authenticated WebSocket connection
       const websocketUrl = `${API_ENDPOINTS.WEBSOCKET_BASE}/${websocketId}`;
-      console.log('🔌 Creating authenticated WebSocket connection to:', websocketUrl);
       
       const websocket = await websocketService.createConnection(
         websocketUrl,
         () => {
-          console.log('✅ Authenticated WebSocket connection established successfully!');
           setError(null);
         },
         (event) => {
-          console.log('📨 WebSocket message received:', event.data);
           try {
             const message = JSON.parse(event.data);
             
             // Handle wrapped WebSocket message format
             if (message && message.type === 'log_update' && message.data) {
               const newLog = message.data;
-              console.log('📝 New log added via WebSocket (wrapped):', newLog);
-              console.log('🔍 WebSocket log fields - IP:', newLog.ipAddress, 'API:', newLog.apiAccessed, 'Status:', newLog.statusCode);
               
               // Update logs array
               if (isStreamPausedRef.current) {
@@ -163,12 +144,8 @@ export const useLogs = (): UseLogsReturn => {
               if (newLog.infected) {
                 setInfectedCount(prev => prev + 1);
               }
-              
-              console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (newLog.infected ? 1 : 0));
             } else if (message && typeof message === 'object' && message.ipAddress) {
               // Handle direct log format (fallback)
-              console.log('📝 New log added via WebSocket (direct):', message);
-              console.log('🔍 WebSocket log fields - IP:', message.ipAddress, 'API:', message.apiAccessed, 'Status:', message.statusCode);
               
               // Update logs array
               if (isStreamPausedRef.current) {
@@ -182,43 +159,32 @@ export const useLogs = (): UseLogsReturn => {
               if (message.infected) {
                 setInfectedCount(prev => prev + 1);
               }
-              
-              console.log('📊 Counts updated - Total:', totalCount + 1, 'Infected:', infectedCount + (message.infected ? 1 : 0));
-            } else {
-              console.log('⚠️ Unknown WebSocket message format:', message);
             }
-          } catch (err) {
-            console.error('❌ Error parsing WebSocket message:', err);
+          } catch {
+            // Silently handle parsing errors
           }
         },
-        (err) => {
-          console.error('❌ WebSocket error:', err);
+        () => {
           setError('WebSocket connection failed');
         },
-        (event) => {
-          console.log('🔌 WebSocket connection closed:', event.code, event.reason);
+        () => {
           setWs(null);
           // Attempt to reconnect after delay
           setTimeout(() => {
-            console.log('🔄 Attempting to reconnect WebSocket...');
             establishWebSocketConnection(websocketId);
           }, WEBSOCKET_RECONNECT_DELAY);
         }
       );
 
       setWs(websocket);
-      console.log('🎯 WebSocket object created and set in state');
     } catch (err) {
-      console.error('❌ Error establishing WebSocket connection:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to establish real-time connection';
       setError(errorMessage);
       setWs(null);
       
       // Attempt to reconnect after delay if it's an auth error
       if (errorMessage.includes('Authentication') || errorMessage.includes('token')) {
-        console.log('🔄 Authentication error - will retry after delay');
         setTimeout(() => {
-          console.log('🔄 Retrying WebSocket connection...');
           establishWebSocketConnection(websocketId);
         }, WEBSOCKET_RECONNECT_DELAY);
       }
@@ -230,12 +196,10 @@ export const useLogs = (): UseLogsReturn => {
   }, [fetchInitialLogs]);
 
   useEffect(() => {
-    console.log('🎬 useLogs hook initialized, fetching initial logs...');
     fetchInitialLogs();
 
     // Cleanup WebSocket on unmount
     return () => {
-      console.log('🧹 Cleaning up WebSocket on unmount');
       if (ws) {
         ws.close();
       }
