@@ -1,6 +1,203 @@
 import React, { useMemo, useState } from 'react';
 import { getStatusIcon } from '../utils/helpers';
 
+// Helper function to calculate status badge color
+const getStatusColor = (infected: boolean, statusCode: number): string => {
+  if (infected) return 'var(--vt-error)';
+  if (statusCode >= 200 && statusCode < 300) return 'var(--vt-success)';
+  if (statusCode >= 400) return 'var(--vt-warning)';
+  return 'var(--vt-muted)';
+};
+
+// Helper function to calculate row classes
+const getRowClasses = (
+  infected: boolean,
+  expandedRow: number | null,
+  index: number,
+  isFocused: boolean,
+  highlightTransformerTrail: boolean,
+  isTransformerAnomaly: boolean
+): string => {
+  const classes = [
+    'group hover:bg-vt-primary/5 transition-all duration-200',
+    infected ? 'bg-vt-error/10 border-l-4 border-l-vt-error' : '',
+    expandedRow === index ? 'bg-vt-primary/5' : '',
+    isFocused ? 'ring-2 ring-vt-warning/40 bg-vt-warning/5' : '',
+    highlightTransformerTrail && isTransformerAnomaly ? 'shadow-inner shadow-vt-warning/20' : '',
+  ];
+  return classes.filter(Boolean).join(' ');
+};
+
+// Helper function to get progress bar gradient
+const getProgressGradient = (infected: boolean): string => {
+  return infected 
+    ? 'linear-gradient(90deg, rgba(248,113,113,1) 0%, rgba(239,68,68,1) 100%)' 
+    : 'linear-gradient(90deg, rgba(45,212,191,1) 0%, rgba(13,148,136,1) 100%)';
+};
+
+// Helper function to get activity card class
+const getActivityCardClass = (
+  isCurrentLog: boolean,
+  infected: boolean,
+  activityTransformer: boolean
+): string => {
+  if (isCurrentLog) return 'border-vt-primary/50 bg-vt-primary/10';
+  if (infected || activityTransformer) return 'border-vt-error/40 bg-vt-error/10';
+  return 'border-vt-muted/20 bg-vt-muted/5';
+};
+
+// Helper function to calculate threshold percentage above
+const calculateThresholdPercentage = (score: number, threshold: number): string => {
+  if (!score || !threshold) return '';
+  return `+${((score / threshold - 1) * 100).toFixed(1)}% above`;
+};
+
+// Helper component for action buttons
+const ActionButtons: React.FC<{
+  index: number;
+  expandedRow: number | null;
+  isFocused: boolean;
+  ipAddress: string;
+  correctingLogs: Set<string>;
+  canCorrectLogs: boolean;
+  onToggleRow: (index: number) => void;
+  onFocusIp?: (ip: string | null) => void;
+  onCorrectLog?: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
+}> = ({ index, expandedRow, isFocused, ipAddress, correctingLogs, canCorrectLogs, onToggleRow, onFocusIp, onCorrectLog }) => {
+  const handleFocusClick = () => {
+    if (onFocusIp) {
+      onFocusIp(isFocused ? null : ipAddress);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => onToggleRow(index)}
+        className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
+        title={expandedRow === index ? "Hide details" : "Show details"}
+      >
+        {expandedRow === index ? (
+          <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </button>
+      <button
+        onClick={handleFocusClick}
+        className={`p-2 rounded-lg transition-all duration-200 ${
+          isFocused
+            ? 'bg-vt-warning/20 text-vt-warning hover:bg-vt-warning/30'
+            : 'text-vt-muted hover:text-vt-primary hover:bg-vt-primary/10'
+        }`}
+        title={isFocused ? 'Clear focus' : 'Focus on this IP trail'}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276a1 1 0 011.447.894V15.38a1 1 0 01-.553.894L15 18m0-8l-4.553-2.276A1 1 0 009 8.618V15.38a1 1 0 00.553.894L15 18m0-8v8m-6-6H5m4-6H5" />
+        </svg>
+      </button>
+      {canCorrectLogs && onCorrectLog && (
+        <CorrectLogButtons
+          ipAddress={ipAddress}
+          correctingLogs={correctingLogs}
+          onCorrectLog={onCorrectLog}
+        />
+      )}
+    </div>
+  );
+};
+
+// Helper component for correct log buttons
+const CorrectLogButtons: React.FC<{
+  ipAddress: string;
+  correctingLogs: Set<string>;
+  onCorrectLog: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
+}> = ({ ipAddress, correctingLogs, onCorrectLog }) => {
+  const isLoading = correctingLogs.has(ipAddress);
+  
+  return (
+    <div className="flex items-center gap-1 ml-1 border-l border-vt-muted/20 pl-1.5">
+      <button
+        onClick={() => onCorrectLog(ipAddress, 'clean')}
+        disabled={isLoading}
+        className={`p-1.5 rounded transition-all duration-200 ${
+          isLoading
+            ? 'opacity-50 cursor-not-allowed'
+            : 'text-vt-success hover:bg-vt-success/20 hover:scale-110'
+        }`}
+        title="Mark IP as clean"
+      >
+        {isLoading ? (
+          <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+      </button>
+      <button
+        onClick={() => onCorrectLog(ipAddress, 'malicious')}
+        disabled={isLoading}
+        className={`p-1.5 rounded transition-all duration-200 ${
+          isLoading
+            ? 'opacity-50 cursor-not-allowed'
+            : 'text-vt-error hover:bg-vt-error/20 hover:scale-110'
+        }`}
+        title="Mark IP as malicious"
+      >
+        {isLoading ? (
+          <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
+};
+
+// Helper function to render table row
+const renderLogRow = (
+  log: LogEntry,
+  index: number,
+  props: {
+    expandedRow: number | null;
+    focusedIp: string | null;
+    highlightTransformerTrail: boolean;
+    trailLookup: Map<string, LogEntry[]>;
+    correctingLogs: Set<string>;
+    canCorrectLogs: boolean;
+    toggleRow: (index: number) => void;
+    onFocusIp?: (ip: string | null) => void;
+    handleCorrectLog: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
+  }
+) => {
+  const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
+  const transformerSequenceLength = log.anomaly_details?.transformer?.sequence_length ?? 0;
+  const transformerContext = log.anomaly_details?.transformer?.context;
+  const isFocused = props.focusedIp ? log.ipAddress === props.focusedIp : false;
+  const relatedActivity = props.trailLookup.get(log.ipAddress) ?? [];
+  const rowClasses = getRowClasses(
+    log.infected,
+    props.expandedRow,
+    index,
+    isFocused,
+    props.highlightTransformerTrail,
+    isTransformerAnomaly
+  );
+
+  return { isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
+};
+
 export interface AnomalyDetails {
   rule_based?: {
     is_attack: boolean;
@@ -156,20 +353,19 @@ const LogsTable: React.FC<LogsTableProps> = ({
           </thead>
           <tbody className="divide-y divide-vt-muted/10">
             {logs.map((log, index) => {
-              const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
-              const transformerSequenceLength = log.anomaly_details?.transformer?.sequence_length ?? 0;
-              const transformerContext = log.anomaly_details?.transformer?.context;
-              const isFocused = focusedIp ? log.ipAddress === focusedIp : false;
-              const relatedActivity = trailLookup.get(log.ipAddress) ?? [];
-              const rowClasses = [
-                'group hover:bg-vt-primary/5 transition-all duration-200',
-                log.infected ? 'bg-vt-error/10 border-l-4 border-l-vt-error' : '',
-                expandedRow === index ? 'bg-vt-primary/5' : '',
-                isFocused ? 'ring-2 ring-vt-warning/40 bg-vt-warning/5' : '',
-                highlightTransformerTrail && isTransformerAnomaly ? 'shadow-inner shadow-vt-warning/20' : '',
-              ]
-                .filter(Boolean)
-                .join(' ');
+              const rowData = renderLogRow(log, index, {
+                expandedRow,
+                focusedIp,
+                highlightTransformerTrail,
+                trailLookup,
+                correctingLogs,
+                canCorrectLogs,
+                toggleRow,
+                onFocusIp,
+                handleCorrectLog,
+              });
+              
+              const { transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
 
               return (
                 <React.Fragment key={index}>
@@ -227,9 +423,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                       className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-semibold"
                       style={{ 
                         backgroundColor: log.infected ? 'rgba(248, 113, 113, 0.18)' : 'rgba(79, 141, 249, 0.18)',
-                        color: log.infected
-                          ? 'var(--vt-error)'
-                          : (log.statusCode >= 200 && log.statusCode < 300 ? 'var(--vt-success)' : log.statusCode >= 400 ? 'var(--vt-warning)' : 'var(--vt-muted)'),
+                        color: getStatusColor(log.infected, log.statusCode),
                         border: `1px solid ${log.infected ? 'rgba(248, 113, 113, 0.32)' : 'rgba(79, 141, 249, 0.28)'}`
                       }}
                     >
@@ -244,9 +438,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                           className="h-full rounded-full transition-all duration-500 shadow-sm"
                           style={{
                             width: `${Math.min((log.anomaly_score || 0) * 100, 100)}%`,
-                            background: log.infected 
-                              ? 'linear-gradient(90deg, rgba(248,113,113,1) 0%, rgba(239,68,68,1) 100%)' 
-                              : 'linear-gradient(90deg, rgba(45,212,191,1) 0%, rgba(13,148,136,1) 100%)',
+                            background: getProgressGradient(log.infected),
                           }}
                         ></div>
                       </div>
@@ -291,84 +483,17 @@ const LogsTable: React.FC<LogsTableProps> = ({
                     )}
                   </td>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggleRow(index)}
-                        className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
-                        title={expandedRow === index ? "Hide details" : "Show details"}
-                      >
-                        {expandedRow === index ? (
-                          <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (onFocusIp) {
-                            onFocusIp(isFocused ? null : log.ipAddress);
-                          }
-                        }}
-                        className={`p-2 rounded-lg transition-all duration-200 ${
-                          isFocused
-                            ? 'bg-vt-warning/20 text-vt-warning hover:bg-vt-warning/30'
-                            : 'text-vt-muted hover:text-vt-primary hover:bg-vt-primary/10'
-                        }`}
-                        title={isFocused ? 'Clear focus' : 'Focus on this IP trail'}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276a1 1 0 011.447.894V15.38a1 1 0 01-.553.894L15 18m0-8l-4.553-2.276A1 1 0 009 8.618V15.38a1 1 0 00.553.894L15 18m0-8v8m-6-6H5m4-6H5" />
-                        </svg>
-                      </button>
-                      {canCorrectLogs && onCorrectLog && (
-                        <div className="flex items-center gap-1 ml-1 border-l border-vt-muted/20 pl-1.5">
-                          <button
-                            onClick={() => handleCorrectLog(log.ipAddress, 'clean')}
-                            disabled={correctingLogs.has(log.ipAddress)}
-                            className={`p-1.5 rounded transition-all duration-200 ${
-                              correctingLogs.has(log.ipAddress)
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'text-vt-success hover:bg-vt-success/20 hover:scale-110'
-                            }`}
-                            title="Mark IP as clean"
-                          >
-                            {correctingLogs.has(log.ipAddress) ? (
-                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleCorrectLog(log.ipAddress, 'malicious')}
-                            disabled={correctingLogs.has(log.ipAddress)}
-                            className={`p-1.5 rounded transition-all duration-200 ${
-                              correctingLogs.has(log.ipAddress)
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'text-vt-error hover:bg-vt-error/20 hover:scale-110'
-                            }`}
-                            title="Mark IP as malicious"
-                          >
-                            {correctingLogs.has(log.ipAddress) ? (
-                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <ActionButtons
+                      index={index}
+                      expandedRow={expandedRow}
+                      isFocused={isFocused}
+                      ipAddress={log.ipAddress}
+                      correctingLogs={correctingLogs}
+                      canCorrectLogs={canCorrectLogs}
+                      onToggleRow={toggleRow}
+                      onFocusIp={onFocusIp}
+                      onCorrectLog={handleCorrectLog}
+                    />
                   </td>
                 </tr>
                 {expandedRow === index && log.anomaly_details && (
@@ -427,7 +552,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div className="pt-3 border-t border-vt-muted/20">
                                   <span className="text-xs font-semibold text-vt-muted mb-2 block">Detected Attacks</span>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {log.anomaly_details.rule_based.attack_types.map((type, i) => (
+                                    {log.anomaly_details.rule_based.attack_types.map((type: string, i: number) => (
                                       <span 
                                         key={i}
                                         className="px-2.5 py-1 bg-vt-error/20 text-vt-error rounded-lg text-xs font-semibold border border-vt-error/30"
@@ -640,9 +765,10 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                   {(log.anomaly_details.transformer.threshold || 0).toFixed(3)}
                                 </div>
                                 <div className="text-xs text-vt-muted mt-1">
-                                  {log.anomaly_details.transformer.score && log.anomaly_details.transformer.threshold && 
-                                    `+${((log.anomaly_details.transformer.score / log.anomaly_details.transformer.threshold - 1) * 100).toFixed(1)}% above`
-                                  }
+                                  {calculateThresholdPercentage(
+                                    log.anomaly_details.transformer.score || 0,
+                                    log.anomaly_details.transformer.threshold || 0
+                                  )}
                                 </div>
                               </div>
                               
@@ -702,16 +828,13 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 activity.timestamp === log.timestamp &&
                                 activity.apiAccessed === log.apiAccessed &&
                                 activity.statusCode === log.statusCode;
+                              
+                              const cardClass = getActivityCardClass(isCurrentLog, activity.infected, activityTransformer);
+                              
                               return (
                                 <div
                                   key={`${activity.timestamp}-${idx}`}
-                                  className={`rounded-lg px-3 py-2 border ${
-                                    isCurrentLog
-                                      ? 'border-vt-primary/50 bg-vt-primary/10'
-                                      : activity.infected || activityTransformer
-                                        ? 'border-vt-error/40 bg-vt-error/10'
-                                        : 'border-vt-muted/20 bg-vt-muted/5'
-                                  }`}
+                                  className={`rounded-lg px-3 py-2 border ${cardClass}`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
                                     <span className="text-[11px] font-mono text-vt-muted">{activity.timestamp}</span>

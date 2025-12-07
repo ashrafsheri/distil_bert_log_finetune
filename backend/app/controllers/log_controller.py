@@ -291,11 +291,20 @@ async def correct_log(
         result = await db.execute(select(IPDB).where(IPDB.ip == request.ip))
         existing_ip = result.scalar_one_or_none()
         
+        # Get user info for logging
+        user_email = current_user.get('email', 'unknown')
+        user_role = current_user.get('role', 'unknown')
+        
         if existing_ip:
             # Update existing IP record
+            old_status = existing_ip.status.value
             existing_ip.status = status_enum
             await db.commit()
-            logger.info(f"Updated IP {request.ip} status to {request.status}")
+            logger.warning(
+                f"[HUMAN CORRECTION] User {user_email} ({user_role}) changed IP {request.ip} "
+                f"status from '{old_status}' to '{request.status}'. "
+                f"This overrides model predictions."
+            )
         else:
             # Create new IP record
             new_ip = IPDB(
@@ -304,7 +313,10 @@ async def correct_log(
             )
             db.add(new_ip)
             await db.commit()
-            logger.info(f"Created new IP {request.ip} with status {request.status}")
+            logger.warning(
+                f"[HUMAN CORRECTION] User {user_email} ({user_role}) marked IP {request.ip} "
+                f"as '{request.status}'. This is a new manual classification."
+            )
         
         # Update all logs for this IP in Elasticsearch
         update_result = await elasticsearch_service.update_logs_by_ip(
@@ -313,7 +325,10 @@ async def correct_log(
         )
         
         if update_result["status"] == "error":
-            logger.error(f"Failed to update logs in Elasticsearch: {update_result.get('message')}")
+            logger.error(
+                f"[HUMAN CORRECTION] Failed to update logs in Elasticsearch for IP {request.ip}: "
+                f"{update_result.get('message')}"
+            )
             # Still return success for database update, but note Elasticsearch issue
             return {
                 "message": "IP status updated in database, but Elasticsearch update failed",
@@ -322,8 +337,15 @@ async def correct_log(
                 "database_updated": True,
                 "elasticsearch_updated": False,
                 "elasticsearch_error": update_result.get("message"),
-                "logs_updated_count": 0
+                "logs_updated_count": 0,
+                "corrected_by": user_email
             }
+        
+        logs_count = update_result.get("update_count", 0)
+        logger.info(
+            f"[HUMAN CORRECTION] Successfully updated {logs_count} log(s) in Elasticsearch "
+            f"for IP {request.ip} to status '{request.status}'"
+        )
         
         return {
             "message": "IP status updated successfully",
@@ -331,7 +353,8 @@ async def correct_log(
             "status": request.status,
             "database_updated": True,
             "elasticsearch_updated": True,
-            "logs_updated_count": update_result.get("update_count", 0)
+            "logs_updated_count": logs_count,
+            "corrected_by": user_email
         }
         
     except HTTPException:

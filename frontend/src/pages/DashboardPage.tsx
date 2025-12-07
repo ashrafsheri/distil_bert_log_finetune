@@ -52,6 +52,7 @@ const DashboardPage: React.FC = () => {
   const [browseTotal, setBrowseTotal] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [correctionSuccess, setCorrectionSuccess] = useState<{ip: string, status: string, count: number} | null>(null);
 
   // Track when counts change to show update indicator
   useEffect(() => {
@@ -129,7 +130,20 @@ const DashboardPage: React.FC = () => {
 
   const handleCorrectLog = useCallback(async (ip: string, status: 'clean' | 'malicious') => {
     try {
-      await logService.correctLog(ip, status);
+      const result = await logService.correctLog(ip, status);
+      
+      // Show success notification with details
+      setCorrectionSuccess({
+        ip,
+        status,
+        count: result.logs_updated_count || 0
+      });
+      
+      // Auto-hide notification after 5 seconds
+      setTimeout(() => {
+        setCorrectionSuccess(null);
+      }, 5000);
+      
       // Refetch logs after successful correction
       refetch();
     } catch (error) {
@@ -258,14 +272,34 @@ const DashboardPage: React.FC = () => {
   }, [searchResults, page, pageSize]);
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-vt-dark via-vt-dark to-vt-blue/5">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-10">
         {/* Header */}
-        <div className="mb-8 animate-slide-down">
-          <div className="flex flex-col items-center text-center gap-4">
+        <div className="mb-10 animate-slide-down">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex flex-col">
-              <h1 className="text-4xl font-bold gradient-text mb-2">Security Dashboard</h1>
-              <p className="text-vt-muted text-lg">Real-time log monitoring and threat detection analytics</p>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-primary to-vt-success rounded-2xl flex items-center justify-center shadow-lg shadow-vt-primary/30">
+                  <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <h1 className="text-3xl lg:text-5xl font-bold gradient-text">Security Dashboard</h1>
+              </div>
+              <p className="text-vt-muted text-base lg:text-lg ml-16 lg:ml-18">Real-time log monitoring with AI-powered threat detection</p>
+            </div>
+            <div className="flex items-center gap-3 ml-16 lg:ml-0">
+              <div className="glass-strong px-4 py-2 rounded-xl border border-vt-primary/30">
+                <div className="text-xs text-vt-muted uppercase tracking-wider mb-1">Status</div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isStreamPaused ? 'bg-vt-warning animate-pulse' : 'bg-vt-success'}`}></div>
+                  <span className="text-sm font-semibold text-vt-light">{isStreamPaused ? 'Paused' : 'Active'}</span>
+                </div>
+              </div>
+              <div className="glass-strong px-4 py-2 rounded-xl border border-vt-muted/30">
+                <div className="text-xs text-vt-muted uppercase tracking-wider mb-1">User</div>
+                <span className="text-sm font-semibold text-vt-light">{userInfo?.email?.split('@')[0] || 'Guest'}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -370,59 +404,68 @@ const DashboardPage: React.FC = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`glass-strong rounded-2xl p-6 border card-hover animate-scale-in ${
-            statsUpdated ? 'border-vt-primary/50 shadow-lg shadow-vt-primary/20' : 'border-vt-primary/20'
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8 lg:mb-10">
+          <div className={`glass-strong rounded-2xl p-5 lg:p-6 border card-hover animate-scale-in transition-all duration-300 ${
+            statsUpdated ? 'border-vt-primary/60 shadow-xl shadow-vt-primary/30 scale-105' : 'border-vt-primary/20'
           }`}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-vt-muted uppercase tracking-wider mb-2">Total Logs</p>
-                <p className={`text-3xl font-bold transition-all duration-300 ${
-                  statsUpdated ? 'scale-110 text-vt-primary' : 'text-vt-light'
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider">Total Logs</p>
+                  {statsUpdated && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-vt-primary/20 text-vt-primary text-[10px] font-bold animate-pulse">
+                      NEW
+                    </span>
+                  )}
+                </div>
+                <p className={`text-3xl lg:text-4xl font-bold transition-all duration-300 ${
+                  statsUpdated ? 'text-vt-primary' : 'text-vt-light'
                 }`}>{totalCount.toLocaleString()}</p>
                 <div className="mt-3 flex items-center gap-2 text-xs text-vt-success">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  <span>Tracking</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-vt-success animate-pulse"></div>
+                  <span className="font-medium">Live Tracking</span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-vt-primary/30 to-vt-primary/10 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-vt-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-primary/40 to-vt-primary/20 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className={`glass-strong rounded-2xl p-6 border card-hover animate-scale-in stagger-1 ${
-            statsUpdated && infectedCount > 0 ? 'border-vt-error/50 shadow-lg shadow-vt-error/20' : 'border-vt-error/20'
+          <div className={`glass-strong rounded-2xl p-5 lg:p-6 border card-hover animate-scale-in stagger-1 transition-all duration-300 ${
+            statsUpdated && infectedCount > 0 ? 'border-vt-error/60 shadow-xl shadow-vt-error/30' : 'border-vt-error/20'
           }`}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-vt-muted uppercase tracking-wider mb-2">Threats</p>
-                <p className={`text-3xl font-bold transition-all duration-300 ${
-                  statsUpdated && infectedCount > 0 ? 'scale-110 text-vt-error' : 'text-vt-error'
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Threats Detected</p>
+                <p className={`text-3xl lg:text-4xl font-bold transition-all duration-300 ${
+                  statsUpdated && infectedCount > 0 ? 'text-vt-error' : 'text-vt-error'
                 }`}>
                   {infectedCount.toLocaleString()}
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-xs text-vt-error">
+                <div className="mt-3 flex items-center gap-2 text-xs">
                   {infectedCount > 0 ? (
                     <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <span>Active Threats</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-vt-error animate-pulse"></div>
+                      <span className="text-vt-error font-medium">Active Threats</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4 text-vt-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-vt-success">All Clear</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-vt-success"></div>
+                      <span className="text-vt-success font-medium">All Clear</span>
                     </>
                   )}
                 </div>
+              </div>
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-error/40 to-vt-error/20 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            </div>
+          </div>
               </div>
               <div className="w-14 h-14 bg-gradient-to-br from-vt-error/30 to-vt-error/10 rounded-xl flex items-center justify-center">
                 <svg className="w-7 h-7 text-vt-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,50 +475,78 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="glass-strong rounded-2xl p-6 border border-vt-success/20 card-hover animate-scale-in stagger-2">
-            <div className="flex items-center justify-between">
+          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-success/20 card-hover animate-scale-in stagger-2 transition-all duration-300">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-vt-muted uppercase tracking-wider mb-2">Safe Logs</p>
-                <p className="text-3xl font-bold text-vt-success">
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Safe Logs</p>
+                <p className="text-3xl lg:text-4xl font-bold text-vt-success">
                   {safeCount.toLocaleString()}
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-xs text-vt-success">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <span>Verified</span>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-vt-success"></div>
+                  <span className="text-vt-success font-medium">Verified Clean</span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-vt-success/30 to-vt-success/10 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-vt-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-success/40 to-vt-success/20 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="glass-strong rounded-2xl p-6 border border-vt-warning/20 card-hover animate-scale-in stagger-3">
-            <div className="flex items-center justify-between">
+          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-warning/20 card-hover animate-scale-in stagger-3 transition-all duration-300">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-vt-muted uppercase tracking-wider mb-2">Threat Rate</p>
-                <p className="text-3xl font-bold text-vt-warning">
-                  {totalCount > 0 ? ((infectedCount / totalCount) * 100).toFixed(1) : 0}%
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Detection Rate</p>
+                <p className="text-3xl lg:text-4xl font-bold text-vt-accent">
+                  {detectionRate}%
                 </p>
-                <div className="mt-3 w-full bg-vt-muted/20 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-vt-warning to-vt-error rounded-full transition-all duration-500"
-                    style={{ width: `${totalCount > 0 ? ((infectedCount / totalCount) * 100) : 0}%` }}
-                  ></div>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-vt-accent"></div>
+                  <span className="text-vt-accent font-medium">Model Accuracy</span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-vt-warning/30 to-vt-warning/10 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-vt-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-accent/40 to-vt-accent/20 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Success Notification for Human Corrections */}
+        {correctionSuccess && (
+          <div className="mb-6 glass-strong rounded-xl border border-vt-success/40 bg-gradient-to-r from-vt-success/20 to-vt-success/5 p-5 animate-slide-up shadow-xl shadow-vt-success/20">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-vt-success/50 to-vt-success/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-vt-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-vt-success mb-1">Human Correction Recorded</h4>
+                <p className="text-sm text-vt-light/80">
+                  IP <span className="font-mono font-semibold text-vt-light">{correctionSuccess.ip}</span> marked as{' '}
+                  <span className={`font-semibold ${correctionSuccess.status === 'clean' ? 'text-vt-success' : 'text-vt-error'}`}>
+                    {correctionSuccess.status.toUpperCase()}
+                  </span>
+                  {' '}• {correctionSuccess.count} log{correctionSuccess.count !== 1 ? 's' : ''} updated
+                </p>
+              </div>
+              <button
+                onClick={() => setCorrectionSuccess(null)}
+                className="text-vt-muted hover:text-vt-light transition-colors p-1"
+                aria-label="Dismiss notification"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stream Controls */}
         {/* <div className="mb-6">
