@@ -28,6 +28,16 @@ from models.knowledge_distillation import TeacherUpdateScheduler
 
 
 # ============================================================================
+# CONSTANTS
+# ============================================================================
+
+ERROR_DETECTOR_NOT_INITIALIZED = "Detector not initialized"
+ERROR_INVALID_API_KEY = "Invalid API key"
+ERROR_ADMIN_ACCESS_REQUIRED = "Admin access required"
+ADMIN_API_KEY_DESCRIPTION = "Admin API key"
+
+
+# ============================================================================
 # REQUEST/RESPONSE MODELS
 # ============================================================================
 
@@ -154,12 +164,12 @@ update_scheduler: Optional[TeacherUpdateScheduler] = None
 # DEPENDENCIES
 # ============================================================================
 
-async def get_project_from_api_key(
+def get_project_from_api_key(
     api_key: Optional[str] = Header(None, alias="X-API-Key")
 ) -> str:
     """Validate API key and return project ID"""
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
     if not api_key:
         raise HTTPException(
@@ -169,9 +179,30 @@ async def get_project_from_api_key(
     
     project_id = detector.validate_api_key(api_key)
     if not project_id:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail=ERROR_INVALID_API_KEY)
     
     return project_id
+
+
+def validate_admin_key(admin_key: Optional[str] = None) -> bool:
+    """
+    Validate admin API key.
+    
+    Returns True if:
+    - No ADMIN_API_KEY is configured (development mode)
+    - The provided key matches ADMIN_API_KEY
+    """
+    admin_key_expected = os.getenv('ADMIN_API_KEY')
+    if not admin_key_expected:
+        # Development mode - admin key not required
+        return True
+    return admin_key == admin_key_expected
+
+
+def require_admin(admin_key: Optional[str] = None):
+    """Raise exception if admin key is invalid"""
+    if not validate_admin_key(admin_key):
+        raise HTTPException(status_code=403, detail=ERROR_ADMIN_ACCESS_REQUIRED)
 
 
 # ============================================================================
@@ -280,7 +311,7 @@ async def root():
 async def health_check():
     """Health check endpoint (public)"""
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
     health = detector.get_health()
     
@@ -305,7 +336,7 @@ async def create_project(request: CreateProjectRequest):
     **Note**: The API key is shown only once! Store it securely.
     """
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
     try:
         project_id, api_key = detector.create_project(
@@ -315,13 +346,15 @@ async def create_project(request: CreateProjectRequest):
         )
         
         project = detector.project_manager.get_project(project_id)
+        if project is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created project")
         
         return CreateProjectResponse(
             project_id=project_id,
             project_name=request.project_name,
             api_key=api_key,
             warmup_threshold=project.warmup_threshold,
-            es_index_pattern=project.es_index_pattern
+            es_index_pattern=project.es_index_pattern or f"logs-{project_id}"
         )
         
     except Exception as e:
@@ -330,7 +363,7 @@ async def create_project(request: CreateProjectRequest):
 
 @app.get("/projects", response_model=List[ProjectStatusResponse])
 async def list_projects(
-    admin_key: Optional[str] = Query(None, description="Admin API key")
+    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
 ):
     """
     List all projects (admin only in production).
@@ -338,12 +371,9 @@ async def list_projects(
     In development, this is open. In production, require admin key.
     """
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
-    # TODO: Add admin authentication in production
-    # admin_key_expected = os.getenv('ADMIN_API_KEY')
-    # if admin_key_expected and admin_key != admin_key_expected:
-    #     raise HTTPException(status_code=403, detail="Admin access required")
+    require_admin(admin_key)
     
     projects = detector.list_projects()
     
@@ -366,13 +396,13 @@ async def list_projects(
 @app.delete("/projects/{project_id}")
 async def delete_project(
     project_id: str,
-    admin_key: Optional[str] = Query(None, description="Admin API key")
+    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
 ):
     """Delete a project (admin only)"""
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
-    # TODO: Add admin authentication
+    require_admin(admin_key)
     
     success = detector.delete_project(project_id)
     if not success:
@@ -388,6 +418,9 @@ async def delete_project(
 @app.get("/project/status", response_model=ProjectStatusResponse)
 async def get_project_status(project_id: str = Depends(get_project_from_api_key)):
     """Get status of authenticated project"""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+        
     status = detector.get_project_status(project_id)
     if not status:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -427,7 +460,7 @@ async def detect_single(
     ```
     """
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
     try:
         result = detector.detect(
@@ -437,7 +470,7 @@ async def detect_single(
         )
         
         if 'error' in result and result.get('error') == 'Invalid API key':
-            raise HTTPException(status_code=401, detail="Invalid API key")
+            raise HTTPException(status_code=401, detail=ERROR_INVALID_API_KEY)
         
         if 'error' in result:
             raise HTTPException(status_code=400, detail=result['error'])
@@ -489,12 +522,12 @@ async def detect_batch(
     ```
     """
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
     # Validate API key first
     project_id = detector.validate_api_key(api_key)
     if not project_id:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail=ERROR_INVALID_API_KEY)
     
     results = []
     anomaly_count = 0
@@ -547,6 +580,9 @@ async def reset_project_sessions(
     project_id: str = Depends(get_project_from_api_key)
 ):
     """Reset all session history for a project"""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+        
     detector.reset_all_project_sessions(project_id)
     return {"message": "All sessions reset"}
 
@@ -557,6 +593,9 @@ async def reset_session(
     project_id: str = Depends(get_project_from_api_key)
 ):
     """Reset a specific session for a project"""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+        
     detector.reset_project_session(project_id, session_id)
     return {"message": f"Session {session_id} reset"}
 
@@ -567,13 +606,13 @@ async def reset_session(
 
 @app.get("/admin/teacher", response_model=TeacherInfoResponse)
 async def get_teacher_info(
-    admin_key: Optional[str] = Query(None, description="Admin API key")
+    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
 ):
     """Get teacher model information (admin)"""
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
-    # TODO: Add admin authentication
+    require_admin(admin_key)
     
     info = detector.teacher.get_model_info()
     
@@ -589,13 +628,13 @@ async def get_teacher_info(
 @app.post("/admin/teacher/update")
 async def force_teacher_update(
     background_tasks: BackgroundTasks,
-    admin_key: Optional[str] = Query(None, description="Admin API key")
+    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
 ):
     """Force immediate teacher model update (admin)"""
     if detector is None:
-        raise HTTPException(status_code=503, detail="Detector not initialized")
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
     
-    # TODO: Add admin authentication
+    require_admin(admin_key)
     
     background_tasks.add_task(detector.update_teacher_from_students, True)
     
@@ -604,7 +643,7 @@ async def force_teacher_update(
 
 @app.get("/admin/update-history")
 async def get_update_history(
-    admin_key: Optional[str] = Query(None, description="Admin API key")
+    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
 ):
     """Get teacher update history (admin)"""
     if update_scheduler is None:
