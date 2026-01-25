@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <MainLayout>
                     <UsersPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/admin-dashboard" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <MainLayout>
+                    <AdminDashboardPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />

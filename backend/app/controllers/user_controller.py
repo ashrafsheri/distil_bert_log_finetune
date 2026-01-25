@@ -37,6 +37,14 @@ async def create_user(
     Raises:
         HTTPException: If user creation fails, user already exists, or unauthorized
     """
+    # Check if trying to create admin user - only admins can do this
+    if user_data.role == "admin":
+        if current_user["role"] != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admins can create admin users"
+            )
+    
     from firebase_admin import auth
     from app.utils.firebase_auth import get_firebase_app
     
@@ -66,17 +74,25 @@ async def create_user(
         
         # Create user in database
         try:
+            # Determine org_id based on role
+            if user_data.role == "admin":
+                org_id = "-1"  # Admins are not tied to a specific org
+            else:
+                org_id = current_user["org_id"]
+            
             user_service = get_user_service(db)
             user = await user_service.create_user(UserCreate(
                 email=user_data.email,
                 uid=firebase_uid,
-                role=user_data.role
+                role=user_data.role,
+                org_id=org_id
             ))
             
             return UserResponse(
                 email=user.email,
                 uid=user.uid,
                 role=user.role,
+                org_id=user.org_id,
                 enabled=user.enabled,
                 created_at=user.created_at,
                 updated_at=user.updated_at
@@ -140,12 +156,17 @@ async def get_all_users(
     """
     try:
         user_service = get_user_service(db)
-        users = await user_service.get_all_users()
+        # Filter users by org_id unless current user is admin
+        if current_user["role"] == "admin":
+            users = await user_service.get_all_users()
+        else:
+            users = await user_service.get_all_users(org_id=current_user["org_id"])
         return [
             UserResponse(
                 email=user.email,
                 uid=user.uid,
                 role=user.role,
+                org_id=user.org_id,
                 enabled=user.enabled,
                 created_at=user.created_at,
                 updated_at=user.updated_at
@@ -190,6 +211,7 @@ async def get_user(
             email=user.email,
             uid=user.uid,
             role=user.role,
+            org_id=user.org_id,
             enabled=user.enabled,
             created_at=user.created_at,
             updated_at=user.updated_at
@@ -227,11 +249,22 @@ async def update_user_enabled(
     """
     try:
         user_service = get_user_service(db)
+        
+        # Check organization access unless current user is admin
+        if current_user["role"] != "admin":
+            existing_user = await user_service.get_user(uid)
+            if not existing_user or existing_user.org_id != current_user["org_id"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update users in your organization"
+                )
+        
         user = await user_service.update_user(uid, user_data)
         return UserResponse(
             email=user.email,
             uid=user.uid,
             role=user.role,
+            org_id=user.org_id,
             enabled=user.enabled,
             created_at=user.created_at,
             updated_at=user.updated_at
@@ -272,11 +305,29 @@ async def update_user_role(
     """
     try:
         user_service = get_user_service(db)
+        
+        # Check organization access unless current user is admin
+        if current_user["role"] != "admin":
+            existing_user = await user_service.get_user(uid)
+            if not existing_user or existing_user.org_id != current_user["org_id"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update users in your organization"
+                )
+        
+        # Check if trying to set role to admin - only admins can do this
+        if role_data.role == "admin" and current_user["role"] != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admins can set user roles to admin"
+            )
+        
         user = await user_service.update_user_role(uid, role_data.role)
         return UserResponse(
             email=user.email,
             uid=user.uid,
             role=user.role,
+            org_id=user.org_id,
             enabled=user.enabled,
             created_at=user.created_at,
             updated_at=user.updated_at
@@ -329,12 +380,11 @@ async def update_user_password(
                 detail="User not found"
             )
         
-        # Additional check: Users can only update their own password unless they're admin
-        # (Permission system handles role-based access, but we check ownership here)
-        if uid != current_user["uid"] and current_user.get("role") != "admin":
+        # Additional check: Users can only update passwords of users in their organization unless they're admin
+        if current_user.get("role") != "admin" and db_user.org_id != current_user["org_id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only update your own password"
+                detail="You can only update passwords for users in your organization"
             )
         
         # Update password using Firebase Admin SDK
@@ -378,6 +428,16 @@ async def delete_user(
     """
     try:
         user_service = get_user_service(db)
+        
+        # Check organization access unless current user is admin
+        if current_user["role"] != "admin":
+            existing_user = await user_service.get_user(uid)
+            if not existing_user or existing_user.org_id != current_user["org_id"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only delete users in your organization"
+                )
+        
         await user_service.remove_user(uid)
         return None
     except ValueError as e:

@@ -9,6 +9,7 @@ import json
 import math
 import pickle
 import threading
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from collections import deque, Counter
@@ -23,6 +24,7 @@ from torch.utils.data import Dataset, DataLoader
 from .ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
+logger = logging.getLogger(__name__)
 
 
 class TeacherTrainingDataset(Dataset):
@@ -115,10 +117,10 @@ class TeacherModel:
         
         # First try to load saved teacher model
         if self.teacher_model_path.exists():
-            print("🔄 Loading saved teacher model...")
+            logger.info("Loading saved teacher model...")
             self._load_saved_teacher()
         else:
-            print("🔄 Initializing teacher from base model...")
+            logger.info("Initializing teacher from base model...")
             self._initialize_from_base()
     
     def _initialize_from_base(self):
@@ -170,20 +172,20 @@ class TeacherModel:
                 self._initialize_fresh_iso_forest()
             
             self.is_loaded = True
-            print(f"✓ Teacher model initialized from base")
-            print(f"  Vocabulary size: {self.vocab_size}")
-            print(f"  Threshold: {self.transformer_threshold:.4f}")
+            logger.info("Teacher model initialized from base")
+            logger.info(f"Vocabulary size: {self.vocab_size}")
+            logger.info(f"Threshold: {self.transformer_threshold:.4f}")
             
             # Save initial state
             self.save()
             
         except Exception as e:
-            print(f"⚠️ Failed to initialize from base: {e}")
+            logger.warning(f"Failed to initialize from base: {e}")
             self._initialize_fresh()
     
     def _initialize_fresh(self):
         """Initialize a completely fresh teacher model"""
-        print("🔄 Initializing fresh teacher model...")
+        logger.info("Initializing fresh teacher model...")
         
         # Start with minimal vocabulary (will grow during training)
         self.template_to_id = {}
@@ -196,7 +198,7 @@ class TeacherModel:
         self._initialize_fresh_iso_forest()
         
         self.is_loaded = True
-        print("✓ Fresh teacher model initialized")
+        logger.info("Fresh teacher model initialized")
     
     def _initialize_fresh_transformer(self):
         """Initialize a fresh transformer model"""
@@ -294,13 +296,13 @@ class TeacherModel:
                 self._initialize_fresh_iso_forest()
             
             self.is_loaded = True
-            print(f"✓ Loaded saved teacher model")
-            print(f"  Vocabulary size: {self.vocab_size}")
-            print(f"  Total logs processed: {self.total_logs_processed:,}")
-            print(f"  Threshold: {self.transformer_threshold:.4f}")
+            logger.info("Loaded saved teacher model")
+            logger.info(f"Vocabulary size: {self.vocab_size}")
+            logger.info(f"Total logs processed: {self.total_logs_processed:,}")
+            logger.info(f"Threshold: {self.transformer_threshold:.4f}")
             
         except Exception as e:
-            print(f"⚠️ Failed to load saved teacher: {e}")
+            logger.warning(f"Failed to load saved teacher: {e}")
             self._initialize_from_base()
     
     def save(self):
@@ -337,10 +339,10 @@ class TeacherModel:
                     with open(self.teacher_iso_path, 'wb') as f:
                         pickle.dump(self.iso_forest, f)
                 
-                print(f"💾 Teacher model saved to {self.storage_dir}")
+                logger.info(f"Teacher model saved to {self.storage_dir}")
                 
             except Exception as e:
-                print(f"⚠️ Failed to save teacher model: {e}")
+                logger.warning(f"Failed to save teacher model: {e}")
     
     def get_template_id(self, normalized_template: str) -> int:
         """Get template ID, returning unknown ID for new templates"""
@@ -405,7 +407,7 @@ class TeacherModel:
                 return 0.0
                 
             except Exception as e:
-                print(f"⚠️ Teacher transformer error: {e}")
+                logger.warning(f"Teacher transformer error: {e}")
                 return self.transformer_threshold
     
     def detect(
@@ -552,20 +554,20 @@ class TeacherModel:
             learning_rate: Learning rate for fine-tuning
         """
         if self.is_training:
-            print("⚠️ Teacher is already being trained")
+            logger.warning("Teacher is already being trained")
             return
         
         if len(all_sequences) < 100:
-            print("⚠️ Not enough sequences for teacher update")
+            logger.warning("Not enough sequences for teacher update")
             return
         
         self.is_training = True
-        print(f"\n{'='*70}")
-        print(f"🎓 UPDATING TEACHER MODEL")
-        print(f"{'='*70}")
-        print(f"  Sequences: {len(all_sequences):,}")
-        print(f"  Epochs: {epochs}")
-        print(f"{'='*70}\n")
+        logger.info("="*70)
+        logger.info("UPDATING TEACHER MODEL")
+        logger.info("="*70)
+        logger.info(f"Sequences: {len(all_sequences):,}")
+        logger.info(f"Epochs: {epochs}")
+        logger.info("="*70)
         
         try:
             # Prepare training data
@@ -618,13 +620,13 @@ class TeacherModel:
                     total_loss += loss.item()
                 
                 avg_loss = total_loss / len(loader)
-                print(f"  Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}")
+                logger.info(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}")
             
             self.transformer.eval()
             
             # Update isolation forest if features provided
             if all_features is not None and len(all_features) > 100:
-                print("  Updating isolation forest...")
+                logger.info("Updating isolation forest...")
                 self.iso_forest.fit(all_features)
                 scores = -self.iso_forest.score_samples(all_features)
                 self.iso_threshold = float(np.percentile(scores, 95))
@@ -635,11 +637,11 @@ class TeacherModel:
             # Save updated model
             self.save()
             
-            print(f"\n✅ Teacher model updated successfully!")
-            print(f"   New threshold: {self.transformer_threshold:.4f}")
+            logger.info(f"Teacher model updated successfully!")
+            logger.info(f"New threshold: {self.transformer_threshold:.4f}")
             
         except Exception as e:
-            print(f"❌ Teacher update failed: {e}")
+            logger.error(f"Teacher update failed: {e}")
             import traceback
             traceback.print_exc()
         finally:

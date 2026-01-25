@@ -33,7 +33,7 @@ export const logService = {
     const qs = new URLSearchParams();
     qs.set('limit', String(limit));
     qs.set('offset', String(offset));
-    const response = await apiService.get<LogSearchResponse>(`/api/v1/fetch?${qs.toString()}`);
+    const response = await apiService.get<LogSearchResponse>(`/api/v1/logs/fetch?${qs.toString()}`);
     return response.data;
   },
   async searchLogs(params: LogSearchParams): Promise<LogSearchResponse> {
@@ -46,7 +46,7 @@ export const logService = {
     if (params.to_date) qs.set('to_date', params.to_date);
     if (typeof params.limit === 'number') qs.set('limit', String(params.limit));
     if (typeof params.offset === 'number') qs.set('offset', String(params.offset));
-    const url = qs.toString() ? `/api/v1/search?${qs.toString()}` : '/api/v1/search';
+    const url = qs.toString() ? `/api/v1/logs/search?${qs.toString()}` : '/api/v1/logs/search';
     const response = await apiService.get<LogSearchResponse>(url);
     return response.data;
   },
@@ -58,13 +58,13 @@ export const logService = {
     if (typeof params.malicious === 'boolean') qs.set('malicious', String(params.malicious));
     if (params.from_date) qs.set('from_date', params.from_date);
     if (params.to_date) qs.set('to_date', params.to_date);
-    const url = qs.toString() ? `/api/v1/export?${qs.toString()}` : '/api/v1/export';
+    const url = qs.toString() ? `/api/v1/logs/export?${qs.toString()}` : '/api/v1/logs/export';
     const response = await apiService.getBlob(url);
     return response.data;
   },
   async correctLog(ip: string, status: 'clean' | 'malicious'): Promise<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }> {
     const response = await apiService.post<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }>(
-      '/api/v1/correctLog',
+      '/api/v1/logs/correctLog',
       { ip, status }
     );
     return response.data;

@@ -36,6 +36,7 @@ def _db_to_pydantic(db_user: UserDB) -> User:
         email=db_user.email,
         uid=db_user.uid,
         role=_map_enum_to_role(db_user.role),
+        org_id=db_user.org_id,
         enabled=db_user.enabled if db_user.enabled is not None else True,  # Handle None as True
         created_at=db_user.created_at,
         updated_at=db_user.updated_at
@@ -73,6 +74,7 @@ class UserService:
                 uid=user_data.uid,
                 email=user_data.email,
                 role=_map_role_to_enum(user_data.role),
+                org_id=user_data.org_id,
                 enabled=True  # New users are enabled by default (database default will also apply)
             )
             
@@ -125,15 +127,22 @@ class UserService:
             logger.error(f"Error getting user by uid: {e}")
             raise
     
-    async def get_all_users(self) -> List[User]:
+    async def get_all_users(self, org_id: Optional[str] = None) -> List[User]:
         """
-        Get all users
+        Get all users, optionally filtered by organization
         
+        Args:
+            org_id: Organization ID to filter by (None for all users)
+            
         Returns:
-            List of all User objects
+            List of User objects
         """
         try:
-            result = await self.db.execute(select(UserDB))
+            query = select(UserDB)
+            if org_id is not None:
+                query = query.where(UserDB.org_id == org_id)
+            
+            result = await self.db.execute(query)
             db_users = result.scalars().all()
             
             return [_db_to_pydantic(db_user) for db_user in db_users]

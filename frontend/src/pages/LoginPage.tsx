@@ -7,7 +7,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, userInfo } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -23,9 +23,14 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setError('');
       await login({ email, password });
-      // Only navigate if login and user info fetch were successful
-      // If user info fetch fails, login will throw an error and we stay on login page
-      navigate('/dashboard');
+      // Wait a bit for userInfo to be fetched
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Navigate based on role
+      if (userInfo?.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to log in';
       setError(errorMessage);

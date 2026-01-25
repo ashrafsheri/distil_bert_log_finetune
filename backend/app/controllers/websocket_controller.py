@@ -8,9 +8,12 @@ from typing import Dict, List, Optional
 import json
 import uuid
 from datetime import datetime
+import logging
 
 from app.models.log_entry import WebSocketMessage
 from app.utils.firebase_auth import verify_firebase_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -21,35 +24,35 @@ class ConnectionManager:
     
     async def connect(self, websocket: WebSocket, client_id: str):
         """Store WebSocket connection (connection must already be accepted)"""
-        print(f"🔌 Storing WebSocket connection for client: {client_id}")
+        logger.info(f"Storing WebSocket connection for client: {client_id}")
         self.active_connections[client_id] = websocket
-        print(f"✅ WebSocket connected. Total active connections: {len(self.active_connections)}")
+        logger.info(f"WebSocket connected. Total active connections: {len(self.active_connections)}")
     
     def disconnect(self, client_id: str):
         """Remove WebSocket connection"""
         if client_id in self.active_connections:
             del self.active_connections[client_id]
-            print(f"🔌 WebSocket disconnected: {client_id}. Total active connections: {len(self.active_connections)}")
+            logger.info(f"WebSocket disconnected: {client_id}. Total active connections: {len(self.active_connections)}")
     
     async def send_personal_message(self, message: dict, client_id: str):
         """Send message to specific client"""
         if client_id in self.active_connections:
             try:
-                print(f"📤 Sending message to {client_id}: {message}")
+                logger.debug(f"Sending message to {client_id}: {message}")
                 await self.active_connections[client_id].send_text(json.dumps(message))
             except Exception as e:
-                print(f"❌ Error sending message to {client_id}: {e}")
+                logger.error(f"Error sending message to {client_id}: {e}")
                 self.disconnect(client_id)
     
     async def broadcast(self, message: dict):
         """Broadcast message to all connected clients"""
-        print(f"📢 Broadcasting message to {len(self.active_connections)} clients: {message}")
+        logger.info(f"Broadcasting message to {len(self.active_connections)} clients: {message}")
         for client_id, connection in self.active_connections.items():
             try:
-                print(f"📤 Broadcasting to {client_id}")
+                logger.debug(f"Broadcasting to {client_id}")
                 await connection.send_text(json.dumps(message))
             except Exception as e:
-                print(f"❌ Error broadcasting to {client_id}: {e}")
+                logger.error(f"Error broadcasting to {client_id}: {e}")
                 self.disconnect(client_id)
 
 # Global connection manager
@@ -76,26 +79,26 @@ async def websocket_endpoint(
     
     # Verify authentication token
     if not token:
-        print(f"❌ WebSocket connection rejected: Missing authentication token for client {client_id}")
+        logger.warning(f"WebSocket connection rejected: Missing authentication token for client {client_id}")
         await websocket.close(code=1008, reason="Authentication token required")
         return
     
     try:
         # Verify Firebase token
         user_info = await verify_firebase_token(token)
-        print(f"✅ WebSocket authenticated for user: {user_info.get('uid')}")
+        logger.info(f"WebSocket authenticated for user: {user_info.get('uid')}")
     except HTTPException as e:
-        print(f"❌ WebSocket connection rejected: Invalid token for client {client_id} - {e.detail}")
+        logger.warning(f"WebSocket connection rejected: Invalid token for client {client_id} - {e.detail}")
         await websocket.close(code=1008, reason=f"Authentication failed: {e.detail}")
         return
     except Exception as e:
-        print(f"❌ WebSocket connection error: {e}")
+        logger.error(f"WebSocket connection error: {e}")
         await websocket.close(code=1011, reason=f"Server error: {str(e)}")
         return
     
     # Connection authenticated successfully, add to manager
     manager.active_connections[client_id] = websocket
-    print(f"✅ WebSocket connected. Total active connections: {len(manager.active_connections)}")
+    logger.info(f"WebSocket connected. Total active connections: {len(manager.active_connections)}")
     
     try:
         while True:
@@ -119,9 +122,9 @@ async def websocket_endpoint(
             
     except WebSocketDisconnect:
         manager.disconnect(client_id)
-        print(f"Client {client_id} disconnected")
+        logger.info(f"Client {client_id} disconnected")
     except Exception as e:
-        print(f"WebSocket error for {client_id}: {e}")
+        logger.error(f"WebSocket error for {client_id}: {e}")
         manager.disconnect(client_id)
 
 # Utility functions for sending log updates
@@ -138,7 +141,7 @@ async def send_log_update(log_entry: dict, client_id: str = None):
         "data": log_entry,
         "timestamp": datetime.now().isoformat()
     }
-    print(f"📤 WebSocket message structure: {message}")
+    logger.debug(f"WebSocket message structure: {message}")
     
     if client_id:
         await manager.send_personal_message(message, client_id)

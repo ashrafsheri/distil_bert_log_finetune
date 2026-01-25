@@ -163,12 +163,12 @@ class StudentModel:
                 with open(self.iso_path, 'rb') as f:
                     self.iso_forest = pickle.load(f)
             
-            print(f"✓ Loaded student model for project {self.project_id[:8]}...")
-            print(f"  Vocabulary size: {self.vocab_size}")
-            print(f"  Logs processed: {self.logs_processed:,}")
+            logger.info(f"Loaded student model for project {self.project_id[:8]}...")
+            logger.info(f"  Vocabulary size: {self.vocab_size}")
+            logger.info(f"  Logs processed: {self.logs_processed:,}")
             
         except Exception as e:
-            print(f"⚠️ Failed to load student model: {e}")
+            logger.warning(f"Failed to load student model: {e}")
             self.is_trained = False
     
     def _load_transformer_weights(self, checkpoint: Dict):
@@ -235,7 +235,7 @@ class StudentModel:
                         pickle.dump(self.iso_forest, f)
                 
             except Exception as e:
-                print(f"⚠️ Failed to save student model: {e}")
+                logger.warning(f"Failed to save student model: {e}")
     
     def add_template(self, normalized_template: str) -> int:
         """Add a new template to vocabulary"""
@@ -302,22 +302,22 @@ class StudentModel:
             temperature: Temperature for softening probability distributions
         """
         if self.is_training:
-            print("⚠️ Student is already being trained")
+            logger.warning("Student is already being trained")
             return False
         
         if len(self.training_sequences) < 100:
-            print(f"⚠️ Not enough training sequences: {len(self.training_sequences)}")
+            logger.warning(f"Not enough training sequences: {len(self.training_sequences)}")
             return False
         
         self.is_training = True
-        print(f"\n{'='*70}")
-        print(f"🎓 TRAINING STUDENT MODEL - Project: {self.project_id[:8]}...")
-        print(f"{'='*70}")
-        print(f"  Training sequences: {len(self.training_sequences):,}")
-        print(f"  Vocabulary size: {len(self.id_to_template)}")
-        print(f"  Distillation alpha: {distillation_alpha}")
-        print(f"  Temperature: {temperature}")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"TRAINING STUDENT MODEL - Project: {self.project_id[:8]}...")
+        logger.info(f"{'='*70}")
+        logger.info(f"  Training sequences: {len(self.training_sequences):,}")
+        logger.info(f"  Vocabulary size: {len(self.id_to_template)}")
+        logger.info(f"  Distillation alpha: {distillation_alpha}")
+        logger.info(f"  Temperature: {temperature}")
+        logger.info(f"{'='*70}\n")
         
         try:
             # Freeze vocabulary
@@ -346,7 +346,7 @@ class StudentModel:
             # Get soft labels from teacher
             soft_labels = None
             if teacher_model is not None and distillation_alpha > 0:
-                print("  Getting soft labels from teacher...")
+                logger.info("  Getting soft labels from teacher...")
                 soft_labels = []
                 for seq in padded_sequences[:len(padded_sequences)]:
                     teacher_soft = teacher_model.get_soft_labels(seq)
@@ -445,13 +445,13 @@ class StudentModel:
                 avg_loss = total_loss / len(loader)
                 avg_hard = total_hard_loss / len(loader)
                 avg_distill = total_distill_loss / len(loader)
-                print(f"  Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f} (Hard: {avg_hard:.4f}, Distill: {avg_distill:.4f})")
+                logger.info(f"  Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f} (Hard: {avg_hard:.4f}, Distill: {avg_distill:.4f})")
             
             self.transformer.eval()
             
             # Train isolation forest
             if len(self.training_features) > 100:
-                print("  Training isolation forest...")
+                logger.info("  Training isolation forest...")
                 feature_matrix = np.vstack(self.training_features)
                 self.iso_forest = IsolationForest(
                     n_estimators=100,
@@ -476,14 +476,14 @@ class StudentModel:
             self.training_sequences = []
             self.training_features = []
             
-            print(f"\n✅ Student model trained successfully!")
-            print(f"   Vocabulary: {self.vocab_size} tokens")
-            print(f"   Threshold: {self.transformer_threshold:.4f}")
+            logger.info(f"\nStudent model trained successfully!")
+            logger.info(f"   Vocabulary: {self.vocab_size} tokens")
+            logger.info(f"   Threshold: {self.transformer_threshold:.4f}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Student training failed: {e}")
+            logger.error(f"Student training failed: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -561,7 +561,7 @@ class StudentModel:
                 return 0.0
                 
             except Exception as e:
-                print(f"⚠️ Student transformer error: {e}")
+                logger.warning(f"Student transformer error: {e}")
                 return self.transformer_threshold
     
     def detect(
