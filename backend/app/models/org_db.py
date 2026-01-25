@@ -3,8 +3,9 @@ Organization Database Model
 SQLAlchemy model for organization table in PostgreSQL
 """
 
-from sqlalchemy import Column, String, DateTime, Integer, Float, Enum, text
+from sqlalchemy import Column, String, DateTime, Integer, Float, Enum as SQLEnum, text
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 import enum
 
 # Import Base from database module
@@ -19,6 +20,14 @@ class ModelStatus(str, enum.Enum):
     failed = "failed"
 
 
+# Create PostgreSQL enum type that matches the existing database enum
+model_status_enum = PgEnum(
+    'warmup', 'training', 'ready', 'failed',
+    name='modelstatus',
+    create_type=False  # Don't try to create the type as it already exists
+)
+
+
 class OrgDB(Base):
     """SQLAlchemy model for organizations table"""
     __tablename__ = "organizations"
@@ -30,8 +39,8 @@ class OrgDB(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
-    # Model tracking fields
-    model_status = Column(String, default="warmup", nullable=True)  # warmup, training, ready, failed
+    # Model tracking fields - use PostgreSQL enum type
+    model_status = Column(model_status_enum, default="warmup", nullable=True)
     log_count = Column(Integer, default=0, nullable=True)
     warmup_threshold = Column(Integer, default=10000, nullable=True)
     warmup_progress = Column(Float, default=0.0, nullable=True)
