@@ -135,13 +135,13 @@ class ProjectManager:
         # Load existing projects
         self._load_projects()
         
-        print(f"\n{'='*70}")
-        print(f"PROJECT MANAGER INITIALIZED")
-        print(f"{'='*70}")
-        print(f"  Storage directory: {self.storage_dir}")
-        print(f"  Active projects: {len(self.projects)}")
-        print(f"  Teacher update interval: {teacher_update_interval_days} days")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"PROJECT MANAGER INITIALIZED")
+        logger.info(f"{'='*70}")
+        logger.info(f"  Storage directory: {self.storage_dir}")
+        logger.info(f"  Active projects: {len(self.projects)}")
+        logger.info(f"  Teacher update interval: {teacher_update_interval_days} days")
+        logger.info(f"{'='*70}\n")
     
     def _generate_api_key(self) -> Tuple[str, str]:
         """Generate a secure API key and its hash"""
@@ -199,9 +199,9 @@ class ProjectManager:
             # Persist
             self._save_projects()
             
-            print(f"✓ Created project: {project_name} (ID: {project_id[:8]}...)")
-            print(f"  Warmup threshold: {warmup_threshold:,} logs")
-            print(f"  ES index pattern: logs-{project_id}")
+            logger.info(f"Created project: {project_name} (ID: {project_id[:8]}...)")
+            logger.info(f"  Warmup threshold: {warmup_threshold:,} logs")
+            logger.info(f"  ES index pattern: logs-{project_id}")
             
             return project_id, api_key
     
@@ -273,9 +273,9 @@ class ProjectManager:
         project = self.projects.get(project_id)
         if project and project.phase == ProjectPhase.WARMUP.value:
             project.phase = ProjectPhase.TRAINING.value
-            print(f"\n🎓 Project {project.project_name} reached warmup threshold!")
-            print(f"   Logs collected: {project.current_log_count:,}")
-            print(f"   Initiating student model training...\n")
+            logger.info(f"\nProject {project.project_name} reached warmup threshold!")
+            logger.info(f"   Logs collected: {project.current_log_count:,}")
+            logger.info(f"   Initiating student model training...\n")
             self._save_projects()
     
     def mark_student_trained(
@@ -294,9 +294,9 @@ class ProjectManager:
                 project.student_trained_at = datetime.now().isoformat()
                 self._save_projects()
                 
-                print(f"\n✅ Student model trained for project: {project.project_name}")
-                print(f"   Model path: {student_model_path}")
-                print(f"   Now using project-specific model for inference.\n")
+                logger.info(f"\nStudent model trained for project: {project.project_name}")
+                logger.info(f"   Model path: {student_model_path}")
+                logger.info(f"   Now using project-specific model for inference.\n")
     
     def get_projects_for_teacher_update(self) -> List[ProjectConfig]:
         """
@@ -373,7 +373,7 @@ class ProjectManager:
             del self.projects[project_id]
             
             self._save_projects()
-            print(f"✓ Deleted project: {project.project_name} (ID: {project_id[:8]}...)")
+            logger.info(f"Deleted project: {project.project_name} (ID: {project_id[:8]}...)")
             return True
     
     def suspend_project(self, project_id: str) -> bool:
@@ -435,7 +435,7 @@ class ProjectManager:
             with open(self.projects_file, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(f"⚠️ Failed to save projects: {e}")
+            logger.warning(f"Failed to save projects: {e}")
     
     def _load_projects(self):
         """Load projects from disk"""
@@ -450,10 +450,10 @@ class ProjectManager:
                 }
                 self.api_key_to_project = data.get('api_key_mapping', {})
                 
-                print(f"✓ Loaded {len(self.projects)} projects from storage")
+                logger.info(f"Loaded {len(self.projects)} projects from storage")
                 
             except Exception as e:
-                print(f"⚠️ Failed to load projects: {e}")
+                logger.warning(f"Failed to load projects: {e}")
                 self.projects = {}
                 self.api_key_to_project = {}
         
@@ -470,7 +470,7 @@ class ProjectManager:
             with open(self.manager_state_file, 'wb') as f:
                 pickle.dump(state, f)
         except Exception as e:
-            print(f"⚠️ Failed to save manager state: {e}")
+            logger.warning(f"Failed to save manager state: {e}")
     
     def _load_state(self):
         """Load manager state"""
@@ -480,7 +480,7 @@ class ProjectManager:
                     state = pickle.load(f)
                 self.last_teacher_update = state.get('last_teacher_update')
             except Exception as e:
-                print(f"⚠️ Failed to load manager state: {e}")
+                logger.warning(f"Failed to load manager state: {e}")
     
     def get_project_storage_path(self, project_id: str) -> Path:
         """Get the storage path for a specific project"""

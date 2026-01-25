@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 import requests
 from datetime import datetime
+import logging
 
 # ANSI color codes
 class Colors:
@@ -25,6 +26,7 @@ class Colors:
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
 
+logger = logging.getLogger(__name__)
 
 class LogStreamer:
     """Stream logs and display real-time anomaly detection"""
@@ -45,31 +47,30 @@ class LogStreamer:
             response = requests.get(f"{self.api_url}/health", timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                print(f"{Colors.GREEN}✓ API is healthy{Colors.RESET}")
+                logger.info("API is healthy")
                 
                 # Handle both static and adaptive server responses
                 if 'phase' in data:
                     # Adaptive server
-                    print(f"  Mode: {Colors.CYAN}ADAPTIVE{Colors.RESET}")
-                    print(f"  Phase: {data.get('phase', 'unknown')}")
-                    print(f"  Logs processed: {data.get('logs_processed', 0):,}")
-                    print(f"  Active models: {data.get('active_models', '?')}")
+                    logger.info(f"Mode: ADAPTIVE")
+                    logger.info(f"Phase: {data.get('phase', 'unknown')}")
+                    logger.info(f"Logs processed: {data.get('logs_processed', 0):,}")
+                    logger.info(f"Active models: {data.get('active_models', '?')}")
                     if data.get('transformer_ready', False):
-                        print(f"  {Colors.GREEN}✓ Transformer trained and ready{Colors.RESET}")
+                        logger.info("Transformer trained and ready")
                     else:
-                        print(f"  {Colors.YELLOW}⏳ Transformer training pending{Colors.RESET}")
+                        logger.info("Transformer training pending")
                 else:
                     # Static server
-                    print(f"  Mode: {Colors.MAGENTA}STATIC{Colors.RESET}")
-                    print(f"  Vocabulary size: {data.get('vocab_size', 0):,}")
-                    print(f"  Threshold: {data.get('threshold', 0.0):.4f}")
-                print()
+                    logger.info("Mode: STATIC")
+                    logger.info(f"Vocabulary size: {data.get('vocab_size', 0):,}")
+                    logger.info(f"Threshold: {data.get('threshold', 0.0):.4f}")
                 return True
             else:
-                print(f"{Colors.RED}✗ API unhealthy: {response.status_code}{Colors.RESET}")
+                logger.error(f"API unhealthy: {response.status_code}")
                 return False
         except Exception as e:
-            print(f"{Colors.RED}✗ Cannot connect to API: {e}{Colors.RESET}")
+            logger.error(f"Cannot connect to API: {e}")
             return False
     
     def detect_anomaly(self, log_line: str, session_id: Optional[str] = None) -> dict:
@@ -101,7 +102,7 @@ class LogStreamer:
     def print_detection_result(self, log_line: str, result: dict):
         """Print detection result with colors"""
         if result is None:
-            print(f"{Colors.YELLOW}[ERROR] {log_line[:100]}{Colors.RESET}")
+            logger.error(f"[ERROR] {log_line[:100]}")
             self.stats['errors'] += 1
             return
         
@@ -110,8 +111,8 @@ class LogStreamer:
             # Only print error details occasionally (every 100th error) to avoid spam
             self.stats['errors'] += 1
             if self.stats['errors'] % 100 == 1:
-                print(f"{Colors.YELLOW}[ERROR] API Error: {result.get('detail', 'Unknown')}{Colors.RESET}")
-                print(f"{Colors.YELLOW}  Log: {log_line[:80]}{Colors.RESET}")
+                logger.error(f"API Error: {result.get('detail', 'Unknown')}")
+                logger.error(f"Log: {log_line[:80]}")
             return
         
         is_anomaly = result['is_anomaly']
@@ -145,22 +146,15 @@ class LogStreamer:
         
         # Phase indicator
         if phase == 'warmup':
-            phase_color = Colors.CYAN
             phase_str = f"[WARMUP:{logs_processed}]"
         elif phase == 'training':
-            phase_color = Colors.YELLOW
             phase_str = "[TRAINING...]"
         elif phase == 'ensemble':
-            phase_color = Colors.MAGENTA
             phase_str = "[FULL-3M]"
         else:
-            phase_color = Colors.WHITE
             phase_str = ""
         
-        print(f"{color}{Colors.BOLD}[{status}]{Colors.RESET} ", end="")
-        print(f"{phase_color}{phase_str}{Colors.RESET} ", end="")
-        print(f"{Colors.CYAN}[{timestamp}]{Colors.RESET} ", end="")
-        print(f"{color}Score: {score:.3f}{Colors.RESET} ", end="")
+        status_line = f"[{status}] {phase_str} [{timestamp}] Score: {score:.3f}"
         
         # Show which detectors triggered
         detectors = []
@@ -175,7 +169,7 @@ class LogStreamer:
             detectors.append(f"T:{trans.get('score', 0):.2f}")
         
         if detectors:
-            print(f"{Colors.MAGENTA}[{' | '.join(detectors)}]{Colors.RESET} ", end="")
+            status_line += f" [{' | '.join(detectors)}]"
         
         # Print log excerpt
         log_data = details.get('log_data', {})
@@ -183,7 +177,12 @@ class LogStreamer:
         method = log_data.get('method', '')
         status_code = log_data.get('status', '')
         
-        print(f"{method} {path[:60]} {status_code}")
+        log_line = f"{method} {path[:60]} {status_code}"
+        
+        if is_anomaly:
+            logger.warning(f"{status_line} {log_line}")
+        else:
+            logger.info(f"{status_line} {log_line}")
     
     def print_stats(self):
         """Print statistics"""
@@ -197,40 +196,39 @@ class LogStreamer:
         
         anomaly_rate = (anomalies / total * 100) if total > 0 else 0
         
-        print(f"\n{Colors.CYAN}{'='*80}{Colors.RESET}")
-        print(f"{Colors.BOLD}STREAMING STATISTICS{Colors.RESET}")
-        print(f"{Colors.CYAN}{'='*80}{Colors.RESET}")
-        print(f"  Total logs processed: {total:,}")
-        print(f"  {Colors.GREEN}Normal logs: {normal:,} ({normal/total*100:.1f}%){Colors.RESET}")
-        print(f"  {Colors.RED}Anomalies detected: {anomalies:,} ({anomaly_rate:.1f}%){Colors.RESET}")
+        logger.info("="*80)
+        logger.info("STREAMING STATISTICS")
+        logger.info("="*80)
+        logger.info(f"Total logs processed: {total:,}")
+        logger.info(f"Normal logs: {normal:,} ({normal/total*100:.1f}%)")
+        logger.info(f"Anomalies detected: {anomalies:,} ({anomaly_rate:.1f}%)")
         if errors > 0:
-            print(f"  {Colors.YELLOW}Errors: {errors:,}{Colors.RESET}")
-        print(f"{Colors.CYAN}{'='*80}{Colors.RESET}\n")
+            logger.info(f"Errors: {errors:,}")
+        logger.info("="*80)
     
     def stream_file(self, log_file: Path, session_id: Optional[str] = None, 
                     max_logs: Optional[int] = None):
         """Stream logs from file with real-time detection"""
         if not log_file.exists():
-            print(f"{Colors.RED}✗ Log file not found: {log_file}{Colors.RESET}")
+            logger.error(f"Log file not found: {log_file}")
             return
         
-        print(f"{Colors.CYAN}{'='*80}{Colors.RESET}")
-        print(f"{Colors.BOLD}REAL-TIME LOG ANOMALY DETECTION{Colors.RESET}")
-        print(f"{Colors.CYAN}{'='*80}{Colors.RESET}")
-        print(f"  Log file: {log_file}")
-        print(f"  API: {self.api_url}")
-        print(f"  Delay: {self.delay}s between logs")
+        logger.info("="*80)
+        logger.info("REAL-TIME LOG ANOMALY DETECTION")
+        logger.info("="*80)
+        logger.info(f"Log file: {log_file}")
+        logger.info(f"API: {self.api_url}")
+        logger.info(f"Delay: {self.delay}s between logs")
         if session_id:
-            print(f"  Session ID: {session_id}")
-        print(f"{Colors.CYAN}{'='*80}{Colors.RESET}\n")
+            logger.info(f"Session ID: {session_id}")
+        logger.info("="*80)
         
-        print(f"{Colors.YELLOW}Legend:{Colors.RESET}")
-        print(f"  {Colors.RED}[ANOMALY]{Colors.RESET} - Detected attack/anomaly")
-        print(f"  {Colors.GREEN}[NORMAL]{Colors.RESET}  - Normal traffic")
-        print(f"  {Colors.MAGENTA}[R:type]{Colors.RESET} - Rule-based detection")
-        print(f"  {Colors.MAGENTA}[I:score]{Colors.RESET} - Isolation Forest score")
-        print(f"  {Colors.MAGENTA}[T:score]{Colors.RESET} - Transformer score")
-        print()
+        logger.info("Legend:")
+        logger.info("[ANOMALY] - Detected attack/anomaly")
+        logger.info("[NORMAL]  - Normal traffic")
+        logger.info("[R:type] - Rule-based detection")
+        logger.info("[I:score] - Isolation Forest score")
+        logger.info("[T:score] - Transformer score")
         
         try:
             with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
@@ -255,9 +253,9 @@ class LogStreamer:
                         self.print_stats()
         
         except KeyboardInterrupt:
-            print(f"\n\n{Colors.YELLOW}Streaming interrupted by user{Colors.RESET}")
+            logger.info("Streaming interrupted by user")
         except Exception as e:
-            print(f"\n{Colors.RED}✗ Error during streaming: {e}{Colors.RESET}")
+            logger.error(f"Error during streaming: {e}")
         finally:
             self.print_stats()
 
@@ -305,9 +303,9 @@ def main():
     
     # Check API health
     if not streamer.check_health():
-        print(f"\n{Colors.RED}✗ API is not available. Please start the server first:{Colors.RESET}")
-        print(f"  cd realtime_anomaly_detection/api")
-        print(f"  python server.py")
+        logger.error("API is not available. Please start the server first:")
+        logger.error("cd realtime_anomaly_detection/api")
+        logger.error("python server.py")
         sys.exit(1)
     
     # Stream logs

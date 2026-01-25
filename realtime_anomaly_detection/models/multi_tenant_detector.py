@@ -89,15 +89,15 @@ class MultiTenantDetector:
         # Load existing student models
         self._load_existing_students()
         
-        print(f"\n{'='*70}")
-        print(f"MULTI-TENANT DETECTOR INITIALIZED")
-        print(f"{'='*70}")
-        print(f"  Base model directory: {self.base_model_dir}")
-        print(f"  Storage directory: {self.storage_dir}")
-        print(f"  Default warmup: {default_warmup_threshold:,} logs")
-        print(f"  Active projects: {len(self.project_manager.projects)}")
-        print(f"  Loaded student models: {len(self.students)}")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"MULTI-TENANT DETECTOR INITIALIZED")
+        logger.info(f"{'='*70}")
+        logger.info(f"  Base model directory: {self.base_model_dir}")
+        logger.info(f"  Storage directory: {self.storage_dir}")
+        logger.info(f"  Default warmup: {default_warmup_threshold:,} logs")
+        logger.info(f"  Active projects: {len(self.project_manager.projects)}")
+        logger.info(f"  Loaded student models: {len(self.students)}")
+        logger.info(f"{'='*70}\n")
     
     def _load_existing_students(self):
         """Load existing student models for active projects"""
@@ -113,9 +113,9 @@ class MultiTenantDetector:
                     )
                     if student.is_trained:
                         self.students[project_id] = student
-                        print(f"  ✓ Loaded student: {project.project_name[:20]}")
+                        logger.info(f"  Loaded student: {project.project_name[:20]}")
                 except Exception as e:
-                    print(f"  ⚠️ Failed to load student for {project_id[:8]}: {e}")
+                    logger.warning(f"  Failed to load student for {project_id[:8]}: {e}")
     
     # ========================================================================
     # PROJECT MANAGEMENT
@@ -510,7 +510,7 @@ class MultiTenantDetector:
             
             student = self.students.get(project_id)
             if student and not student.is_trained:
-                print(f"\n🎓 Starting training for project: {project_id[:8]}...")
+                logger.info(f"\nStarting training for project: {project_id[:8]}...")
                 success = student.train_from_teacher(
                     teacher_model=self.teacher,
                     epochs=5,
@@ -553,10 +553,10 @@ class MultiTenantDetector:
         
         projects = self.project_manager.get_projects_for_teacher_update()
         if not projects:
-            print("⚠️ No eligible projects for teacher update")
+            logger.warning("No eligible projects for teacher update")
             return False
         
-        print(f"\n🔄 Collecting data from {len(projects)} projects for teacher update...")
+        logger.info(f"\nCollecting data from {len(projects)} projects for teacher update...")
         
         for project in projects:
             student = self.students.get(project.project_id)
@@ -567,7 +567,7 @@ class MultiTenantDetector:
                     all_features.append(features)
         
         if len(all_sequences) < 1000:
-            print(f"⚠️ Not enough data for teacher update: {len(all_sequences)} sequences")
+            logger.warning(f"Not enough data for teacher update: {len(all_sequences)} sequences")
             return False
         
         # Combine features

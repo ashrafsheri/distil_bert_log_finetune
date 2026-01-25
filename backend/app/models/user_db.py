@@ -23,6 +23,7 @@ class UserDB(Base):
     """SQLAlchemy model for users table"""
     __tablename__ = "users"
 
+    org_id = Column(String, nullable=True)
     uid = Column(String, primary_key=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     role = Column(SQLEnum(RoleEnum), nullable=False, default=RoleEnum.EMPLOYEE)

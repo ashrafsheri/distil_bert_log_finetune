@@ -81,8 +81,9 @@ async def startup_event():
     model_dir = repo_root / 'artifacts/ensemble_model_export'
     
     if not model_dir.exists():
-        print(f"❌ Model directory not found: {model_dir}")
-        print("Please run the model export notebook first (07_hybrid_attack_detection.ipynb)")
+
+        logger.error(f"Model directory not found: {model_dir}")
+        logger.error("Please run the model export notebook first (07_hybrid_attack_detection.ipynb)")
         return
     
     try:
@@ -91,9 +92,9 @@ async def startup_event():
             window_size=20,
             device='cpu'  # Change to 'cuda' if GPU available
         )
-        print("✓ Ensemble detector initialized successfully!")
+        logger.info("Ensemble detector initialized successfully!")
     except Exception as e:
-        print(f"❌ Failed to load models: {e}")
+        logger.error(f"Failed to load models: {e}")
         raise
 
 

@@ -28,7 +28,7 @@ class RolePermissionDB(Base):
     role = Column(SQLEnum(RoleEnum), nullable=False, index=True)
     api_path = Column(String, nullable=False, index=True)  # e.g., "/api/v1/users/create"
     http_method = Column(SQLEnum(HTTPMethodEnum), nullable=False, index=True)
-    
+    org_id = Column(String, nullable=True)
     # Ensure unique combination of role, api_path, and http_method
     __table_args__ = (
         UniqueConstraint('role', 'api_path', 'http_method', name='uq_role_permission'),

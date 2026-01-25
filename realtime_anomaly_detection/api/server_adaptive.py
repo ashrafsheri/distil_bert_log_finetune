@@ -14,9 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+import logging
 
 from models.adaptive_detector import AdaptiveEnsembleDetector
-
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # REQUEST/RESPONSE MODELS
@@ -83,8 +84,8 @@ async def startup_event():
     model_dir = Path(os.getenv('MODEL_DIR', '/app/artifacts/ensemble_model_export'))
     
     if not model_dir.exists():
-        print(f"❌ Model directory not found: {model_dir}")
-        print("Please run the model export notebook first (07_hybrid_attack_detection.ipynb)")
+        logger.error(f"Model directory not found: {model_dir}")
+        logger.error("Please run the model export notebook first (07_hybrid_attack_detection.ipynb)")
         return
     
     try:
@@ -94,9 +95,9 @@ async def startup_event():
             window_size=20,
             device='cpu'  # Change to 'cuda' if GPU available
         )
-        print("✓ Adaptive detector initialized successfully!")
+        logger.info("Adaptive detector initialized successfully!")
     except Exception as e:
-        print(f"❌ Failed to load models: {e}")
+        logger.error(f"Failed to load models: {e}")
         raise
 
 
@@ -240,7 +241,7 @@ async def detect_batch(request: BatchLogRequest):
                 anomaly_count += 1
                 
         except Exception as e:
-            print(f"Error processing log: {e}")
+            logger.error(f"Error processing log: {e}")
             continue
     
     return BatchDetectionResponse(

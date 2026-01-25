@@ -236,8 +236,8 @@ async def startup_event():
         storage_dir = Path(__file__).parent.parent / 'data/multi_tenant'
     
     if not base_model_dir.exists():
-        print(f"❌ Model directory not found: {base_model_dir}")
-        print("Please run model export first")
+        logger.error(f"Model directory not found: {base_model_dir}")
+        logger.error("Please run model export first")
         return
     
     try:
@@ -261,10 +261,10 @@ async def startup_event():
         # Start background scheduler
         update_scheduler.start_background_scheduler()
         
-        print("✓ Multi-tenant detector initialized successfully!")
+        logger.info("Multi-tenant detector initialized successfully!")
         
     except Exception as e:
-        print(f"❌ Failed to initialize: {e}")
+        logger.error(f"Failed to initialize: {e}")
         import traceback
         traceback.print_exc()
 
@@ -564,7 +564,7 @@ async def detect_batch(
                     anomaly_count += 1
                     
         except Exception as e:
-            print(f"Error processing log: {e}")
+            logger.error(f"Error processing log: {e}")
             continue
     
     return BatchDetectionResponse(

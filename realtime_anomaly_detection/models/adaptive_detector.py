@@ -22,6 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from sklearn.ensemble import IsolationForest
+import logging
 
 # Import base detector
 import sys
@@ -30,6 +31,7 @@ from models.ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
 
+logger = logging.getLogger(__name__)
 
 class OnlineTrainingDataset(Dataset):
     """Dataset for online transformer training"""
@@ -99,17 +101,17 @@ class AdaptiveEnsembleDetector:
         # Load initial models (rule-based + isolation forest)
         self._load_base_models()
         
-        print(f"\n{'='*70}")
-        print(f"ADAPTIVE ENSEMBLE DETECTOR - ONLINE LEARNING MODE")
-        print(f"{'='*70}")
-        print(f"Phase 1: Processing {warmup_logs:,} logs with Rule-based + Isolation Forest")
-        print(f"Phase 2: Training Transformer in background")
-        print(f"Phase 3: Full ensemble detection after training")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"ADAPTIVE ENSEMBLE DETECTOR - ONLINE LEARNING MODE")
+        logger.info(f"{'='*70}")
+        logger.info(f"Phase 1: Processing {warmup_logs:,} logs with Rule-based + Isolation Forest")
+        logger.info(f"Phase 2: Training Transformer in background")
+        logger.info(f"Phase 3: Full ensemble detection after training")
+        logger.info(f"{'='*70}\n")
     
     def _load_base_models(self):
         """Load rule-based detector, isolation forest, and check for saved transformer"""
-        print("Loading base models (Rule-based + Isolation Forest)...")
+        logger.info("Loading base models (Rule-based + Isolation Forest)...")
         
         # 1. Initialize Isolation Forest
         self.iso_forest = IsolationForest(
@@ -121,7 +123,7 @@ class AdaptiveEnsembleDetector:
         
         # 2. Initialize Rule-based detector
         self.rule_detector = RuleBasedDetector()
-        print(f"✓ Initialized Rule-based detector")
+        logger.info(f"Initialized Rule-based detector")
         
         # 3. Load initial vocabulary (for template extraction)
         vocab_path = self.model_dir / 'template_vocab.json'
@@ -145,7 +147,7 @@ class AdaptiveEnsembleDetector:
         
         # Case 1: Both state and transformer exist
         if saved_state_path.exists() and saved_transformer_path.exists():
-            print(f"\n🔄 Found saved models, loading...")
+            logger.info(f"\nFound saved models, loading...")
             try:
                 # Load detector state (vocabulary, counters, etc.)
                 with open(saved_state_path, 'rb') as f:
@@ -167,22 +169,22 @@ class AdaptiveEnsembleDetector:
                 # Load isolation forest if it was trained
                 if self.iso_forest_ready and 'iso_forest_model' in state:
                     self.iso_forest = state['iso_forest_model']
-                    print(f"✓ Loaded trained Isolation Forest")
+                    logger.info(f"Loaded trained Isolation Forest")
                 
                 # Load transformer
                 checkpoint = torch.load(saved_transformer_path, map_location=self.device)
                 self._load_transformer_from_checkpoint(checkpoint)
                 
-                print(f"✓ Loaded trained Transformer")
-                print(f"  Logs processed: {self.logs_processed:,}")
-                print(f"  Vocabulary size: {len(self.id_to_template):,}")
-                print(f"  Transformer threshold: {self.transformer_threshold:.4f}")
-                print(f"  Isolation Forest ready: {self.iso_forest_ready}")
-                print(f"\n✅ Resumed from saved state - FULL ENSEMBLE ACTIVE!\n")
+                logger.info(f"Loaded trained Transformer")
+                logger.info(f"  Logs processed: {self.logs_processed:,}")
+                logger.info(f"  Vocabulary size: {len(self.id_to_template):,}")
+                logger.info(f"  Transformer threshold: {self.transformer_threshold:.4f}")
+                logger.info(f"  Isolation Forest ready: {self.iso_forest_ready}")
+                logger.info(f"\nResumed from saved state - FULL ENSEMBLE ACTIVE!\n")
                 
             except Exception as e:
-                print(f"⚠️  Failed to load saved models: {e}")
-                print(f"   Starting fresh...\n")
+                logger.warning(f"Failed to load saved models: {e}")
+                logger.info(f"   Starting fresh...\n")
                 self.logs_processed = 0
                 self.template_to_id = {}
                 self.id_to_template = []
@@ -191,7 +193,7 @@ class AdaptiveEnsembleDetector:
         
         # Case 2: Only transformer exists (old save, no state file)
         elif saved_transformer_path.exists():
-            print(f"\n🔄 Found saved transformer, loading (partial restore)...")
+            logger.info(f"\nFound saved transformer, loading (partial restore)...")
             try:
                 checkpoint = torch.load(saved_transformer_path, map_location=self.device)
                 
@@ -205,15 +207,15 @@ class AdaptiveEnsembleDetector:
                 # Mark isolation forest as ready (assume it was trained)
                 self.iso_forest_ready = True
                 
-                print(f"✓ Loaded trained Transformer (partial restore)")
-                print(f"  Vocabulary size: {len(self.id_to_template):,}")
-                print(f"  Transformer threshold: {self.transformer_threshold:.4f}")
-                print(f"  ⚠️  Isolation Forest state not saved - will retrain if needed")
-                print(f"\n✅ Transformer active! (Isolation Forest using defaults)\n")
+                logger.info(f"Loaded trained Transformer (partial restore)")
+                logger.info(f"  Vocabulary size: {len(self.id_to_template):,}")
+                logger.info(f"  Transformer threshold: {self.transformer_threshold:.4f}")
+                logger.warning(f"  Isolation Forest state not saved - will retrain if needed")
+                logger.info(f"\nTransformer active! (Isolation Forest using defaults)\n")
                 
             except Exception as e:
-                print(f"⚠️  Failed to load transformer: {e}")
-                print(f"   Starting fresh...\n")
+                logger.warning(f"Failed to load transformer: {e}")
+                logger.info(f"   Starting fresh...\n")
                 self.logs_processed = 0
                 self.template_to_id = {}
                 self.id_to_template = []
@@ -222,9 +224,9 @@ class AdaptiveEnsembleDetector:
         
         # Case 3: No saved models
         else:
-            print(f"✓ No saved models found, starting fresh")
-            print(f"✓ Will train Isolation Forest on first {self.warmup_logs:,} logs")
-            print(f"✓ Ready to collect templates for transformer training\n")
+            logger.info(f"No saved models found, starting fresh")
+            logger.info(f"Will train Isolation Forest on first {self.warmup_logs:,} logs")
+            logger.info(f"Ready to collect templates for transformer training\n")
     
     def _initialize_template_vocab(self, initial_vocab):
         """Seed template vocabulary from exported metadata"""
@@ -265,7 +267,7 @@ class AdaptiveEnsembleDetector:
         if unknown_id is None:
             vocab_size = original_vocab_size + 1
             unknown_id = vocab_size - 1
-            print("ℹ️  Expanding transformer vocabulary with <UNK> token (legacy checkpoint)")
+            logger.info("Expanding transformer vocabulary with <UNK> token (legacy checkpoint)")
         else:
             vocab_size = original_vocab_size
         
@@ -374,7 +376,7 @@ class AdaptiveEnsembleDetector:
         self.iso_retraining = True
         phase = "initial" if initial and not self.iso_forest_ready else "incremental"
         try:
-            print(f"\n🔄 Isolation Forest ({phase}) training on {feature_matrix.shape[0]:,} samples...")
+            logger.info(f"\nIsolation Forest ({phase}) training on {feature_matrix.shape[0]:,} samples...")
             self.iso_forest.fit(feature_matrix)
             self.iso_forest_ready = True
             self.iso_last_retrain_log = self.logs_processed
@@ -383,14 +385,14 @@ class AdaptiveEnsembleDetector:
             scores = -self.iso_forest.score_samples(feature_matrix)
             self.iso_score_threshold = float(np.percentile(scores, 95))
             
-            print("✅ Isolation Forest training complete!")
+            logger.info("Isolation Forest training complete!")
             
             if initial and not self.transformer_ready:
                 self._start_transformer_training()
             
             self._save_detector_state()
         except Exception as exc:
-            print(f"⚠️  Isolation Forest training failed: {exc}")
+            logger.warning(f"Isolation Forest training failed: {exc}")
         finally:
             self.iso_retraining = False
     
@@ -400,12 +402,12 @@ class AdaptiveEnsembleDetector:
             return
         
         if len(self.training_templates) == 0:
-            print("⚠️  WARNING: No training sequences collected!")
-            print(f"    Collected templates: {len(self.template_to_id):,}")
-            print(f"    Training will not start. Check session window collection.")
+            logger.warning("WARNING: No training sequences collected!")
+            logger.warning(f"    Collected templates: {len(self.template_to_id):,}")
+            logger.warning(f"    Training will not start. Check session window collection.")
             return
         
-        print(f"🚀 Starting Transformer training with {len(self.training_templates):,} sequences...")
+        logger.info(f"Starting Transformer training with {len(self.training_templates):,} sequences...")
         training_thread = threading.Thread(target=self.train_transformer_background)
         training_thread.daemon = True
         training_thread.start()
@@ -480,9 +482,9 @@ class AdaptiveEnsembleDetector:
             
             return np.array(features, dtype=np.float64).reshape(1, -1)
         except Exception as e:
-            print(f"⚠️  Feature extraction error: {e}")
-            print(f"   Log data: {log_data}")
-            print(f"   Session stats: {session_stats}")
+            logger.warning(f"Feature extraction error: {e}")
+            logger.warning(f"   Log data: {log_data}")
+            logger.warning(f"   Session stats: {session_stats}")
             # Return default safe features
             return np.array([1, 0.0, 1, 0, 1, 0, 0, 1, 1, 0, 0], dtype=np.float64).reshape(1, -1)
     
@@ -524,18 +526,18 @@ class AdaptiveEnsembleDetector:
             return
         base_vocab_size = len(self.id_to_template)
         if base_vocab_size == 0:
-            print("⚠️  No templates collected; skipping transformer training.")
+            logger.warning("No templates collected; skipping transformer training.")
             return
         
         self.training_in_progress = True
         
-        print(f"\n{'='*70}")
-        print(f"🔄 TRANSFORMER TRAINING STARTED (Background)")
-        print(f"{'='*70}")
-        print(f"  Templates collected: {len(self.id_to_template):,}")
-        print(f"  Training sequences: {len(self.training_templates):,}")
-        print(f"  Logs processed: {self.logs_processed:,}")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"TRANSFORMER TRAINING STARTED (Background)")
+        logger.info(f"{'='*70}")
+        logger.info(f"  Templates collected: {len(self.id_to_template):,}")
+        logger.info(f"  Training sequences: {len(self.training_templates):,}")
+        logger.info(f"  Logs processed: {self.logs_processed:,}")
+        logger.info(f"{'='*70}\n")
         
         try:
             # Freeze vocabulary and reserve special tokens
@@ -555,7 +557,7 @@ class AdaptiveEnsembleDetector:
                 padded_sequences.append(sanitized)
             
             if not padded_sequences:
-                print("⚠️  No training sequences available; aborting transformer training.")
+                logger.warning("No training sequences available; aborting transformer training.")
                 return
             
             # Initialize transformer
@@ -606,7 +608,7 @@ class AdaptiveEnsembleDetector:
                     total_loss += loss.item()
                 
                 avg_loss = total_loss / len(loader)
-                print(f"  Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f}")
+                logger.info(f"  Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f}")
             
             self.transformer.eval()
             
@@ -631,19 +633,19 @@ class AdaptiveEnsembleDetector:
             # Save detector state (for persistence across restarts)
             self._save_detector_state()
             
-            print(f"\n{'='*70}")
-            print(f"✅ TRANSFORMER TRAINING COMPLETE")
-            print(f"{'='*70}")
-            print(f"  Model saved: {save_path}")
-            print(f"  Vocabulary: {self.vocab_size:,} tokens (templates + specials)")
-            print(f"  Threshold: {self.transformer_threshold:.4f}")
-            print(f"  Now using FULL ENSEMBLE (Rule + Iso + Transformer)")
-            print(f"{'='*70}\n")
+            logger.info(f"\n{'='*70}")
+            logger.info(f"TRANSFORMER TRAINING COMPLETE")
+            logger.info(f"{'='*70}")
+            logger.info(f"  Model saved: {save_path}")
+            logger.info(f"  Vocabulary: {self.vocab_size:,} tokens (templates + specials)")
+            logger.info(f"  Threshold: {self.transformer_threshold:.4f}")
+            logger.info(f"  Now using FULL ENSEMBLE (Rule + Iso + Transformer)")
+            logger.info(f"{'='*70}\n")
             
             self.transformer_ready = True
             
         except Exception as e:
-            print(f"❌ Transformer training failed: {e}")
+            logger.error(f"Transformer training failed: {e}")
             import traceback
             traceback.print_exc()
         finally:
@@ -675,10 +677,10 @@ class AdaptiveEnsembleDetector:
             with open(state_path, 'wb') as f:
                 pickle.dump(state, f)
             
-            print(f"💾 Detector state saved to {state_path}")
+            logger.info(f"Detector state saved to {state_path}")
             
         except Exception as e:
-            print(f"⚠️  Failed to save detector state: {e}")
+            logger.warning(f"Failed to save detector state: {e}")
     
     def _calculate_adaptive_threshold(self, sequences: List[List[int]]) -> float:
         """Calculate adaptive threshold from training data"""
@@ -792,9 +794,9 @@ class AdaptiveEnsembleDetector:
                 return unknown_penalty
                 
             except Exception as e:
-                print(f"⚠️  Transformer scoring error: {e}")
-                print(f"   Sequence length: {original_length}, Padded: {len(cleaned_sequence)}")
-                print(f"   Vocab size: {self.vocab_size}, Template IDs: {sequence[:5]}")
+                logger.warning(f"Transformer scoring error: {e}")
+                logger.warning(f"   Sequence length: {original_length}, Padded: {len(cleaned_sequence)}")
+                logger.warning(f"   Vocab size: {self.vocab_size}, Template IDs: {sequence[:5]}")
                 return self.transformer_threshold + unknown_penalty  # Return threshold score on error (moderate anomaly)
     
     def detect(self, log_line: str, session_id: Optional[str] = None) -> Dict:
@@ -865,7 +867,7 @@ class AdaptiveEnsembleDetector:
         if self.iso_forest_ready:
             try:
                 if features is None or features.shape != (1, 11):
-                    print(f"⚠️  Warning: Invalid feature shape {features.shape if features is not None else 'None'}, expected (1, 11)")
+                    logger.warning(f"Warning: Invalid feature shape {features.shape if features is not None else 'None'}, expected (1, 11)")
                     iso_result = {
                         'is_anomaly': 0,
                         'score': 0.0,
@@ -889,10 +891,10 @@ class AdaptiveEnsembleDetector:
                         'samples_tracked': len(self.iso_training_features)
                     }
             except Exception as e:
-                print(f"⚠️  Isolation Forest error: {e}")
-                print(f"   Features: {features if features is not None else 'not extracted'}")
-                print(f"   Session stats: {session_stats}")
-                print(f"   Log data: {log_data}")
+                logger.warning(f"Isolation Forest error: {e}")
+                logger.warning(f"   Features: {features if features is not None else 'not extracted'}")
+                logger.warning(f"   Session stats: {session_stats}")
+                logger.warning(f"   Log data: {log_data}")
                 iso_result = {
                     'is_anomaly': 0,
                     'score': 0.0,

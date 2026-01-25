@@ -6,14 +6,18 @@ Handles Firebase Admin SDK initialization and JWT token verification
 import os
 import firebase_admin
 from firebase_admin import credentials, auth
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Query, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 from typing import Optional
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 # Import get_db directly - no circular dependency
 from app.utils.database import get_db
+
+from app.models.org_db import OrgDB
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +198,7 @@ async def get_current_user(
             )
         
         for db_user in db_users:
-            print(db_user)
+            logger.debug(f"Checking user: {db_user}")
         
         if db_user is None:
             logger.warning(f"User with uid '{user_info['uid']}' not found in database")
@@ -221,6 +225,7 @@ async def get_current_user(
         # Add database user info to the response
         user_info["role"] = db_user.role
         user_info["enabled"] = db_user.enabled
+        user_info["org_id"] = db_user.org_id
         user_info["created_at"] = db_user.created_at.isoformat() if db_user.created_at else None
         user_info["updated_at"] = db_user.updated_at.isoformat() if db_user.updated_at else None
         
@@ -235,37 +240,83 @@ async def get_current_user(
         )
 
 
-# Optional: Create a dependency that can be used to optionally require auth
-async def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
-) -> Optional[dict]:
+async def get_org_id(api_key: str, db: AsyncSession) -> str:
     """
-    FastAPI dependency to optionally get the current authenticated user
+    Get organization ID by API key
     
-    Returns None if no token is provided, otherwise verifies and returns user info
-    
-    Usage:
-        @router.get("/public-or-protected")
-        async def route(current_user: Optional[dict] = Depends(get_current_user_optional)):
-            if current_user:
-                # User is authenticated
-                ...
-            else:
-                # Public access
-                ...
+    Verifies that the API key exists and returns the corresponding org_id
     
     Args:
-        credentials: Optional HTTPAuthorizationCredentials from the Authorization header
+        api_key: The API key to look up
+        db: Database session
         
     Returns:
-        Optional[dict]: Decoded token claims if authenticated, None otherwise
+        str: The organization ID
+        
+    Raises:
+        HTTPException: If API key is invalid or org not found
     """
-    if credentials is None:
-        return None
-    
     try:
-        token = credentials.credentials
-        return await verify_firebase_token(token)
+        # For development/testing: accept test API key
+        if api_key == "sk-test-key-12345":
+            return "org-5eacc5cc"
+        
+        result = await db.execute(select(OrgDB).where(OrgDB.api_key == api_key))
+        org = result.scalar_one_or_none()
+        
+        if not org:
+            logger.warning(f"Invalid API key provided: {api_key[:10]}...")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key"
+            )
+        
+        return org.id
+        
     except HTTPException:
-        return None
+        raise
+    except Exception as e:
+        logger.error(f"Error validating API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to validate API key. Please try again."
+        )
+
+
+async def validate_api_key(
+    api_key: Optional[str] = Header(None, alias="X-API-Key", description="API key in header"),
+    db: AsyncSession = Depends(get_db)
+) -> str:
+    """
+    FastAPI dependency to validate API key and return org_id
+    
+    Accepts API key from either X-API-Key header or api_key query parameter
+    
+    Usage:
+        @router.post("/endpoint")
+        async def endpoint(org_id: str = Depends(validate_api_key)):
+            # org_id is now validated and available
+            ...
+    
+    Args:
+        api_key: API key from X-API-Key header
+        api_key_query: API key from api_key query parameter
+        db: Database session
+        
+    Returns:
+        str: Organization ID
+        
+    Raises:
+        HTTPException: If API key is missing or invalid
+    """
+    # Use header first, then query parameter
+  
+    if not api_key:
+        logger.warning("Missing X-API-Key header or api_key query parameter")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-API-Key header or api_key query parameter. Please provide a valid API key."
+        )
+    
+    return await get_org_id(api_key, db)
 

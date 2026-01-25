@@ -1,5 +1,5 @@
 export const API_ENDPOINTS = {
-  FETCH_LOGS: '/api/v1/fetch',
+  FETCH_LOGS: '/api/v1/logs/fetch',
   WEBSOCKET_BASE: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
 } as const;
 
