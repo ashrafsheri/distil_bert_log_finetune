@@ -288,18 +288,21 @@ class LogProcessingUtils:
         return processed_logs
 
     @staticmethod
-    async def send_logs_to_websocket(processed_logs: List[Dict[str, Any]]) -> None:
+    async def send_logs_to_websocket(processed_logs: List[Dict[str, Any]], org_id: Optional[str] = None) -> None:
         """
         Send processed logs to WebSocket connections for real-time updates.
 
         Args:
             processed_logs: List of processed logs
+            org_id: Organization ID to filter which clients receive the updates
         """
         for log in processed_logs:
             try:
+                # Get org_id from log if not explicitly provided
+                log_org_id = org_id or log.get("org_id")
                 websocket_log = LogService.convert_log_for_websocket(log)
-                await send_log_update(websocket_log)
+                await send_log_update(websocket_log, org_id=log_org_id)
                 logger.debug(f"Sent log to WebSocket: {websocket_log}")
-                logger.info(f"WebSocket log sent - IP: {websocket_log.get('ipAddress')}, API: {websocket_log.get('apiAccessed')}")
+                logger.info(f"WebSocket log sent - IP: {websocket_log.get('ipAddress')}, API: {websocket_log.get('apiAccessed')}, org_id: {log_org_id}")
             except Exception as e:
                 logger.error(f"Error sending log to WebSocket: {e}")</content>

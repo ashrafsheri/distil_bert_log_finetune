@@ -122,7 +122,7 @@ class ElasticsearchService:
         try:
             must_clauses = []
             if org_id:
-                must_clauses.append({"term": {"org_id": org_id}})
+                must_clauses.append({"term": {"org_id.keyword": org_id}})
             
             query = {
                 "query": {
@@ -299,7 +299,7 @@ class ElasticsearchService:
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
 
         try:
-            must_clauses: List[Dict] = [{"term": {"org_id": org_id}}]
+            must_clauses: List[Dict] = [{"term": {"org_id.keyword": org_id}}]
 
             if ip:
                 must_clauses.append({"term": {"ip_address": ip}})
@@ -368,7 +368,7 @@ class ElasticsearchService:
                     "bool": {
                         "must": [
                             {"term": {"ip_address": ip_address}},
-                            {"term": {"org_id": org_id}}
+                            {"term": {"org_id.keyword": org_id}}
                         ]
                     }
                 },
