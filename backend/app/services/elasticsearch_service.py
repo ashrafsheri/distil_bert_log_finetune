@@ -107,15 +107,23 @@ class ElasticsearchService:
             logger.error(f"Error storing logs batch in Elasticsearch: {e}")
             return False
     
-    async def get_logs(self, limit: int = 100, offset: int = 0) -> Dict:
+    async def get_logs(self, org_id: Optional[str], limit: int = 100, offset: int = 0) -> Dict:
         """Retrieve logs from Elasticsearch"""
         if self.client is None:
             logger.warning("Elasticsearch not available, returning empty logs")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
             
         try:
+            must_clauses = []
+            if org_id:
+                must_clauses.append({"term": {"org_id": org_id}})
+            
             query = {
-                "query": {"match_all": {}},
+                "query": {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                },
                 "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
                 "size": limit,
@@ -262,6 +270,7 @@ class ElasticsearchService:
 
     async def search_logs(
         self,
+        org_id: str,
         ip: Optional[str] = None,
         api: Optional[str] = None,
         status_code: Optional[int] = None,
@@ -284,7 +293,7 @@ class ElasticsearchService:
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
 
         try:
-            must_clauses: List[Dict] = []
+            must_clauses: List[Dict] = [{"term": {"org_id": org_id}}]
 
             if ip:
                 must_clauses.append({"term": {"ip_address": ip}})
@@ -331,95 +340,67 @@ class ElasticsearchService:
             logger.error(f"Error searching logs in Elasticsearch: {e}")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
 
-    async def update_logs_by_ip(self, ip_address: str, infected: bool) -> Dict:
+    async def update_logs_by_ip(self, ip_address: str, infected: bool, org_id: str) -> Dict:
         """Update all logs for a specific IP address with new infected status.
-        
+
         Args:
             ip_address: The IP address to update logs for
             infected: The new infected status (True for malicious, False for clean)
-            
+            org_id: Organization ID to scope the update
+
         Returns:
             Dict with update_count and status
         """
         if self.client is None:
             logger.warning("Elasticsearch not available, cannot update logs")
             return {"update_count": 0, "status": "error", "message": "Elasticsearch not available"}
-        
+
         try:
-            # First, get all document IDs for this IP address
+            # Use update_by_query for better performance - updates all matching documents in one operation
             query = {
                 "query": {
-                    "term": {"ip_address": ip_address}
-                },
-                "_source": False,  # We don't need the document content, just IDs
-                "size": 10000  # Adjust if you expect more logs per IP
-            }
-            
-            response = self.client.search(
-                index=self.index_name,
-                body=query,
-                scroll="2m"  # Use scroll API for large result sets
-            )
-            
-            scroll_id = response.get("_scroll_id")
-            hits = response["hits"]["hits"]
-            all_doc_ids = [hit["_id"] for hit in hits]
-            
-            # Continue scrolling if there are more results
-            while len(hits) > 0:
-                if scroll_id:
-                    response = self.client.scroll(
-                        scroll_id=scroll_id,
-                        scroll="2m"
-                    )
-                    hits = response["hits"]["hits"]
-                    all_doc_ids.extend([hit["_id"] for hit in hits])
-                else:
-                    break
-            
-            if not all_doc_ids:
-                logger.info(f"No logs found for IP address: {ip_address}")
-                return {"update_count": 0, "status": "success", "message": "No logs found for this IP"}
-            
-            # Use bulk update API to update all documents
-            bulk_body = []
-            for doc_id in all_doc_ids:
-                bulk_body.append({
-                    "update": {
-                        "_index": self.index_name,
-                        "_id": doc_id
+                    "bool": {
+                        "must": [
+                            {"term": {"ip_address": ip_address}},
+                            {"term": {"org_id": org_id}}
+                        ]
                     }
-                })
-                bulk_body.append({
-                    "doc": {
+                },
+                "script": {
+                    "source": "ctx._source.infected = params.infected",
+                    "lang": "painless",
+                    "params": {
                         "infected": infected
                     }
-                })
-            
-            if bulk_body:
-                update_response = self.client.bulk(body=bulk_body)
-                
-                if update_response.get("errors"):
-                    logger.error(f"Some documents failed to update: {update_response}")
-                    return {
-                        "update_count": 0,
-                        "status": "error",
-                        "message": "Some updates failed"
-                    }
-                
-                # Count successful updates
-                update_count = sum(1 for item in update_response.get("items", []) 
-                                 if item.get("update", {}).get("status") in ["200", "201"])
-                
-                logger.info(f"Successfully updated {update_count} logs for IP {ip_address} with infected={infected}")
-                return {
-                    "update_count": update_count,
-                    "status": "success",
-                    "message": f"Updated {update_count} logs"
                 }
-            
-            return {"update_count": 0, "status": "success", "message": "No updates needed"}
-            
+            }
+
+            response = self.client.update_by_query(
+                index=self.index_name,
+                body=query,
+                wait_for_completion=True,  # Wait for completion to get accurate count
+                refresh=True,  # Refresh index after update
+                conflicts="proceed"  # Continue on version conflicts
+            )
+
+            updated_count = response.get("updated", 0)
+            failed_count = response.get("failures", 0) if "failures" in response else 0
+
+            if failed_count > 0:
+                logger.warning(f"Some documents failed to update for IP {ip_address}: {failed_count} failures")
+                return {
+                    "update_count": updated_count,
+                    "status": "partial",
+                    "message": f"Updated {updated_count} logs, {failed_count} failed"
+                }
+
+            logger.info(f"Successfully updated {updated_count} logs for IP {ip_address} with infected={infected} for org {org_id}")
+            return {
+                "update_count": updated_count,
+                "status": "success",
+                "message": f"Updated {updated_count} logs"
+            }
+
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error updating logs by IP in Elasticsearch: {e}")
             return {"update_count": 0, "status": "error", "message": str(e)}

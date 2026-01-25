@@ -243,7 +243,7 @@ class KnowledgeDistillationTrainer:
         if self.teacher is None:
             return soft_labels
         
-        print("  Generating soft labels from teacher...")
+        logger.info("  Generating soft labels from teacher...")
         
         for i in range(0, len(sequences), batch_size):
             batch_seqs = sequences[i:i + batch_size]
@@ -365,7 +365,7 @@ class KnowledgeDistillationTrainer:
             }
             self.training_history.append(epoch_record)
             
-            print(f"  Epoch {epoch + 1}/{self.config.epochs} - "
+            logger.info(f"  Epoch {epoch + 1}/{self.config.epochs} - "
                   f"Loss: {epoch_losses['combined']:.4f} "
                   f"(Hard: {epoch_losses['hard']:.4f}, Soft: {epoch_losses['soft']:.4f})")
             
@@ -384,7 +384,7 @@ class KnowledgeDistillationTrainer:
             else:
                 self.patience_counter += 1
                 if self.patience_counter >= self.config.patience:
-                    print(f"  Early stopping at epoch {epoch + 1}")
+                    logger.info(f"  Early stopping at epoch {epoch + 1}")
                     break
         
         self.student.transformer.eval()
@@ -490,9 +490,9 @@ class TeacherUpdateScheduler:
         Returns:
             Update summary dictionary
         """
-        print(f"\n{'='*70}")
-        print(f"🎓 SCHEDULED TEACHER UPDATE")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"SCHEDULED TEACHER UPDATE")
+        logger.info(f"{'='*70}\n")
         
         start_time = time.time()
         
@@ -500,14 +500,14 @@ class TeacherUpdateScheduler:
         sequences, features = self.collect_training_data()
         
         if len(sequences) < self.min_new_samples:
-            print(f"⚠️ Not enough new samples: {len(sequences)} < {self.min_new_samples}")
+            logger.warning(f"Not enough new samples: {len(sequences)} < {self.min_new_samples}")
             return {
                 'success': False,
                 'reason': 'insufficient_samples',
                 'samples_collected': len(sequences)
             }
         
-        print(f"  Collected {len(sequences):,} sequences from students")
+        logger.info(f"  Collected {len(sequences):,} sequences from students")
         
         # Update teacher
         self.detector.teacher.update_from_student_logs(
@@ -532,7 +532,7 @@ class TeacherUpdateScheduler:
         # Update detector's project manager
         self.detector.project_manager.mark_teacher_updated()
         
-        print(f"\n✅ Teacher update complete in {duration:.1f}s")
+        logger.info(f"\nTeacher update complete in {duration:.1f}s")
         
         return update_record
     
@@ -544,7 +544,7 @@ class TeacherUpdateScheduler:
         self._running = True
         self._thread = threading.Thread(target=self._scheduler_loop, daemon=True)
         self._thread.start()
-        print(f"📅 Teacher update scheduler started (interval: {self.update_interval_hours}h)")
+        logger.info(f"Teacher update scheduler started (interval: {self.update_interval_hours}h)")
     
     def stop_background_scheduler(self):
         """Stop background scheduler"""
@@ -559,7 +559,7 @@ class TeacherUpdateScheduler:
                 if self.should_update():
                     self.perform_update()
             except Exception as e:
-                print(f"⚠️ Teacher update failed: {e}")
+                logger.warning(f"Teacher update failed: {e}")
             
             # Sleep for 1 hour between checks
             for _ in range(3600):

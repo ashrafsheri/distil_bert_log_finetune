@@ -1,7 +1,7 @@
 ### LogGuard Backend API Tests
 ### Using REST Client Extension for VS Code
 
-@baseUrl = http://localhost:8000
+@baseUrl = http://localhost
 @apiUrl = {{baseUrl}}/api/v1
 
 ### Health Check
@@ -22,18 +22,19 @@ Content-Type: application/json
 
 []
 
-### Send Logs from Agent - Single Log
-POST {{apiUrl}}/agent/sendLogs
-Content-Type: application/json
+  ### Send Logs from Agent - Single Log
+  POST {{apiUrl}}/agent/sendLogs
+  Content-Type: application/json
+  X-API-Key: sk-test-key-12345
 
-[
-  {
-    "ip_address": "192.168.1.100",
-    "api_accessed": "/api/v1/users",
-    "status_code": 200,
-    "infected": false
-  }
-]
+  [
+    {
+      "ip_address": "192.168.1.100",
+      "api_accessed": "/api/v1/users",
+      "status_code": 200,
+      "infected": false
+    }
+  ]
 
 ### Send Logs from Agent - Multiple Logs
 POST {{apiUrl}}/agent/sendLogs

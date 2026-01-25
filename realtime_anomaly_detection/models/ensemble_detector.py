@@ -260,7 +260,7 @@ class EnsembleAnomalyDetector:
     
     def _load_models(self):
         """Load all ensemble components"""
-        print("Loading ensemble models...")
+        logger.info("Loading ensemble models...")
         
         # 1. Load vocabulary
         vocab_path = self.model_dir / 'template_vocab.json'
@@ -275,7 +275,7 @@ class EnsembleAnomalyDetector:
             self.vocab_size = len(vocab_data)
         
         self.pad_id = self.vocab_size  # PAD token
-        print(f"✓ Loaded vocabulary: {self.vocab_size:,} templates")
+        logger.info(f"Loaded vocabulary: {self.vocab_size:,} templates")
         
         # 2. Load configuration
         config_path = self.model_dir / 'model_config.json'
@@ -283,7 +283,7 @@ class EnsembleAnomalyDetector:
             self.config = json.load(f)
         
         self.optimal_threshold = self.config.get('optimal_threshold', 6.5)
-        print(f"✓ Loaded config (threshold: {self.optimal_threshold:.4f})")
+        logger.info(f"Loaded config (threshold: {self.optimal_threshold:.4f})")
         
         # 3. Load Transformer
         checkpoint_path = self.model_dir / 'transformer_model.pt'
@@ -305,19 +305,19 @@ class EnsembleAnomalyDetector:
         
         self.transformer.load_state_dict(checkpoint['model_state_dict'])
         self.transformer.eval()
-        print(f"✓ Loaded Transformer ({sum(p.numel() for p in self.transformer.parameters()):,} params)")
+        logger.info(f"Loaded Transformer ({sum(p.numel() for p in self.transformer.parameters()):,} params)")
         
         # 4. Load Isolation Forest
         iso_path = self.model_dir / 'isolation_forest.pkl'
         with open(iso_path, 'rb') as f:
             self.iso_forest = pickle.load(f)
-        print(f"✓ Loaded Isolation Forest ({self.iso_forest.n_estimators} estimators)")
+        logger.info(f"Loaded Isolation Forest ({self.iso_forest.n_estimators} estimators)")
         
         # 5. Initialize Rule-based detector
         self.rule_detector = RuleBasedDetector()
-        print(f"✓ Initialized Rule-based detector")
+        logger.info(f"Initialized Rule-based detector")
         
-        print("✓ Ensemble model loaded successfully!\n")
+        logger.info("Ensemble model loaded successfully!\n")
     
     def parse_apache_log(self, log_line: str) -> Optional[Dict]:
         """Parse Apache access log line"""
