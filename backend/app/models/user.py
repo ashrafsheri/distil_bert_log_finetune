@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     email: EmailStr
     uid: str
     role: RoleType
+    org_id: Optional[str] = None
 
 
 class User(UserBase):

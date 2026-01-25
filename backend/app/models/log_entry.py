@@ -25,6 +25,7 @@ class LogEntry(BaseModel):
     infected: bool
     anomaly_score: Optional[float] = None
     anomaly_details: Optional[AnomalyDetails] = None
+    org_id : Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -51,6 +52,13 @@ class LogEntryCreate(BaseModel):
     apiAccessed: str
     statusCode: int
     infected: bool = False
+    org_id : Optional[str] = None
+
+
+class CorrectLogRequest(BaseModel):
+    """Request model for correctLog endpoint"""
+    ip: str
+    status: str  # "clean" or "malicious"
 
 
 class LogEntryResponse(BaseModel):

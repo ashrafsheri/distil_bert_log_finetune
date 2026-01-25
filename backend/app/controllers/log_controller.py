@@ -3,35 +3,23 @@ Log Controller
 Handles log-related API endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query, status
 from fastapi.responses import StreamingResponse
 from typing import List
 import uuid
-import asyncio
 import json
 import logging
-
-from app.models.log_entry import LogEntry, LogEntryResponse, AnomalyDetails
+from datetime import datetime
+from app.models.log_entry import LogEntry, LogEntryResponse, AnomalyDetails, CorrectLogRequest
+from app.serializers.log_serializer import LogSerializer
 from app.services.log_service import LogService
 from app.services.elasticsearch_service import ElasticsearchService
 from app.services.log_parser_service import LogParserService
 from app.services.anomaly_detection_service import AnomalyDetectionService
-from app.controllers.websocket_controller import send_log_update
-from app.utils.firebase_auth import get_current_user
+from app.utils.firebase_auth import get_current_user, validate_api_key
 from app.utils.permissions import check_permission
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from app.utils.database import get_db
-from app.models.user_db import UserDB, RoleEnum
-from app.models.ip_db import IPDB, IPStatusEnum
-from app.services.email_service import can_send_alert, mark_alert_sent, send_email
-from pydantic import BaseModel
-
-
-class CorrectLogRequest(BaseModel):
-    """Request model for correctLog endpoint"""
-    ip: str
-    status: str  # "clean" or "malicious"
 
 
 router = APIRouter()
@@ -68,46 +56,22 @@ async def fetch_logs(
         LogEntryResponse: List of logs with WebSocket ID for real-time updates
     """
     try:
+        # For admin users, don't filter by org_id (they can see all logs)
+        # For other users, require org_id
+        if current_user.get("role") != "admin" and not current_user.get("org_id"):
+            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        
         # Cap limit to 100 max
         safe_limit = min(max(limit, 1), 100)
         safe_offset = max(offset, 0)
+        
+        # Determine org_id for filtering
+        org_id_filter = None if current_user.get("role") == "admin" else current_user.get("org_id")
+        
         # Fetch logs from Elasticsearch with pagination
-        result = await elasticsearch_service.get_logs(limit=safe_limit, offset=safe_offset)
-        # Convert to LogEntry format for frontend
-        logs = []
-        for log_data in result["logs"]:
-            # Extract anomaly_details if present
-            anomaly_details = log_data.get("anomaly_details")
-            if anomaly_details and isinstance(anomaly_details, dict):
-                anomaly_details_obj = AnomalyDetails(
-                    rule_based=anomaly_details.get("rule_based"),
-                    isolation_forest=anomaly_details.get("isolation_forest"),
-                    transformer=anomaly_details.get("transformer"),
-                    ensemble=anomaly_details.get("ensemble")
-                )
-            else:
-                anomaly_details_obj = None
-            
-            log_entry = LogEntry(
-                timestamp=log_data.get("timestamp", ""),
-                ipAddress=log_data.get("ip_address", ""),
-                apiAccessed=log_data.get("api_accessed", ""),
-                statusCode=log_data.get("status_code", 0),
-                infected=log_data.get("infected", False),
-                anomaly_score=log_data.get("anomaly_score"),
-                anomaly_details=anomaly_details_obj
-            )
-            logs.append(log_entry)
+        result = await elasticsearch_service.get_logs(org_id=org_id_filter, limit=safe_limit, offset=safe_offset)
         
-        # Generate WebSocket ID for real-time updates
-        websocket_id = str(uuid.uuid4())
-        
-        return LogEntryResponse(
-            logs=logs,
-            websocket_id=websocket_id,
-            total_count=result.get("total", 0),
-            infected_count=sum(1 for l in logs if l.infected)
-        )
+        return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
         
     except Exception as e:
         logger.error(f"Error fetching logs: {e}")
@@ -133,6 +97,10 @@ async def search_logs(
     Only accessible to admin and manager roles (enforced via RBAC).
     """
     try:
+        # Check if user has org_id
+        if not current_user.get("org_id"):
+            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        
         infected = None
         if malicious is not None:
             infected = True if malicious else False
@@ -148,6 +116,7 @@ async def search_logs(
         safe_limit = min(max(limit, 1), 100)
         safe_offset = max(offset, 0)
         result = await elasticsearch_service.search_logs(
+            org_id=current_user["org_id"],
             ip=ip,
             api=api,
             status_code=status_code,
@@ -158,40 +127,7 @@ async def search_logs(
             offset=safe_offset,
         )
 
-        # Convert to LogEntry format for frontend
-        logs: List[LogEntry] = []
-        for log_data in result["logs"]:
-            # Extract anomaly_details if present
-            anomaly_details = log_data.get("anomaly_details")
-            if anomaly_details and isinstance(anomaly_details, dict):
-                anomaly_details_obj = AnomalyDetails(
-                    rule_based=anomaly_details.get("rule_based"),
-                    isolation_forest=anomaly_details.get("isolation_forest"),
-                    transformer=anomaly_details.get("transformer"),
-                    ensemble=anomaly_details.get("ensemble")
-                )
-            else:
-                anomaly_details_obj = None
-            
-            logs.append(
-                LogEntry(
-                    timestamp=log_data.get("timestamp", ""),
-                    ipAddress=log_data.get("ip_address", ""),
-                    apiAccessed=log_data.get("api_accessed", ""),
-                    statusCode=log_data.get("status_code", 0),
-                    infected=log_data.get("infected", False),
-                    anomaly_score=log_data.get("anomaly_score"),
-                    anomaly_details=anomaly_details_obj
-                )
-            )
-
-        websocket_id = str(uuid.uuid4())
-        return LogEntryResponse(
-            logs=logs,
-            websocket_id=websocket_id,
-            total_count=result.get("total", 0),
-            infected_count=sum(1 for l in logs if l.infected),
-        )
+        return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
     except Exception as e:
         logger.error(f"Error searching logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to search logs: {str(e)}")
@@ -215,6 +151,10 @@ async def export_logs_to_csv(
     Supports the same filters as search endpoint.
     """
     try:
+        # Check if user has org_id
+        if not current_user.get("org_id"):
+            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        
         infected = None
         if malicious is not None:
             infected = True if malicious else False
@@ -229,6 +169,7 @@ async def export_logs_to_csv(
 
         # Get all matching logs (up to 10000 for export)
         result = await elasticsearch_service.search_logs(
+            org_id=current_user["org_id"],
             ip=ip,
             api=api,
             status_code=status_code,
@@ -243,7 +184,6 @@ async def export_logs_to_csv(
         csv_content = await log_service.export_logs_to_csv(result["logs"])
 
         # Create filename with timestamp
-        from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"logguard_export_{timestamp}.csv"
 
@@ -263,113 +203,47 @@ async def correct_log(
     request: CorrectLogRequest,
     db: AsyncSession = Depends(get_db),
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    log_service: LogService = Depends(get_log_service),
     current_user: dict = Depends(check_permission("/api/v1/correctLog", "POST"))
 ):
     """
     Correct log status for an IP address.
-    
+
     Stores IP and status in PostgreSQL, then updates all logs for that IP in Elasticsearch.
-    
+
     Args:
         request: Contains ip (str) and status (str: "clean" or "malicious")
-        
+
     Returns:
         dict: Confirmation message with update details
     """
     try:
-        # Validate status
-        if request.status.lower() not in ["clean", "malicious"]:
-            raise HTTPException(
-                status_code=400,
-                detail="Status must be either 'clean' or 'malicious'"
-            )
-        
-        status_enum = IPStatusEnum.CLEAN if request.status.lower() == "clean" else IPStatusEnum.MALICIOUS
-        infected = status_enum == IPStatusEnum.MALICIOUS
-        
-        # Check if IP already exists in database
-        result = await db.execute(select(IPDB).where(IPDB.ip == request.ip))
-        existing_ip = result.scalar_one_or_none()
-        
-        # Get user info for logging
-        user_email = current_user.get('email', 'unknown')
-        user_role = current_user.get('role', 'unknown')
-        
-        if existing_ip:
-            # Update existing IP record
-            old_status = existing_ip.status.value
-            existing_ip.status = status_enum
-            await db.commit()
-            logger.warning(
-                f"[HUMAN CORRECTION] User {user_email} ({user_role}) changed IP {request.ip} "
-                f"status from '{old_status}' to '{request.status}'. "
-                f"This overrides model predictions."
-            )
-        else:
-            # Create new IP record
-            new_ip = IPDB(
-                ip=request.ip,
-                status=status_enum
-            )
-            db.add(new_ip)
-            await db.commit()
-            logger.warning(
-                f"[HUMAN CORRECTION] User {user_email} ({user_role}) marked IP {request.ip} "
-                f"as '{request.status}'. This is a new manual classification."
-            )
-        
-        # Update all logs for this IP in Elasticsearch
-        update_result = await elasticsearch_service.update_logs_by_ip(
-            ip_address=request.ip,
-            infected=infected
-        )
-        
-        if update_result["status"] == "error":
-            logger.error(
-                f"[HUMAN CORRECTION] Failed to update logs in Elasticsearch for IP {request.ip}: "
-                f"{update_result.get('message')}"
-            )
-            # Still return success for database update, but note Elasticsearch issue
-            return {
-                "message": "IP status updated in database, but Elasticsearch update failed",
-                "ip": request.ip,
-                "status": request.status,
-                "database_updated": True,
-                "elasticsearch_updated": False,
-                "elasticsearch_error": update_result.get("message"),
-                "logs_updated_count": 0,
-                "corrected_by": user_email
-            }
-        
-        logs_count = update_result.get("update_count", 0)
-        logger.info(
-            f"[HUMAN CORRECTION] Successfully updated {logs_count} log(s) in Elasticsearch "
-            f"for IP {request.ip} to status '{request.status}'"
-        )
-        
-        return {
-            "message": "IP status updated successfully",
-            "ip": request.ip,
-            "status": request.status,
-            "database_updated": True,
-            "elasticsearch_updated": True,
-            "logs_updated_count": logs_count,
-            "corrected_by": user_email
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error correcting log status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to correct log status: {str(e)}")
+        # Validate user permissions
+        if not current_user.get("org_id"):
+            raise HTTPException(status_code=403, detail="User must belong to an organization to correct logs")
 
-@router.post("/agent/sendLogs")
+        # Delegate to service for business logic
+        result = await log_service.correct_log_status(
+            request=request,
+            user_info=current_user,
+            db=db,
+            elasticsearch_service=elasticsearch_service
+        )
+
+        return result
+
+    except ValueError as e:
+        # Handle validation errors
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/agent/send-logs")
 async def receive_fluent_bit_logs(
     request: Request,
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
     log_parser_service: LogParserService = Depends(get_log_parser_service),
     anomaly_detection_service: AnomalyDetectionService = Depends(get_anomaly_detection_service),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    org_id: str = Depends(validate_api_key)
 ):
     """
     Receive logs from Fluent Bit, process them through anomaly detection, and store in Elasticsearch
@@ -385,28 +259,14 @@ async def receive_fluent_bit_logs(
     try:
         # Generate internal batch ID for tracking
         batch_id = str(uuid.uuid4())
-        raw_logs = []
+
         # Parse the raw request body
         body = await request.body()
-        request_data = json.loads(body)
-        
-        # Process Fluent Bit records
-        if not isinstance(request_data, list):
-            raise HTTPException(status_code=400, detail="Request must be an array of log records")
-        
-        for record in request_data:
-            if isinstance(record, dict) and 'log' in record:
-                logger.debug(f"Processing log record: {record}")
-                raw_logs.append(record['log'])
-            elif isinstance(record, str):
-                # Direct string log
-                logger.debug(f"Processing string log: {record}")
-                raw_logs.append(record)
-            else:
-                # Skip invalid records but continue processing
-                logger.debug(f"Skipping invalid record: {record}")
-                continue
-        
+        request_data = LogService.parse_fluent_bit_request(body)
+
+        # Extract raw logs from records
+        raw_logs = LogService.extract_raw_logs_from_records(request_data)
+
         if not raw_logs:
             raise HTTPException(status_code=400, detail="No valid logs found in request")
         
@@ -430,11 +290,9 @@ async def receive_fluent_bit_logs(
                 if parsed_log is None:
                     logger.warning(f"Could not parse log: {raw_log[:100]}...")
                     continue
-                parsed_logs_data.append({
-                    "parsed_log": parsed_log,
-                    "raw_log": raw_log,
-                    "anomaly_index": i
-                })
+                parsed_logs_data.append(
+                    LogSerializer.serialize_parsed_log_data(parsed_log, raw_log, i)
+                )
             except Exception as e:
                 logger.error(f"Error parsing log: {e}")
                 continue
@@ -446,72 +304,13 @@ async def receive_fluent_bit_logs(
             if ip:
                 unique_ips.add(ip)
         
-        # Query IP table for all unique IPs in this batch
-        ip_status_map = {}
-        if unique_ips:
-            try:
-                result = await db.execute(
-                    select(IPDB).where(IPDB.ip.in_(list(unique_ips)))
-                )
-                ip_records = result.scalars().all()
-                for ip_record in ip_records:
-                    # Map status to infected boolean: malicious = True, clean = False
-                    ip_status_map[ip_record.ip] = ip_record.status == IPStatusEnum.MALICIOUS
-                logger.debug(f"Found {len(ip_status_map)} IPs in IP table out of {len(unique_ips)} unique IPs")
-            except Exception as e:
-                logger.error(f"Error querying IP table: {e}")
+        # Query IP table for status overrides
+        ip_status_map = await LogService.get_ip_status_map(unique_ips, org_id, db)
         
-        # Parse and format logs for storage
-        processed_logs = []
-        for log_data in parsed_logs_data:
-            try:
-                parsed_log = log_data["parsed_log"]
-                raw_log = log_data["raw_log"]
-                i = log_data["anomaly_index"]
-                
-                # Get anomaly result for this log
-                anomaly_result = anomaly_results[i] if i < len(anomaly_results) else {
-                    "is_anomaly": False, 
-                    "anomaly_score": 0.0, 
-                    "details": {}
-                }
-                
-                # Check IP table for status override
-                ip_address = parsed_log["ip_address"]
-                infected_status = anomaly_result.get("is_anomaly", False)
-                
-                # Override infected status if IP is in the IP table
-                if ip_address in ip_status_map:
-                    infected_status = ip_status_map[ip_address]
-                    logger.debug(f"Overriding infected status for IP {ip_address} to {infected_status} based on IP table")
-                
-                # Format for storage - use original ISO timestamp for Elasticsearch
-                formatted_log = {
-                    "timestamp": parsed_log["timestamp"],  # Keep original ISO format for Elasticsearch
-                    "ip_address": ip_address,
-                    "api_accessed": parsed_log["path"],
-                    "status_code": parsed_log["status_code"],
-                    "infected": infected_status,
-                    "anomaly_score": anomaly_result.get("anomaly_score", 0.0),
-                    "anomaly_details": {
-                        "rule_based": anomaly_result.get("details", {}).get("rule_based", {}),
-                        "isolation_forest": anomaly_result.get("details", {}).get("isolation_forest", {}),
-                        "transformer": anomaly_result.get("details", {}).get("transformer", {}),
-                        "ensemble": anomaly_result.get("details", {}).get("ensemble", {})
-                    },
-                    "raw_log": raw_log,
-                    "method": parsed_log.get("method", ""),
-                    "protocol": parsed_log.get("protocol", ""),
-                    "size": parsed_log.get("size", 0),
-                    "batch_id": batch_id,
-                    "source": "fluent_bit"
-                }
-                
-                processed_logs.append(formatted_log)
-                
-            except Exception as e:
-                logger.error(f"Error processing individual log: {e}")
-                continue
+        # Process parsed logs into formatted logs for storage
+        processed_logs = await LogService.process_parsed_logs_batch(
+            parsed_logs_data, anomaly_results, ip_status_map, batch_id, org_id
+        )
         
         # Store processed logs in Elasticsearch
         if processed_logs:
@@ -520,68 +319,24 @@ async def receive_fluent_bit_logs(
                 logger.error("Failed to store logs in Elasticsearch")
             
             # Send logs to WebSocket connections for real-time updates
-            for log in processed_logs:
-                try:
-                    # Convert to frontend format for WebSocket (camelCase to match frontend)
-                    websocket_log = {
-                        "timestamp": log.get("timestamp", ""),
-                        "ipAddress": log.get("ip_address", ""),
-                        "apiAccessed": log.get("api_accessed", ""),
-                        "statusCode": log.get("status_code", 0),
-                        "infected": log.get("infected", False),
-                        "anomaly_score": log.get("anomaly_score", 0.0),
-                        "anomaly_details": log.get("anomaly_details", {})
-                    }
-                    await send_log_update(websocket_log)
-                    logger.debug(f"Sent log to WebSocket: {websocket_log}")
-                    print(f"📤 WebSocket log sent - IP: {websocket_log.get('ipAddress')}, API: {websocket_log.get('apiAccessed')}")
-                except Exception as e:
-                    logger.error(f"Error sending log to WebSocket: {e}")
+            await LogService.send_logs_to_websocket(processed_logs)
         
         processed_count = len(processed_logs)
         anomalies_detected = sum(1 for log in processed_logs if log.get("infected", False))
         logger.info(f"Successfully processed {processed_count} logs")
 
-        # Alert admins if anomalies detected and cooldown allows
-        try:
-            if anomalies_detected > 0 and can_send_alert():
-                # Fetch admin emails
-                result = await db.execute(select(UserDB).where(UserDB.role == RoleEnum.ADMIN))
-                admins = result.scalars().all()
-                recipients = [u.email for u in admins if getattr(u, 'enabled', True)]
-                if recipients:
-                    example = next((l for l in processed_logs if l.get("infected", False)), None)
-                    subject = f"LogGuard Alert: {anomalies_detected} anomalous log(s) detected"
-                    body_lines = [
-                        f"Anomaly summary:",
-                        f"- Batch ID: {batch_id}",
-                        f"- Anomalies detected: {anomalies_detected}",
-                    ]
-                    if example:
-                        body_lines += [
-                            "",
-                            "Example:",
-                            f"Time: {example.get('timestamp','')}",
-                            f"IP: {example.get('ip_address','')}",
-                            f"API: {example.get('api_accessed','')}",
-                            f"Status: {example.get('status_code','')}",
-                            f"Score: {example.get('anomaly_score','')}",
-                        ]
-                    body = "\n".join(body_lines)
-                    # Send email (best-effort)
-                    await asyncio.to_thread(send_email, subject, body, recipients)
-                    mark_alert_sent()
-        except Exception as alert_err:
-            logger.warning(f"Failed to send anomaly alert email: {alert_err}")
-        
-        response = {
-            "message": "Logs received and processed successfully",
-            "batch_id": batch_id,
-            "processed_count": processed_count,
-            "anomalies_detected": anomalies_detected,
-            "status": "success",
-            "source": "fluent_bit"
-        }
+        # Alert managers if anomalies detected
+        await LogService.send_anomaly_alert(
+            anomalies_detected, processed_logs, batch_id, org_id, db
+        )
+
+        # Return serialized response
+        response = LogSerializer.serialize_fluent_bit_response(
+            message="Logs received and processed successfully",
+            batch_id=batch_id,
+            processed_count=processed_count,
+            anomalies_detected=anomalies_detected
+        )
         
         processed_logs.clear()
         return response

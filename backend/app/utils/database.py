@@ -28,8 +28,8 @@ DATABASE_URL = os.getenv(
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False,  # Set to True for SQL query logging
-    poolclass=NullPool,  # Use NullPool for async connections
+    echo=False,  
+    poolclass=NullPool, 
     future=True
 )
 
@@ -55,6 +55,7 @@ async def init_db():
     from app.models.user_db import UserDB, RoleEnum
     from app.models.role_permission_db import RolePermissionDB  # noqa: F401
     from app.models.ip_db import IPDB  # noqa: F401
+    from app.models.org_db import OrgDB  # noqa: F401
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -83,11 +84,11 @@ async def init_db():
                 )
                 session.add(admin_user)
                 await session.commit()
-                logger.info("✅ Default admin user created successfully")
+                logger.info("Default admin user created successfully")
             else:
-                logger.info("✅ Default admin user already exists")
+                logger.info("Default admin user already exists")
     except Exception as e:
-        logger.warning(f"⚠️  Could not create default admin user: {e}")
+        logger.warning(f"Could not create default admin user: {e}")
 
 
 async def _init_default_permissions():
@@ -110,8 +111,13 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/role", "PATCH"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/password", "PUT"),
         (RoleEnum.ADMIN, "/api/v1/correctLog", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/admin/create-org", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/admin/delete-org", "DELETE"),
+        (RoleEnum.ADMIN, "/api/v1/admin/regenerate-api-key", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/admin/orgs", "GET"),
         
         # Manager - Can view users
+        (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid", "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}/enabled", "PUT"),
