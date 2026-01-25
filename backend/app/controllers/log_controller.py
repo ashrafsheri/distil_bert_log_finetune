@@ -56,9 +56,12 @@ async def fetch_logs(
         LogEntryResponse: List of logs with WebSocket ID for real-time updates
     """
     try:
+        print(f"[FETCH] User role: {current_user.get('role')}, org_id: {current_user.get('org_id')}, uid: {current_user.get('uid')}", flush=True)
+        
         # For admin users, don't filter by org_id (they can see all logs)
         # For other users, require org_id
         if current_user.get("role") != "admin" and not current_user.get("org_id"):
+            print(f"[FETCH] User {current_user.get('uid')} has no org_id", flush=True)
             raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
         
         # Cap limit to 100 max
@@ -67,13 +70,17 @@ async def fetch_logs(
         
         # Determine org_id for filtering
         org_id_filter = None if current_user.get("role") == "admin" else current_user.get("org_id")
+        print(f"[FETCH] Querying ES with org_id_filter={org_id_filter}, limit={safe_limit}, offset={safe_offset}", flush=True)
         
         # Fetch logs from Elasticsearch with pagination
         result = await elasticsearch_service.get_logs(org_id=org_id_filter, limit=safe_limit, offset=safe_offset)
         
+        print(f"[FETCH] Got {len(result.get('logs', []))} logs, total={result.get('total', 0)}", flush=True)
+        
         return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
         
     except Exception as e:
+        print(f"[FETCH] Error fetching logs: {e}", flush=True)
         logger.error(f"Error fetching logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
 
@@ -370,8 +377,8 @@ async def receive_fluent_bit_logs(
             if not storage_success:
                 logger.error("Failed to store logs in Elasticsearch")
             
-            # Send logs to WebSocket connections for real-time updates
-            await LogService.send_logs_to_websocket(processed_logs)
+            # Send logs to WebSocket connections for real-time updates (filtered by org_id)
+            await LogService.send_logs_to_websocket(processed_logs, org_id=org_id)
             
             # Increment organization log count for warmup tracking
             await LogService.increment_org_log_count(org_id, len(processed_logs), db)
