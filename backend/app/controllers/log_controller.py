@@ -236,6 +236,40 @@ async def correct_log(
         # Handle validation errors
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/agent/debug-logs")
+async def debug_fluent_bit_logs(
+    request: Request,
+    org_id: str = Depends(validate_api_key)
+):
+    """
+    Debug endpoint to log exactly what Fluent-bit is sending
+    """
+    try:
+        body = await request.body()
+        headers = dict(request.headers)
+        
+        logger.info(f"=== FLUENT-BIT DEBUG ===")
+        logger.info(f"Headers: {headers}")
+        logger.info(f"Body (first 1000 chars): {body[:1000]}")
+        logger.info(f"Body type: {type(body)}")
+        logger.info(f"Body length: {len(body)}")
+        logger.info(f"Org ID from API key: {org_id}")
+        
+        # Try to parse as JSON
+        try:
+            parsed_data = json.loads(body)
+            logger.info(f"Successfully parsed as JSON")
+            logger.info(f"Data type: {type(parsed_data)}")
+            logger.info(f"Data structure: {parsed_data[:2] if isinstance(parsed_data, list) else parsed_data}")
+        except Exception as parse_error:
+            logger.info(f"Failed to parse as JSON: {parse_error}")
+            
+        return {"status": "debug_complete", "body_length": len(body)}
+        
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}")
+        return {"status": "debug_error", "error": str(e)}
+
 @router.post("/agent/send-logs")
 async def receive_fluent_bit_logs(
     request: Request,
@@ -262,12 +296,30 @@ async def receive_fluent_bit_logs(
 
         # Parse the raw request body
         body = await request.body()
+        
+        # Use print() for guaranteed visibility in Docker logs
+        print(f"=== FLUENT-BIT REQUEST DEBUG ===", flush=True)
+        print(f"Body length: {len(body)} bytes", flush=True)
+        print(f"Body (first 500 bytes): {body[:500]}", flush=True)
+        print(f"Org ID from API key: {org_id}", flush=True)
+        
         request_data = LogService.parse_fluent_bit_request(body)
+        print(f"Parsed data type: {type(request_data)}, count: {len(request_data) if hasattr(request_data, '__len__') else 'N/A'}", flush=True)
+        
+        if request_data:
+            print(f"First record sample: {request_data[0] if isinstance(request_data, list) else request_data}", flush=True)
+            if isinstance(request_data, list) and len(request_data) > 0:
+                first = request_data[0]
+                if isinstance(first, dict):
+                    print(f"First record keys: {list(first.keys())}", flush=True)
 
         # Extract raw logs from records
         raw_logs = LogService.extract_raw_logs_from_records(request_data)
+        print(f"Extracted {len(raw_logs)} raw logs", flush=True)
 
         if not raw_logs:
+            # Log detailed info about what we received but couldn't parse
+            print(f"WARNING: No valid logs extracted. Raw request_data: {request_data[:2] if isinstance(request_data, list) else request_data}", flush=True)
             raise HTTPException(status_code=400, detail="No valid logs found in request")
         
         logger.info(f"Processing {len(raw_logs)} logs from Fluent Bit")
@@ -320,6 +372,9 @@ async def receive_fluent_bit_logs(
             
             # Send logs to WebSocket connections for real-time updates
             await LogService.send_logs_to_websocket(processed_logs)
+            
+            # Increment organization log count for warmup tracking
+            await LogService.increment_org_log_count(org_id, len(processed_logs), db)
         
         processed_count = len(processed_logs)
         anomalies_detected = sum(1 for log in processed_logs if log.get("infected", False))
@@ -342,6 +397,9 @@ async def receive_fluent_bit_logs(
         return response
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Error processing logs: {str(e)}")
+        logger.error(f"Full traceback: {error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to process logs: {str(e)}")
 

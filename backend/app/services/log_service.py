@@ -14,12 +14,13 @@ import json
 import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from fastapi import HTTPException
 
 from app.models.log_entry import LogEntry, LogEntryCreate, CorrectLogRequest
 from app.models.ip_db import IPDB, IPStatusEnum
 from app.models.user_db import UserDB, RoleEnum
+from app.models.org_db import OrgDB
 from app.services.elasticsearch_service import ElasticsearchService
 from app.services.email_service import can_send_alert, mark_alert_sent, send_email
 from app.controllers.websocket_controller import send_log_update
@@ -373,6 +374,7 @@ class LogService:
     def parse_fluent_bit_request(body: bytes) -> List[Dict[str, Any]]:
         """
         Parse the raw request body from Fluent Bit.
+        Supports both JSON and MessagePack formats.
 
         Args:
             body: Raw request body bytes
@@ -383,14 +385,31 @@ class LogService:
         Raises:
             HTTPException: If request format is invalid
         """
+        print(f"[parse_fluent_bit_request] Parsing {len(body)} bytes", flush=True)
+        print(f"[parse_fluent_bit_request] First 100 bytes: {body[:100]}", flush=True)
+        
+        # Try MessagePack first (common Fluent Bit format)
+        try:
+            import msgpack
+            request_data = msgpack.unpackb(body, raw=False)
+            print(f"[parse_fluent_bit_request] Successfully parsed as MessagePack", flush=True)
+            if not isinstance(request_data, list):
+                request_data = [request_data]  # Wrap single record in list
+            return request_data
+        except Exception as msgpack_error:
+            print(f"[parse_fluent_bit_request] MessagePack failed: {msgpack_error}", flush=True)
+        
+        # Try JSON format
         try:
             request_data = json.loads(body)
-        except json.JSONDecodeError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid JSON in request body: {str(e)}")
+            print(f"[parse_fluent_bit_request] Successfully parsed as JSON", flush=True)
+        except json.JSONDecodeError as json_error:
+            print(f"[parse_fluent_bit_request] JSON failed: {json_error}", flush=True)
+            raise HTTPException(status_code=400, detail=f"Invalid request format. Body must be JSON or MessagePack. JSON error: {str(json_error)}")
 
         if not isinstance(request_data, list):
-            raise HTTPException(status_code=400, detail="Request must be an array of log records")
-
+            request_data = [request_data]  # Wrap single record in list
+            
         return request_data
 
     @staticmethod
@@ -402,24 +421,139 @@ class LogService:
             records: List of records from Fluent Bit (dicts with 'log' key or strings)
 
         Returns:
-            List of raw log strings
+            List of raw log strings in Apache Combined Log Format
         """
         raw_logs = []
-
-        for record in records:
-            if isinstance(record, dict) and 'log' in record:
-                logger.debug(f"Processing log record: {record}")
-                raw_logs.append(record['log'])
+        
+        # Use print for guaranteed visibility in Docker logs
+        print(f"[extract_raw_logs] Processing {len(records) if hasattr(records, '__len__') else 'unknown'} records", flush=True)
+        
+        for i, record in enumerate(records):
+            log_content = None
+            
+            if i == 0:  # Debug first record
+                print(f"[extract_raw_logs] First record type: {type(record)}", flush=True)
+                print(f"[extract_raw_logs] First record content: {record}", flush=True)
+            
+            if isinstance(record, dict):
+                # Check if this is a structured nginx log (has 'remote', 'method', 'path', 'code')
+                if all(k in record for k in ['remote', 'method', 'path', 'code']):
+                    # Convert structured nginx log to Apache Combined Log Format
+                    log_content = LogService._convert_nginx_to_combined(record)
+                    if i == 0:
+                        print(f"[extract_raw_logs] Converted nginx structured log to Combined format", flush=True)
+                else:
+                    # Try multiple common field names used by Fluent Bit
+                    common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
+                    for field_name in common_fields:
+                        if field_name in record:
+                            log_content = record[field_name]
+                            if i == 0:
+                                print(f"[extract_raw_logs] Found content in field '{field_name}'", flush=True)
+                            break
+                    
+                    # If no direct field found, check if it's a nested structure
+                    if log_content is None and 'record' in record:
+                        nested_record = record['record']
+                        if isinstance(nested_record, dict):
+                            # Check nested record for nginx format
+                            if all(k in nested_record for k in ['remote', 'method', 'path', 'code']):
+                                log_content = LogService._convert_nginx_to_combined(nested_record)
+                                if i == 0:
+                                    print(f"[extract_raw_logs] Converted nested nginx structured log", flush=True)
+                            else:
+                                for field_name in common_fields:
+                                    if field_name in nested_record:
+                                        log_content = nested_record[field_name]
+                                        if i == 0:
+                                            print(f"[extract_raw_logs] Found content in nested 'record.{field_name}'", flush=True)
+                                        break
+                    
+                    # Try to find any string value that looks like a log line
+                    if log_content is None:
+                        for key, value in record.items():
+                            if isinstance(value, str) and len(value) > 10 and key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source']:
+                                log_content = value
+                                if i == 0:
+                                    print(f"[extract_raw_logs] Using string value from field '{key}' as log content", flush=True)
+                                break
+                    
+                    # Last resort: convert entire record to string if it has no recognized log field
+                    if log_content is None and len(record) > 0:
+                        # Skip if it only has timestamp-like fields
+                        non_meta_keys = [k for k in record.keys() if k not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source', 'tag']]
+                        if non_meta_keys:
+                            log_content = json.dumps(record)
+                            if i == 0:
+                                print(f"[extract_raw_logs] Converting entire record to JSON string", flush=True)
+                    
             elif isinstance(record, str):
                 # Direct string log
-                logger.debug(f"Processing string log: {record}")
-                raw_logs.append(record)
-            else:
-                # Skip invalid records but continue processing
-                logger.debug(f"Skipping invalid record: {record}")
-                continue
+                log_content = record
+                if i == 0:
+                    print(f"[extract_raw_logs] Record is direct string", flush=True)
+            
+            if log_content and isinstance(log_content, str) and log_content.strip():
+                raw_logs.append(log_content.strip())
+            elif i == 0:
+                print(f"[extract_raw_logs] Skipping record - no valid content found", flush=True)
 
+        print(f"[extract_raw_logs] Extracted {len(raw_logs)} logs from {len(records)} records", flush=True)
         return raw_logs
+
+    @staticmethod
+    def _convert_nginx_to_combined(record: Dict) -> str:
+        """
+        Convert structured nginx log record to Apache Combined Log Format.
+        
+        Expected record format:
+        {
+            "date": 1769347254.0,
+            "remote": "139.135.32.142",
+            "user": "-",
+            "method": "GET",
+            "path": "/login",
+            "code": "304",
+            "size": "0",
+            "referer": "-",
+            "agent": "Mozilla/5.0 ..."
+        }
+        
+        Returns:
+            Apache Combined Log Format string:
+            139.135.32.142 - - [01/Jan/2024:12:00:00 +0000] "GET /login HTTP/1.1" 304 0 "-" "Mozilla/5.0 ..."
+        """
+        from datetime import datetime
+        
+        # Extract fields with defaults
+        ip = record.get('remote', '127.0.0.1')
+        user = record.get('user', '-')
+        method = record.get('method', 'GET')
+        path = record.get('path', '/')
+        code = record.get('code', '200')
+        size = record.get('size', '0')
+        referer = record.get('referer', '-')
+        agent = record.get('agent', '-')
+        
+        # Convert Unix timestamp to log format
+        timestamp = record.get('date')
+        if timestamp:
+            try:
+                dt = datetime.fromtimestamp(float(timestamp))
+                timestamp_str = dt.strftime('%d/%b/%Y:%H:%M:%S +0000')
+            except:
+                timestamp_str = datetime.now().strftime('%d/%b/%Y:%H:%M:%S +0000')
+        else:
+            timestamp_str = datetime.now().strftime('%d/%b/%Y:%H:%M:%S +0000')
+        
+        # Handle size = "-" or "0"
+        if size == '-':
+            size = '0'
+        
+        # Build Combined Log Format line
+        log_line = f'{ip} - {user} [{timestamp_str}] "{method} {path} HTTP/1.1" {code} {size} "{referer}" "{agent}"'
+        
+        return log_line
 
     @staticmethod
     async def get_ip_status_map(unique_ips: set, org_id: str, db: AsyncSession) -> Dict[str, bool]:
@@ -634,6 +768,7 @@ class LogService:
                 logger.error(f"Error processing individual log: {e}")
                 continue
 
+
         return processed_logs
 
     @staticmethod
@@ -652,3 +787,47 @@ class LogService:
                 logger.info(f"WebSocket log sent - IP: {websocket_log.get('ipAddress')}, API: {websocket_log.get('apiAccessed')}")
             except Exception as e:
                 logger.error(f"Error sending log to WebSocket: {e}")
+
+    @staticmethod
+    async def increment_org_log_count(org_id: str, count: int, db: AsyncSession) -> None:
+        """
+        Increment the log count for an organization and update warmup progress.
+        
+        Args:
+            org_id: Organization ID
+            count: Number of logs to add
+            db: Database session
+        """
+        try:
+            # Get current org data
+            result = await db.execute(
+                select(OrgDB).where(OrgDB.id == org_id)
+            )
+            org = result.scalar_one_or_none()
+            
+            if org:
+                # Calculate new values
+                new_log_count = (org.log_count or 0) + count
+                warmup_threshold = org.warmup_threshold or 10000
+                new_progress = min(100.0, (new_log_count / warmup_threshold) * 100)
+                
+                # Update organization
+                await db.execute(
+                    update(OrgDB)
+                    .where(OrgDB.id == org_id)
+                    .values(
+                        log_count=new_log_count,
+                        warmup_progress=new_progress
+                    )
+                )
+                await db.commit()
+                
+                print(f"[LogService] Updated org {org_id}: log_count={new_log_count}, progress={new_progress:.1f}%", flush=True)
+                logger.info(f"Updated org {org_id}: log_count={new_log_count}, progress={new_progress:.1f}%")
+            else:
+                logger.warning(f"Organization {org_id} not found for log count update")
+                
+        except Exception as e:
+            logger.error(f"Error updating org log count: {e}")
+            # Don't fail the main operation if count update fails
+            await db.rollback()
