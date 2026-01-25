@@ -73,8 +73,11 @@ class ElasticsearchService:
     
     async def store_logs_batch(self, logs_data: List[Dict]) -> bool:
         """Store multiple log entries in Elasticsearch using bulk API"""
+        print(f"[ES] store_logs_batch called with {len(logs_data)} logs", flush=True)
+        
         if self.client is None:
             logger.warning("Elasticsearch not available, skipping log storage")
+            print(f"[ES] Client is None, skipping storage", flush=True)
             return True
             
         try:
@@ -92,12 +95,15 @@ class ElasticsearchService:
                 bulk_body.append(log_data)
             
             if bulk_body:
+                print(f"[ES] Sending bulk request with {len(bulk_body)//2} documents to index {self.index_name}", flush=True)
                 response = self.client.bulk(body=bulk_body)
                 
                 if response.get("errors"):
                     logger.error(f"Some documents failed to index: {response}")
+                    print(f"[ES] Bulk errors: {response}", flush=True)
                     return False
                 
+                print(f"[ES] Successfully indexed {len(bulk_body)//2} documents", flush=True)
                 logger.info(f"Successfully stored {len(logs_data)} logs in Elasticsearch")
                 return True
             
