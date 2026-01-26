@@ -217,11 +217,12 @@ class TeacherModel:
     def _initialize_fresh_iso_forest(self):
         """Initialize a fresh isolation forest"""
         from sklearn.ensemble import IsolationForest
+        # Note: warm_start=False to avoid sklearn warning about not increasing n_estimators
         self.iso_forest = IsolationForest(
             n_estimators=100,
             contamination=0.1,
             random_state=42,
-            warm_start=True
+            warm_start=False
         )
     
     def _load_transformer_weights(self, checkpoint: Dict):

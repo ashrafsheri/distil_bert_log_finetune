@@ -4,6 +4,9 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+# Prevent interactive prompts during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install minimal system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \

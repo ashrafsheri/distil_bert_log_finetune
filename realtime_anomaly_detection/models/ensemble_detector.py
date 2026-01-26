@@ -59,10 +59,13 @@ class TemplateTransformer(nn.Module):
         x = x + self.positional[:, :seq_len, :]
         
         causal = self.causal_mask[:seq_len, :seq_len]
+        # Convert causal mask to float and apply -inf for masked positions
         causal = causal.float().masked_fill(causal, float('-inf'))
         
         if attention_mask is not None:
-            key_padding = attention_mask == 0
+            # Convert key_padding mask to float to match causal mask type (fixes PyTorch warning)
+            key_padding = (attention_mask == 0).float()
+            key_padding = key_padding.masked_fill(key_padding == 1, float('-inf'))
             x = self.encoder(x, mask=causal, src_key_padding_mask=key_padding)
         else:
             x = self.encoder(x, mask=causal)

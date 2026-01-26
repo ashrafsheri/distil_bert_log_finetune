@@ -453,10 +453,12 @@ class StudentModel:
             if len(self.training_features) > 100:
                 logger.info("  Training isolation forest...")
                 feature_matrix = np.vstack(self.training_features)
+                # Note: warm_start=False to avoid sklearn warning about not increasing n_estimators
                 self.iso_forest = IsolationForest(
                     n_estimators=100,
                     contamination=0.1,
-                    random_state=42
+                    random_state=42,
+                    warm_start=False
                 )
                 self.iso_forest.fit(feature_matrix)
                 scores = -self.iso_forest.score_samples(feature_matrix)
