@@ -301,34 +301,33 @@ class LogService:
         infected = status_enum == IPStatusEnum.MALICIOUS
 
         # Check if IP already exists in database for this org
-        async with db.begin():
-            result = await db.execute(select(IPDB).where(IPDB.ip == request.ip, IPDB.org == org_id))
-            existing_ip = result.scalar_one_or_none()
+        result = await db.execute(select(IPDB).where(IPDB.ip == request.ip, IPDB.org == org_id))
+        existing_ip = result.scalar_one_or_none()
 
-            # Prepare database operation
-            if existing_ip:
-                # Update existing IP record
-                old_status = existing_ip.status.value
-                existing_ip.status = status_enum
+        # Prepare database operation
+        if existing_ip:
+            # Update existing IP record
+            old_status = existing_ip.status.value
+            existing_ip.status = status_enum
 
-                logger.warning(
-                    f"[HUMAN CORRECTION] User {user_email} ({user_role}) changed IP {request.ip} "
-                    f"status from '{old_status}' to '{request.status}' for org {org_id}. "
-                    f"This overrides model predictions."
-                )
-            else:
-                # Create new IP record
-                new_ip = IPDB(
-                    ip=request.ip,
-                    status=status_enum,
-                    org=org_id
-                )
-                db.add(new_ip)
+            logger.warning(
+                f"[HUMAN CORRECTION] User {user_email} ({user_role}) changed IP {request.ip} "
+                f"status from '{old_status}' to '{request.status}' for org {org_id}. "
+                f"This overrides model predictions."
+            )
+        else:
+            # Create new IP record
+            new_ip = IPDB(
+                ip=request.ip,
+                status=status_enum,
+                org=org_id
+            )
+            db.add(new_ip)
 
-                logger.warning(
-                    f"[HUMAN CORRECTION] User {user_email} ({user_role}) marked IP {request.ip} "
-                    f"as '{request.status}' for org {org_id}. This is a new manual classification."
-                )
+            logger.warning(
+                f"[HUMAN CORRECTION] User {user_email} ({user_role}) marked IP {request.ip} "
+                f"as '{request.status}' for org {org_id}. This is a new manual classification."
+            )
 
         # Update all logs for this IP in Elasticsearch
         update_result = await elasticsearch_service.update_logs_by_ip(

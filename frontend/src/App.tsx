@@ -32,7 +32,7 @@ function App() {
               
               {/* Protected routes */}
               <Route path="/dashboard" element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['manager', 'employee']}>
                   <MainLayout>
                     <DashboardPage />
                   </MainLayout>
