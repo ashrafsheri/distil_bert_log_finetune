@@ -64,6 +64,11 @@ app.include_router(api_router, prefix="/api")
 app.include_router(websocket_router, prefix="/ws")
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker health checks"""
+    return {"status": "healthy"}
+
 
 if __name__ == "__main__":
     uvicorn.run(

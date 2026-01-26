@@ -114,11 +114,13 @@ class AdaptiveEnsembleDetector:
         logger.info("Loading base models (Rule-based + Isolation Forest)...")
         
         # 1. Initialize Isolation Forest
+        # Note: warm_start=False to avoid sklearn warning about not increasing n_estimators
+        # We recreate the model on each retrain instead of incrementally adding trees
         self.iso_forest = IsolationForest(
             n_estimators=100,
             contamination=0.1,
             random_state=42,
-            warm_start=True
+            warm_start=False
         )
         
         # 2. Initialize Rule-based detector
@@ -810,6 +812,14 @@ class AdaptiveEnsembleDetector:
                 'is_anomaly': False,
                 'anomaly_score': 0.0,
                 'phase': 'warmup' if self.logs_processed < self.warmup_logs else 'ensemble',
+                'logs_processed': self.logs_processed,
+                'transformer_ready': self.transformer_ready,
+                'isolation_forest_ready': self.iso_forest_ready,
+                'rule_based': {'is_attack': False, 'confidence': 0.0},
+                'isolation_forest': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
+                'transformer': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
+                'ensemble': {'score': 0.0, 'votes': {}, 'weights': {}, 'active_models': 0, 'total_weight': 0.0},
+                'log_data': {'raw': log_line},
                 'error': 'Failed to parse log'
             }
         
