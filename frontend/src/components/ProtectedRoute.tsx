@@ -21,8 +21,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRoles
 
   // Check role-based access if requiredRoles is specified
   if (requiredRoles && requiredRoles.length > 0) {
+
+
     if (!requiredRoles.includes(userInfo.role)) {
       // Redirect to dashboard if user doesn't have required role
+      if (userInfo.role === 'admin') {
+        return <Navigate to="/admin-dashboard" replace />;
+      }
       return <Navigate to="/dashboard" replace />;
     }
   }

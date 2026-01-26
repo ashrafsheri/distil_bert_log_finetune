@@ -121,13 +121,6 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleString();
-    } catch {
-      return dateString;
-    }
-  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -186,7 +179,7 @@ const UsersPage: React.FC = () => {
                 <p className="text-vt-muted text-lg">Manage all system users</p>
               </div>
             </div>
-            {isAdmin && (
+            {(isAdmin || isManager) && (
               <Button
                 variant="primary"
                 onClick={() => setShowCreateModal(true)}
@@ -256,8 +249,6 @@ const UsersPage: React.FC = () => {
                     <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
                     <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
                     <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Created At</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Updated At</th>
                     <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
                   </tr>
                 </thead>
@@ -289,12 +280,6 @@ const UsersPage: React.FC = () => {
                             Disabled
                           </span>
                         )}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-vt-muted text-center">
-                        {formatDate(user.created_at)}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-vt-muted text-center">
-                        {formatDate(user.updated_at)}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center justify-center gap-2">

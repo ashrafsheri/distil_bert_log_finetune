@@ -17,7 +17,7 @@ GET {{apiUrl}}/fetch
 Content-Type: application/json
 
 ### Send Logs from Agent - Empty Array
-POST {{apiUrl}}/agent/sendLogs
+POST {{apiUrl}}/logs/agent/send-logs
 Content-Type: application/json
 
 []
@@ -25,7 +25,7 @@ Content-Type: application/json
   ### Send Logs from Agent - Single Log
   POST {{apiUrl}}/agent/sendLogs
   Content-Type: application/json
-  X-API-Key: sk-test-key-12345
+  X-API-Key: sk-tSqJcUUcYneane0PQdf2U84yXRC8lixf4vOyDuFUMoI
 
   [
     {
