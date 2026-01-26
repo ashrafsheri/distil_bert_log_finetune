@@ -9,7 +9,7 @@ interface UserPageProps {
 }
 
 const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
-  const { currentUser, createUser } = useAuth();
+  const { currentUser, userInfo, createUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,6 +17,23 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Determine available role options based on current user's role
+  const getRoleOptions = () => {
+    const baseOptions = [
+      { label: 'Employee', value: 'employee' },
+      { label: 'Manager', value: 'manager' },
+      { label: 'Admin', value: 'admin' },
+    ];
+
+    if (userInfo?.role === 'manager') {
+      return baseOptions.filter(option => option.value !== 'admin');
+    }
+
+    return baseOptions;
+  };
+
+  const roleOptions = getRoleOptions();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -221,11 +238,7 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
                   name="role"
                   value={role}
                   onChange={(val) => setRole(val as 'admin' | 'manager' | 'employee')}
-                  options={[
-                    { label: 'Employee', value: 'employee' },
-                    { label: 'Manager', value: 'manager' },
-                    { label: 'Admin', value: 'admin' },
-                  ]}
+                  options={roleOptions}
                   disabled={loading}
                 />
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">

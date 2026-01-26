@@ -57,7 +57,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               
               {currentUser && (
                 <>
-                  <Link
+                  {!isAdmin && <Link
                     to="/dashboard"
                     className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                       location.pathname === '/dashboard'
@@ -74,7 +74,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       </svg>
                       Dashboard
                     </div>
-                  </Link>
+                  </Link>}
                   {canAccessUsers && (
                     <Link
                       to="/users"

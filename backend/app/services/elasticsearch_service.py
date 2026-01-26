@@ -390,7 +390,8 @@ class ElasticsearchService:
             )
 
             updated_count = response.get("updated", 0)
-            failed_count = response.get("failures", 0) if "failures" in response else 0
+            failures = response.get("failures", [])
+            failed_count = len(failures)
 
             if failed_count > 0:
                 logger.warning(f"Some documents failed to update for IP {ip_address}: {failed_count} failures")

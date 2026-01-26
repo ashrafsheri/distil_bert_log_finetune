@@ -24,7 +24,7 @@ class ModelStatus(str, enum.Enum):
 model_status_enum = PgEnum(
     'warmup', 'training', 'ready', 'failed',
     name='modelstatus',
-    create_type=False  # Don't try to create the type as it already exists
+    create_type=True  # Create the type if it doesn't exist
 )
 
 
