@@ -12,17 +12,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Get database connection details from environment
-POSTGRES_USER = os.getenv("POSTGRES_USER", "logguard_user")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "logguard_password")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "logguard_db")
 
 # Build database URL (using asyncpg for async support)
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    "DATABASE_URL"
 )
 
 # Create async engine
@@ -46,16 +39,86 @@ AsyncSessionLocal = async_sessionmaker(
 Base = declarative_base()
 
 
+async def create_default_admin_user(
+    uid: str = None, 
+    email: str = None,
+    org_id: str = None,
+    session: AsyncSession = None
+) -> bool:
+    """
+    Create a default admin user if it doesn't exist
+    
+    Args:
+        uid: Unique user ID (defaults to environment variable DEFAULT_ADMIN_UID or hardcoded value)
+        email: Admin email (defaults to environment variable DEFAULT_ADMIN_EMAIL or hardcoded value)
+        org_id: Organization ID (optional)
+        session: Existing database session (optional, creates new if not provided)
+    
+    Returns:
+        True if user was created, False if already exists
+    
+    Raises:
+        Exception: If user creation fails
+    """
+    from app.models.user_db import UserDB, RoleEnum
+    from sqlalchemy import select
+    
+    # Use provided values or fallback to environment variables or defaults
+    admin_uid = uid or os.getenv("DEFAULT_ADMIN_UID", "l4m9lfnNfhgtt52goNmydFdpNP63")
+    admin_email = email or os.getenv("DEFAULT_ADMIN_EMAIL", "maazkshf123@gmail.com")
+    admin_org_id = org_id or os.getenv("DEFAULT_ADMIN_ORG_ID", None)
+    
+    # Use provided session or create new one
+    should_close_session = session is None
+    if session is None:
+        session = AsyncSessionLocal()
+    
+    try:
+        # Check if admin user already exists
+        result = await session.execute(
+            select(UserDB).where(UserDB.uid == admin_uid)
+        )
+        existing_admin = result.scalar_one_or_none()
+        
+        if existing_admin is None:
+            # Create default admin user
+            admin_user = UserDB(
+                uid=admin_uid,
+                email=admin_email,
+                role=RoleEnum.ADMIN,
+                org_id=admin_org_id,
+                enabled=True
+            )
+            session.add(admin_user)
+            await session.commit()
+            logger.info(f"Default admin user created successfully: {admin_email}")
+            return True
+        else:
+            logger.info(f"Default admin user already exists: {admin_email}")
+            return False
+            
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Failed to create default admin user: {e}")
+        raise
+    finally:
+        if should_close_session:
+            await session.close()
+
+
 async def init_db():
     """
     Initialize database - create all tables, create default admin user, and initialize permissions
+    
+    Returns:
+        None
+    
+    Raises:
+        Exception: If database initialization fails
     """
     # Import models to register them with Base
-    from app.models import user_db  # noqa: F401
     from app.models.user_db import UserDB, RoleEnum
-    from app.models.role_permission_db import RolePermissionDB  # noqa: F401
-    from app.models.ip_db import IPDB  # noqa: F401
-    from app.models.org_db import OrgDB  # noqa: F401
+
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -66,27 +129,7 @@ async def init_db():
     
     # Create default admin user if it doesn't exist
     try:
-        async with AsyncSessionLocal() as session:
-            from sqlalchemy import select
-            
-            # Check if admin user already exists
-            result = await session.execute(
-                select(UserDB).where(UserDB.uid == "l4m9lfnNfhgtt52goNmydFdpNP63")
-            )
-            existing_admin = result.scalar_one_or_none()
-            
-            if existing_admin is None:
-                # Create default admin user
-                admin_user = UserDB(
-                    uid="l4m9lfnNfhgtt52goNmydFdpNP63",
-                    email="maazkshf123@gmail.com",
-                    role=RoleEnum.ADMIN
-                )
-                session.add(admin_user)
-                await session.commit()
-                logger.info("Default admin user created successfully")
-            else:
-                logger.info("Default admin user already exists")
+        await create_default_admin_user()
     except Exception as e:
         logger.warning(f"Could not create default admin user: {e}")
 
@@ -94,6 +137,12 @@ async def init_db():
 async def _init_default_permissions():
     """
     Initialize default role permissions in the database
+    
+    Returns:
+        None
+    
+    Raises:
+        Exception: If permission initialization fails
     """
     from app.models.user_db import RoleEnum
     from app.models.role_permission_db import RolePermissionDB, HTTPMethodEnum
@@ -115,6 +164,8 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/admin/delete-org", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/admin/regenerate-api-key", "POST"),
         (RoleEnum.ADMIN, "/api/v1/admin/orgs", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/search", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/export", "GET"),
         
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
@@ -122,6 +173,8 @@ async def _init_default_permissions():
         (RoleEnum.MANAGER, "/api/v1/users/uid", "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}/enabled", "PUT"),
         (RoleEnum.MANAGER, "/api/v1/correctLog", "POST"),
+        (RoleEnum.MANAGER, "/api/v1/search", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/export", "GET"),
         
         # Employee - Limited access, only their own profile
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
@@ -131,12 +184,6 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/fetch", "GET"),
         (RoleEnum.MANAGER, "/api/v1/fetch", "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/fetch", "GET"),
-        # Search logs - restricted to admin and manager
-        (RoleEnum.ADMIN, "/api/v1/search", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/search", "GET"),
-        # Export logs - restricted to admin and manager
-        (RoleEnum.ADMIN, "/api/v1/export", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/export", "GET"),
         
         # All roles - WebSocket (you may want to restrict this)
         (RoleEnum.ADMIN, "/ws", "GET"),
@@ -176,18 +223,25 @@ async def _init_default_permissions():
             await session.commit()
             
             if added_count > 0:
-                logger.info(f"✅ Initialized {added_count} default permissions")
+                logger.info(f"Initialized {added_count} default permissions")
             if existing_count > 0:
-                logger.info(f"✅ {existing_count} permissions already exist")
+                logger.info(f"{existing_count} permissions already exist")
             
     except Exception as e:
-        logger.warning(f"⚠️  Could not initialize default permissions: {e}")
+        logger.warning(f"Could not initialize default permissions: {e}")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency function to get database session
+    
     Yields a database session and closes it after use
+    
+    Returns:
+        AsyncGenerator yielding database sessions
+    
+    Raises:
+        Exception: If database session fails
     """
     async with AsyncSessionLocal() as session:
         try:
@@ -201,6 +255,9 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def close_db():
     """
     Close database connections
+    
+    Returns:
+        None
     """
     await engine.dispose()
     logger.info("Database connections closed")

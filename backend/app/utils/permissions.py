@@ -28,6 +28,9 @@ def check_permission(api_path: str, http_method: str):
         
     Returns:
         FastAPI dependency function that checks both JWT and permissions
+        
+    Raises:
+        HTTPException: If user doesn't have permission or JWT validation fails
     """
     async def permission_checker(
         current_user: dict = Depends(get_current_user),  # First: Verify JWT token
@@ -41,6 +44,9 @@ def check_permission(api_path: str, http_method: str):
            and checks if user exists in database and is enabled
         2. Role Permission Check: Verifies if the user's role has permission
            to access the specified API endpoint
+        
+        Returns:
+            Current user information with role and permissions
         
         Raises:
             HTTPException: 
@@ -98,6 +104,9 @@ async def has_permission(
         
     Returns:
         True if role has permission, False otherwise
+    
+    Raises:
+        Exception: If database query fails
     """
     permission_service = get_permission_service(db)
     return await permission_service.check_permission(role, api_path, http_method)

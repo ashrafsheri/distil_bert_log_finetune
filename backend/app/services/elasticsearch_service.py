@@ -3,13 +3,11 @@ Elasticsearch Service
 Handles log storage and retrieval from Elasticsearch
 """
 
-import json
 from datetime import datetime
 from typing import List, Dict, Optional
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import (
     ConnectionError as ElasticsearchConnectionError,
-    NotFoundError as ElasticsearchNotFoundError,
     RequestError as ElasticsearchRequestError
 )
 import logging
@@ -17,8 +15,22 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ElasticsearchService:
+    """
+    Elasticsearch Service
+    Handles log storage and retrieval operations in Elasticsearch
+    """
+    
     def __init__(self, host: str = "elasticsearch", port: int = 9200):
-        """Initialize Elasticsearch client"""
+        """
+        Initialize Elasticsearch client
+        
+        Args:
+            host: Elasticsearch host address
+            port: Elasticsearch port number
+            
+        Returns:
+            None
+        """
         try:
             self.client = Elasticsearch([f"http://{host}:{port}"])
             self.index_name = "logguard-logs"
@@ -27,9 +39,15 @@ class ElasticsearchService:
             logger.warning(f"Elasticsearch connection failed: {e}. Service will work in fallback mode.")
             self.client = None
             self.index_name = "logguard-logs"
-    
+
+
     def _create_index_if_not_exists(self):
-        """Create the logs index if it doesn't exist"""
+        """
+        Create the logs index if it doesn't exist
+        
+        Returns:
+            None
+        """
         try:
             if not self.client.indices.exists(index=self.index_name):
                 mapping = {
@@ -51,7 +69,8 @@ class ElasticsearchService:
                 logger.info(f"Created Elasticsearch index: {self.index_name}")
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error creating Elasticsearch index: {e}")
-    
+
+
     async def store_log(self, log_data: Dict) -> bool:
         """Store a single log entry in Elasticsearch"""
         try:
@@ -70,14 +89,23 @@ class ElasticsearchService:
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error storing log in Elasticsearch: {e}")
             return False
-    
+
+
     async def store_logs_batch(self, logs_data: List[Dict]) -> bool:
-        """Store multiple log entries in Elasticsearch using bulk API"""
-        print(f"[ES] store_logs_batch called with {len(logs_data)} logs", flush=True)
+        """
+        Store multiple log entries in Elasticsearch using bulk API
+        
+        Args:
+            logs_data: List of log dictionaries to store
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.debug(f"[ES] store_logs_batch called with {len(logs_data)} logs")
         
         if self.client is None:
             logger.warning("Elasticsearch not available, skipping log storage")
-            print(f"[ES] Client is None, skipping storage", flush=True)
+            logger.debug(f"[ES] Client is None, skipping storage")
             return True
             
         try:
@@ -95,15 +123,15 @@ class ElasticsearchService:
                 bulk_body.append(log_data)
             
             if bulk_body:
-                print(f"[ES] Sending bulk request with {len(bulk_body)//2} documents to index {self.index_name}", flush=True)
+                logger.debug(f"[ES] Sending bulk request with {len(bulk_body)//2} documents to index {self.index_name}")
                 response = self.client.bulk(body=bulk_body)
                 
                 if response.get("errors"):
                     logger.error(f"Some documents failed to index: {response}")
-                    print(f"[ES] Bulk errors: {response}", flush=True)
+                    logger.debug(f"[ES] Bulk errors: {response}")
                     return False
                 
-                print(f"[ES] Successfully indexed {len(bulk_body)//2} documents", flush=True)
+                logger.debug(f"[ES] Successfully indexed {len(bulk_body)//2} documents")
                 logger.info(f"Successfully stored {len(logs_data)} logs in Elasticsearch")
                 return True
             
@@ -112,9 +140,20 @@ class ElasticsearchService:
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error storing logs batch in Elasticsearch: {e}")
             return False
-    
+
+
     async def get_logs(self, org_id: Optional[str], limit: int = 100, offset: int = 0) -> Dict:
-        """Retrieve logs from Elasticsearch"""
+        """
+        Retrieve logs from Elasticsearch
+        
+        Args:
+            org_id: Organization ID to filter logs
+            limit: Maximum number of logs to return
+            offset: Number of logs to skip
+            
+        Returns:
+            Dictionary containing logs and pagination info
+        """
         if self.client is None:
             logger.warning("Elasticsearch not available, returning empty logs")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
@@ -166,113 +205,6 @@ class ElasticsearchService:
             logger.error(f"Error retrieving logs from Elasticsearch: {e}")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
     
-    async def get_anomaly_logs(self, limit: int = 100, offset: int = 0) -> Dict:
-        """Retrieve only anomaly logs from Elasticsearch"""
-        try:
-            query = {
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"term": {"infected": True}}
-                        ]
-                    }
-                },
-                "sort": [{"created_at": {"order": "desc"}}],
-                "from": offset,
-                "size": limit,
-                "track_total_hits": True  # Ensure accurate total count beyond 10,000
-            }
-            
-            response = self.client.search(
-                index=self.index_name,
-                body=query
-            )
-            
-            logs = []
-            for hit in response["hits"]["hits"]:
-                log_data = hit["_source"]
-                logs.append(log_data)
-            
-            return {
-                "logs": logs,
-                "total": response["hits"]["total"]["value"],
-                "offset": offset,
-                "limit": limit
-            }
-            
-        except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
-            logger.error(f"Error retrieving anomaly logs from Elasticsearch: {e}")
-            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
-    
-    async def get_logs_by_ip(self, ip_address: str, limit: int = 100) -> Dict:
-        """Retrieve logs for a specific IP address"""
-        try:
-            query = {
-                "query": {
-                    "term": {"ip_address": ip_address}
-                },
-                "sort": [{"created_at": {"order": "desc"}}],
-                "size": limit,
-                "track_total_hits": True  # Ensure accurate total count beyond 10,000
-            }
-            
-            response = self.client.search(
-                index=self.index_name,
-                body=query
-            )
-            
-            logs = []
-            for hit in response["hits"]["hits"]:
-                log_data = hit["_source"]
-                logs.append(log_data)
-            
-            return {
-                "logs": logs,
-                "total": response["hits"]["total"]["value"],
-                "ip_address": ip_address
-            }
-            
-        except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
-            logger.error(f"Error retrieving logs by IP from Elasticsearch: {e}")
-            return {"logs": [], "total": 0, "ip_address": ip_address}
-    
-    async def get_stats(self) -> Dict:
-        """Get log statistics from Elasticsearch"""
-        try:
-            # Total logs count
-            total_response = self.client.count(index=self.index_name)
-            total_logs = total_response["count"]
-            
-            # Anomaly logs count
-            anomaly_query = {
-                "query": {
-                    "term": {"infected": True}
-                }
-            }
-            anomaly_response = self.client.count(
-                index=self.index_name,
-                body=anomaly_query
-            )
-            anomaly_logs = anomaly_response["count"]
-            
-            # Normal logs count
-            normal_logs = total_logs - anomaly_logs
-            
-            return {
-                "total_logs": total_logs,
-                "anomaly_logs": anomaly_logs,
-                "normal_logs": normal_logs,
-                "anomaly_rate": anomaly_logs / total_logs if total_logs > 0 else 0
-            }
-            
-        except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
-            logger.error(f"Error getting stats from Elasticsearch: {e}")
-            return {
-                "total_logs": 0,
-                "anomaly_logs": 0,
-                "normal_logs": 0,
-                "anomaly_rate": 0
-            }
 
     async def search_logs(
         self,
@@ -345,6 +277,7 @@ class ElasticsearchService:
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error searching logs in Elasticsearch: {e}")
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+
 
     async def update_logs_by_ip(self, ip_address: str, infected: bool, org_id: str) -> Dict:
         """Update all logs for a specific IP address with new infected status.

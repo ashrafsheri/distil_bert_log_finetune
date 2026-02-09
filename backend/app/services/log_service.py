@@ -36,131 +36,6 @@ class LogService:
         self.logs_storage = []  # Placeholder for actual storage
         self.websocket_connections = {}  # Placeholder for WebSocket management
     
-    async def get_latest_logs(self, limit: int = 1000) -> List[LogEntry]:
-        """
-        Retrieve latest logs from storage
-        
-        Args:
-            limit: Maximum number of logs to return
-            
-        Returns:
-            List of LogEntry objects
-        """
-        # TODO: Implement actual log retrieval
-        # This should:
-        # 1. Query database/storage for latest logs
-        # 2. Apply any filters or sorting
-        # 3. Return LogEntry objects
-        
-        # Placeholder implementation
-        return []
-    
-    async def create_log_entry(self, log_data: LogEntryCreate) -> LogEntry:
-        """
-        Create a new log entry
-        
-        Args:
-            log_data: Log entry data
-            
-        Returns:
-            Created LogEntry object
-        """
-        # TODO: Implement log creation
-        # This should:
-        # 1. Validate log data
-        # 2. Add timestamp
-        # 3. Store in database
-        # 4. Trigger real-time updates
-        
-        # Placeholder implementation
-        log_entry = LogEntry(
-            timestamp=datetime.now().strftime("%H:%M %d %b %Y"),
-            ip_address=log_data.ip_address,
-            api_accessed=log_data.api_accessed,
-            status_code=log_data.status_code,
-            infected=log_data.infected
-        )
-        
-        return log_entry
-    
-    async def process_agent_logs(self, logs: List[dict]) -> int:
-        """
-        Process logs received from LogShipper Agent
-        
-        Args:
-            logs: List of raw log data from agent
-            
-        Returns:
-            Number of successfully processed logs
-        """
-        # TODO: Implement agent log processing
-        # This should:
-        # 1. Parse and validate each log
-        # 2. Apply any transformations
-        # 3. Store in database
-        # 4. Perform anomaly detection
-        # 5. Trigger WebSocket updates
-        
-        # Placeholder implementation
-        processed_count = 0
-        
-        for log_data in logs:
-            try:
-                # Validate and process log
-                # log_entry = await self.create_log_entry(log_data)
-                # await self.trigger_realtime_update(log_entry)
-                processed_count += 1
-            except Exception as e:
-                logger.error(f"Error processing log: {e}")
-                continue
-        
-        return processed_count
-    
-    async def detect_anomalies(self, log_entry: LogEntry) -> bool:
-        """
-        Detect anomalies in log entry
-        
-        Args:
-            log_entry: Log entry to analyze
-            
-        Returns:
-            True if anomaly detected, False otherwise
-        """
-        # TODO: Implement anomaly detection logic
-        # This should:
-        # 1. Apply ML models for anomaly detection
-        # 2. Check against known attack patterns
-        # 3. Analyze behavioral patterns
-        # 4. Return anomaly status
-        
-        # Placeholder implementation
-        return False
-    
-    async def trigger_realtime_update(self, log_entry: LogEntry, client_id: Optional[str] = None):
-        """
-        Trigger real-time update via WebSocket
-        
-        Args:
-            log_entry: Log entry to broadcast
-            client_id: Specific client ID (None for broadcast)
-        """
-        # TODO: Implement WebSocket broadcasting
-        # This should:
-        # 1. Format log entry for WebSocket
-        # 2. Send to specific client or broadcast
-        # 3. Handle connection errors
-        
-        # Placeholder implementation
-        pass
-    
-    def generate_websocket_id(self) -> str:
-        """
-        Generate unique WebSocket ID for client connection
-        
-        Returns:
-            Unique WebSocket ID string
-        """
-        return str(uuid.uuid4())
     
     async def export_logs_to_csv(self, logs: List[dict]) -> str:
         """
@@ -240,27 +115,6 @@ class LogService:
         
         return output.getvalue()
     
-    async def get_log_statistics(self) -> dict:
-        """
-        Get log statistics for dashboard
-        
-        Returns:
-            Dictionary with log statistics
-        """
-        # TODO: Implement statistics calculation
-        # This should:
-        # 1. Count total logs
-        # 2. Count infected/threat logs
-        # 3. Calculate threat rate
-        # 4. Return formatted statistics
-        
-        # Placeholder implementation
-        return {
-            "total_logs": 0,
-            "infected_logs": 0,
-            "threat_rate": 0.0,
-            "last_updated": datetime.now().isoformat()
-        }
 
     async def correct_log_status(
         self,
@@ -384,26 +238,26 @@ class LogService:
         Raises:
             HTTPException: If request format is invalid
         """
-        print(f"[parse_fluent_bit_request] Parsing {len(body)} bytes", flush=True)
-        print(f"[parse_fluent_bit_request] First 100 bytes: {body[:100]}", flush=True)
+        logger.debug(f"[parse_fluent_bit_request] Parsing {len(body)} bytes")
+        logger.debug(f"[parse_fluent_bit_request] First 100 bytes: {body[:100]}")
         
         # Try MessagePack first (common Fluent Bit format)
         try:
             import msgpack
             request_data = msgpack.unpackb(body, raw=False)
-            print(f"[parse_fluent_bit_request] Successfully parsed as MessagePack", flush=True)
+            logger.debug(f"[parse_fluent_bit_request] Successfully parsed as MessagePack")
             if not isinstance(request_data, list):
                 request_data = [request_data]  # Wrap single record in list
             return request_data
         except Exception as msgpack_error:
-            print(f"[parse_fluent_bit_request] MessagePack failed: {msgpack_error}", flush=True)
+            logger.debug(f"[parse_fluent_bit_request] MessagePack failed: {msgpack_error}")
         
         # Try JSON format
         try:
             request_data = json.loads(body)
-            print(f"[parse_fluent_bit_request] Successfully parsed as JSON", flush=True)
+            logger.debug(f"[parse_fluent_bit_request] Successfully parsed as JSON")
         except json.JSONDecodeError as json_error:
-            print(f"[parse_fluent_bit_request] JSON failed: {json_error}", flush=True)
+            logger.debug(f"[parse_fluent_bit_request] JSON failed: {json_error}")
             raise HTTPException(status_code=400, detail=f"Invalid request format. Body must be JSON or MessagePack. JSON error: {str(json_error)}")
 
         if not isinstance(request_data, list):
@@ -424,15 +278,14 @@ class LogService:
         """
         raw_logs = []
         
-        # Use print for guaranteed visibility in Docker logs
-        print(f"[extract_raw_logs] Processing {len(records) if hasattr(records, '__len__') else 'unknown'} records", flush=True)
+        logger.debug(f"[extract_raw_logs] Processing {len(records) if hasattr(records, '__len__') else 'unknown'} records")
         
         for i, record in enumerate(records):
             log_content = None
             
             if i == 0:  # Debug first record
-                print(f"[extract_raw_logs] First record type: {type(record)}", flush=True)
-                print(f"[extract_raw_logs] First record content: {record}", flush=True)
+                logger.debug(f"[extract_raw_logs] First record type: {type(record)}")
+                logger.debug(f"[extract_raw_logs] First record content: {record}")
             
             if isinstance(record, dict):
                 # Check if this is a structured nginx log (has 'remote', 'method', 'path', 'code')
@@ -440,7 +293,7 @@ class LogService:
                     # Convert structured nginx log to Apache Combined Log Format
                     log_content = LogService._convert_nginx_to_combined(record)
                     if i == 0:
-                        print(f"[extract_raw_logs] Converted nginx structured log to Combined format", flush=True)
+                        logger.debug(f"[extract_raw_logs] Converted nginx structured log to Combined format")
                 else:
                     # Try multiple common field names used by Fluent Bit
                     common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
@@ -448,7 +301,7 @@ class LogService:
                         if field_name in record:
                             log_content = record[field_name]
                             if i == 0:
-                                print(f"[extract_raw_logs] Found content in field '{field_name}'", flush=True)
+                                logger.debug(f"[extract_raw_logs] Found content in field '{field_name}'")
                             break
                     
                     # If no direct field found, check if it's a nested structure
@@ -459,13 +312,13 @@ class LogService:
                             if all(k in nested_record for k in ['remote', 'method', 'path', 'code']):
                                 log_content = LogService._convert_nginx_to_combined(nested_record)
                                 if i == 0:
-                                    print(f"[extract_raw_logs] Converted nested nginx structured log", flush=True)
+                                    logger.debug(f"[extract_raw_logs] Converted nested nginx structured log")
                             else:
                                 for field_name in common_fields:
                                     if field_name in nested_record:
                                         log_content = nested_record[field_name]
                                         if i == 0:
-                                            print(f"[extract_raw_logs] Found content in nested 'record.{field_name}'", flush=True)
+                                            logger.debug(f"[extract_raw_logs] Found content in nested 'record.{field_name}'")
                                         break
                     
                     # Try to find any string value that looks like a log line
@@ -474,7 +327,7 @@ class LogService:
                             if isinstance(value, str) and len(value) > 10 and key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source']:
                                 log_content = value
                                 if i == 0:
-                                    print(f"[extract_raw_logs] Using string value from field '{key}' as log content", flush=True)
+                                    logger.debug(f"[extract_raw_logs] Using string value from field '{key}' as log content")
                                 break
                     
                     # Last resort: convert entire record to string if it has no recognized log field
@@ -484,20 +337,20 @@ class LogService:
                         if non_meta_keys:
                             log_content = json.dumps(record)
                             if i == 0:
-                                print(f"[extract_raw_logs] Converting entire record to JSON string", flush=True)
+                                logger.debug(f"[extract_raw_logs] Converting entire record to JSON string")
                     
             elif isinstance(record, str):
                 # Direct string log
                 log_content = record
                 if i == 0:
-                    print(f"[extract_raw_logs] Record is direct string", flush=True)
+                    logger.debug(f"[extract_raw_logs] Record is direct string")
             
             if log_content and isinstance(log_content, str) and log_content.strip():
                 raw_logs.append(log_content.strip())
             elif i == 0:
-                print(f"[extract_raw_logs] Skipping record - no valid content found", flush=True)
+                logger.debug(f"[extract_raw_logs] Skipping record - no valid content found")
 
-        print(f"[extract_raw_logs] Extracted {len(raw_logs)} logs from {len(records)} records", flush=True)
+        logger.debug(f"[extract_raw_logs] Extracted {len(raw_logs)} logs from {len(records)} records")
         return raw_logs
 
     @staticmethod
@@ -824,7 +677,6 @@ class LogService:
                 )
                 await db.commit()
                 
-                print(f"[LogService] Updated org {org_id}: log_count={new_log_count}, progress={new_progress:.1f}%", flush=True)
                 logger.info(f"Updated org {org_id}: log_count={new_log_count}, progress={new_progress:.1f}%")
             else:
                 logger.warning(f"Organization {org_id} not found for log count update")
