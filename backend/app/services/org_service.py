@@ -11,9 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
 
-from app.models.org import Org, OrgCreate, OrgResponse, generate_api_key
+from app.models.org import OrgCreate, OrgResponse, generate_api_key
 from app.models.org_db import OrgDB
-from app.models.user import UserCreate
 from app.models.user_db import UserDB, RoleEnum
 import firebase_admin
 from firebase_admin import auth
@@ -26,13 +25,30 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class OrgService:
-    """Service class for organization-related business logic"""
+    """
+    Organization Service
+    Service class for organization-related business logic
+    """
 
     def __init__(self):
+        """
+        Initialize OrgService
+        
+        Returns:
+            None
+        """
         pass
 
     def generate_random_password(self, length: int = 12) -> str:
-        """Generate a random password"""
+        """
+        Generate a random password
+        
+        Args:
+            length: Length of password to generate
+            
+        Returns:
+            Random password string
+        """
         characters = string.ascii_letters + string.digits + "!@#$%^&*"
         return ''.join(secrets.choice(characters) for _ in range(length))
 

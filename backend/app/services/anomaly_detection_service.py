@@ -11,8 +11,21 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 class AnomalyDetectionService:
+    """
+    Anomaly Detection Service
+    Communicates with the realtime anomaly detection microservice
+    """
+    
     def __init__(self, base_url: str = "http://anomaly-detection:8001"):
-        """Initialize anomaly detection service client"""
+        """
+        Initialize anomaly detection service client
+        
+        Args:
+            base_url: Base URL of the anomaly detection microservice
+            
+        Returns:
+            None
+        """
         self.base_url = base_url
         self.timeout = 30.0  # 30 second timeout
     
@@ -92,44 +105,4 @@ class AnomalyDetectionService:
             logger.error(f"Error in batch anomaly detection: {e}")
             return None
     
-    async def get_health_status(self) -> Optional[Dict]:
-        """
-        Get health status of anomaly detection service
-        
-        Returns:
-            Health status or None if failed
-        """
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.base_url}/health")
-                
-                if response.status_code == 200:
-                    return response.json()
-                else:
-                    logger.error(f"Health check failed with status {response.status_code}")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Error checking anomaly detection health: {e}")
-            return None
     
-    async def get_detection_status(self) -> Optional[Dict]:
-        """
-        Get detailed detection status of anomaly detection service
-        
-        Returns:
-            Detection status or None if failed
-        """
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.base_url}/status")
-                
-                if response.status_code == 200:
-                    return response.json()
-                else:
-                    logger.error(f"Status check failed with status {response.status_code}")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Error checking anomaly detection status: {e}")
-            return None

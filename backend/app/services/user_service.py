@@ -16,7 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 def _map_role_to_enum(role: RoleType) -> RoleEnum:
-    """Map RoleType string to RoleEnum"""
+    """
+    Map RoleType string to RoleEnum
+    
+    Args:
+        role: RoleType string value
+        
+    Returns:
+        Corresponding RoleEnum value
+    """
     role_map = {
         "admin": RoleEnum.ADMIN,
         "manager": RoleEnum.MANAGER,
@@ -26,12 +34,28 @@ def _map_role_to_enum(role: RoleType) -> RoleEnum:
 
 
 def _map_enum_to_role(role_enum: RoleEnum) -> RoleType:
-    """Map RoleEnum to RoleType string"""
+    """
+    Map RoleEnum to RoleType string
+    
+    Args:
+        role_enum: RoleEnum value
+        
+    Returns:
+        Corresponding RoleType string
+    """
     return role_enum.value
 
 
 def _db_to_pydantic(db_user: UserDB) -> User:
-    """Convert SQLAlchemy model to Pydantic model"""
+    """
+    Convert SQLAlchemy model to Pydantic model
+    
+    Args:
+        db_user: SQLAlchemy UserDB model instance
+        
+    Returns:
+        Pydantic User model instance
+    """
     return User(
         email=db_user.email,
         uid=db_user.uid,

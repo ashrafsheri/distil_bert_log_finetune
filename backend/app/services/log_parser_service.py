@@ -11,7 +11,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 class LogParserService:
+    """
+    Log Parser Service
+    Parses Apache log entries and extracts structured data
+    """
+    
     def __init__(self):
+        """
+        Initialize LogParserService
+        
+        Returns:
+            None
+        """
         # Only regex for timestamp parsing
         self.timestamp_pattern = re.compile(r'\[([^\]]+)\]')
     
@@ -47,8 +58,6 @@ class LogParserService:
             
             # Extract basic fields
             ip_address = parts[0]
-            remote_user = parts[1] if parts[1] != '-' else None
-            remote_host = parts[2] if parts[2] != '-' else None
             
             # Find the request part (starts with " and ends with ")
             request_start = log_line.find('"')

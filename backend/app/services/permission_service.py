@@ -15,9 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 class PermissionService:
-    """Service class for permission checking"""
+    """
+    Permission Service
+    Service class for permission checking and role-based access control
+    """
     
     def __init__(self, db: AsyncSession):
+        """
+        Initialize PermissionService
+        
+        Args:
+            db: Async database session
+            
+        Returns:
+            None
+        """
         self.db = db
     
     async def check_permission(

@@ -31,6 +31,13 @@ def initialize_firebase_admin():
     The service account key file should be located at:
     - backend/serviceAccountKey.json (default)
     - Or path specified in FIREBASE_SERVICE_ACCOUNT_KEY environment variable
+    
+    Returns:
+        Firebase Admin app instance
+    
+    Raises:
+        FileNotFoundError: If service account key file not found
+        Exception: If Firebase Admin SDK initialization fails
     """
     global _firebase_app
     
@@ -54,7 +61,7 @@ def initialize_firebase_admin():
         cred = credentials.Certificate(service_account_key_path)
         _firebase_app = firebase_admin.initialize_app(cred)
         
-        logger.info("✅ Firebase Admin SDK initialized successfully")
+        logger.info("Firebase Admin SDK initialized successfully")
         return _firebase_app
         
     except Exception as e:
@@ -85,7 +92,7 @@ async def verify_firebase_token(token: str) -> dict:
         token: Firebase ID token (JWT) string
         
     Returns:
-        dict: Decoded token claims including uid, email, etc.
+        Decoded token claims including uid, email, etc.
         
     Raises:
         HTTPException: If token is invalid, expired, or verification fails
@@ -154,7 +161,7 @@ async def get_current_user(
         db: Database session (injected by FastAPI)
         
     Returns:
-        dict: Decoded token claims with uid, email, etc. + user data from database
+        Decoded token claims with uid, email, etc. + user data from database
         
     Raises:
         HTTPException: If token is missing, invalid, user doesn't exist, or user is disabled
@@ -251,7 +258,7 @@ async def get_org_id(api_key: str, db: AsyncSession) -> str:
         db: Database session
         
     Returns:
-        str: The organization ID
+        The organization ID
         
     Raises:
         HTTPException: If API key is invalid or org not found
@@ -300,11 +307,10 @@ async def validate_api_key(
     
     Args:
         api_key: API key from X-API-Key header
-        api_key_query: API key from api_key query parameter
         db: Database session
         
     Returns:
-        str: Organization ID
+        Organization ID
         
     Raises:
         HTTPException: If API key is missing or invalid

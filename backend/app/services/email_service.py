@@ -40,7 +40,7 @@ def mark_alert_sent() -> None:
 
 def _get_smtp_client():
     """
-    Creates and returns an SMTP client using environment variables.
+    Creates and returns an SMTP client using environment variables
 
     Expected environment variables:
         SMTP_HOST        (e.g. smtp.gmail.com)
@@ -48,6 +48,9 @@ def _get_smtp_client():
         SMTP_USERNAME    (your Gmail address)
         SMTP_PASSWORD    (App password, not regular password)
         SMTP_USE_TLS     (true/false)
+        
+    Returns:
+        Tuple of (SMTP client, username) or (None, None) if configuration failed
     """
     host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     port = int(os.getenv("SMTP_PORT", "587"))
@@ -76,15 +79,15 @@ def _get_smtp_client():
 
 def send_email(subject: str, body: str, recipients: List[str]) -> bool:
     """
-    Sends an email via configured SMTP server.
+    Sends an email via configured SMTP server
 
     Args:
-        subject (str): Email subject
-        body (str): Email body (plain text)
-        recipients (List[str]): List of recipient email addresses
+        subject: Email subject
+        body: Email body (plain text)
+        recipients: List of recipient email addresses
 
     Returns:
-        bool: True if email sent successfully, False otherwise
+        True if email sent successfully, False otherwise
     """
     if not recipients:
         logger.info("No recipients provided; skipping email send.")
