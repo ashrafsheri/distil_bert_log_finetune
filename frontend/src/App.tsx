@@ -12,6 +12,7 @@ import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
+import ReportsPage from './pages/ReportsPage';
 
 function App() {
   return (
@@ -59,6 +60,14 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <ProfilePage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/reports" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
+                  <MainLayout>
+                    <ReportsPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
