@@ -65,7 +65,7 @@ function App() {
               } />
               
               <Route path="/reports" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
+                <ProtectedRoute requiredRoles={['manager']}>
                   <MainLayout>
                     <ReportsPage />
                   </MainLayout>
