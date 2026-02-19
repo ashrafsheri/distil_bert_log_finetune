@@ -60,13 +60,13 @@ class LogParserService:
             ip_address = parts[0]
             
             # Find the request part (starts with " and ends with ")
-            request_start = log_line.find('"')
+            request_start = log_line.find('\"')
             if request_start == -1:
                 logger.warning(f"No request start found in log: {log_line[:100]}...")
                 return None
             
             # Find the end of the request (next " after the start)
-            request_end = log_line.find('"', request_start + 1)
+            request_end = log_line.find('\"', request_start + 1)
             if request_end == -1:
                 logger.warning(f"No request end found in log: {log_line[:100]}...")
                 return None
@@ -97,7 +97,7 @@ class LogParserService:
             
             # Check if it's combined log format by looking for quoted fields
             # Combined format has status, size, then quoted referer and user agent
-            is_combined = len(remaining_parts) >= 4 and any(part.startswith('"') for part in remaining_parts[2:])
+            is_combined = len(remaining_parts) >= 4 and any(part.startswith('\"') for part in remaining_parts[2:])
             
             # Extract status code and size based on format
             try:
@@ -165,6 +165,122 @@ class LogParserService:
             
         except Exception as e:
             logger.error(f"Error parsing log line: {e}")
+            return None
+    
+    
+    def parse_nginx_log(self, log_line: str) -> Optional[Dict]:
+        """
+        Parse Nginx log line (supports both access log format and combined format)
+        
+        Args:
+            log_line: Raw Nginx log line
+            
+        Returns:
+            Dict with parsed log data or None if parsing fails
+        """
+        try:
+            logger.debug(f"Parsing nginx log line: {log_line[:200]}...")
+            log_line = log_line.strip()
+            
+            # Nginx combined log format:
+            # $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+            # Example: 192.168.1.1 - - [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.example.com/start.html" "Mozilla/4.08 [en] (Win98; I ;Nav)"
+            
+            # Extract timestamp using regex
+            timestamp_match = self.timestamp_pattern.search(log_line)
+            if not timestamp_match:
+                logger.warning(f"No timestamp found in nginx log: {log_line[:100]}...")
+                return None
+            
+            timestamp_str = timestamp_match.group(1)
+            
+            # Split the log line by spaces
+            parts = log_line.split()
+            
+            if len(parts) < 8:
+                logger.warning(f"Not enough parts in nginx log line: {len(parts)} parts")
+                return None
+            
+            # Extract IP address
+            ip_address = parts[0]
+            
+            # Find the request part (starts with " and ends with ")
+            request_start = log_line.find('\"')
+            if request_start == -1:
+                logger.warning(f"No request start found in nginx log: {log_line[:100]}...")
+                return None
+            
+            request_end = log_line.find('\"', request_start + 1)
+            if request_end == -1:
+                logger.warning(f"No request end found in nginx log: {log_line[:100]}...")
+                return None
+            
+            request_line = log_line[request_start + 1:request_end]
+            request_parts = request_line.split()
+            
+            if len(request_parts) < 2:
+                logger.warning(f"Invalid request format in nginx log: {request_line}")
+                return None
+            
+            method = request_parts[0]
+            path = request_parts[1]
+            protocol = request_parts[2] if len(request_parts) > 2 else "HTTP/1.1"
+            
+            # Get remaining parts after the request
+            after_request = request_end + 1
+            remaining = log_line[after_request:].strip()
+            remaining_parts = remaining.split()
+            
+            # Extract status code and size
+            try:
+                status_code = int(remaining_parts[0])
+                size = int(remaining_parts[1]) if remaining_parts[1] != '-' else 0
+            except (ValueError, IndexError):
+                logger.warning(f"Could not parse status code or size from nginx log: {remaining_parts[:2]}")
+                return None
+            
+            # Extract referer and user agent if present (combined format)
+            referer = ""
+            user_agent = ""
+            
+            if len(remaining_parts) > 2:
+                try:
+                    # Find referer (first quoted string after status and size)
+                    referer_start = remaining.find('\"')
+                    referer_end = remaining.find('\"', referer_start + 1)
+                    referer = remaining[referer_start + 1:referer_end] if referer_start != -1 and referer_end != -1 else ""
+                    
+                    # Find user agent (second quoted string)
+                    user_agent_start = remaining.find('\"', referer_end + 1)
+                    user_agent_end = remaining.find('\"', user_agent_start + 1)
+                    user_agent = remaining[user_agent_start + 1:user_agent_end] if user_agent_start != -1 and user_agent_end != -1 else ""
+                except Exception as e:
+                    logger.debug(f"Could not extract referer/user_agent from nginx log: {e}")
+            
+            logger.debug(
+                "Parsed nginx log -> ip=%s method=%s path=%s status=%s size=%s",
+                ip_address,
+                method,
+                path,
+                status_code,
+                size
+            )
+            
+            return {
+                "ip_address": ip_address,
+                "timestamp": self._parse_timestamp(timestamp_str),
+                "method": method,
+                "path": path,
+                "protocol": protocol,
+                "status_code": status_code,
+                "size": size,
+                "referer": referer,
+                "user_agent": user_agent,
+                "raw_log": log_line
+            }
+            
+        except Exception as e:
+            logger.error(f"Error parsing nginx log line: {e}")
             return None
     
     

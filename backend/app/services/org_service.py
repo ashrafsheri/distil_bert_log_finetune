@@ -89,7 +89,8 @@ class OrgService:
                 id=org_id,
                 name=org_data.name,
                 api_key=api_key,
-                created_by=creator_uid
+                created_by=creator_uid,
+                log_type=org_data.log_type  # Set log type from org_data
             )
             db.add(org_db)
 
@@ -189,3 +190,20 @@ class OrgService:
             }
             for org in orgs
         ]
+
+    async def get_org_by_id(self, org_id: str, db: AsyncSession) -> Optional[OrgDB]:
+        """Get organization by ID"""
+        result = await db.execute(select(OrgDB).where(OrgDB.id == org_id))
+        return result.scalar_one_or_none()
+
+    async def update_log_type(self, org_id: str, log_type: str, db: AsyncSession) -> bool:
+        """Update the log type for an organization"""
+        result = await db.execute(select(OrgDB).where(OrgDB.id == org_id))
+        org = result.scalar_one_or_none()
+        
+        if not org:
+            return False
+        
+        org.log_type = log_type
+        await db.commit()
+        return True
