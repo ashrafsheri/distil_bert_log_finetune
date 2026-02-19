@@ -37,3 +37,6 @@ httpx==0.25.2
 
 # Firebase Admin SDK for JWT verification
 firebase-admin==6.4.0
+
+# PDF generation
+reportlab==4.0.7

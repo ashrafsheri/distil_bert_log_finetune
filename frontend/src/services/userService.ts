@@ -10,6 +10,7 @@ export interface User {
   email: string;
   role: 'admin' | 'manager' | 'employee';
   enabled: boolean;
+  org_id?: string;
   created_at: string;
   updated_at: string;
 }

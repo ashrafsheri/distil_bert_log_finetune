@@ -4,7 +4,7 @@ Defines the structure for organization data in the system
 """
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 import secrets
 
@@ -14,6 +14,7 @@ class OrgBase(BaseModel):
     name: str
     api_key: str
     created_by: str  # uid of the admin who created it
+    log_type: Literal["apache", "nginx"] = "apache"  # Log format type
 
 
 class Org(OrgBase):
@@ -30,7 +31,8 @@ class Org(OrgBase):
                 "api_key": "sk-abc123...",
                 "created_by": "admin-uid",
                 "created_at": "2025-01-15T10:30:00Z",
-                "updated_at": "2025-01-15T10:30:00Z"
+                "updated_at": "2025-01-15T10:30:00Z",
+                "log_type": "apache"
             }
         }
 
@@ -39,6 +41,7 @@ class OrgCreate(BaseModel):
     """Model for creating a new organization"""
     name: str
     manager_email: str
+    log_type: Literal["apache", "nginx"] = "apache"  # Log format type
 
 
 class OrgResponse(BaseModel):
@@ -71,6 +74,17 @@ class RegenerateApiKeyResponse(BaseModel):
     org_id: str
     new_api_key: str
 
+class UpdateLogTypeRequest(BaseModel):
+    """Request model for updating organization log type"""
+    org_id: str
+    log_type: Literal["apache", "nginx"]
+
+
+class UpdateLogTypeResponse(BaseModel):
+    """Response model for log type update"""
+    org_id: str
+    log_type: Literal["apache", "nginx"]
+    message: str
 
 def generate_api_key() -> str:
     """Generate a secure API key"""

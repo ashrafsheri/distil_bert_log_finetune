@@ -166,7 +166,9 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/admin/orgs", "GET"),
         (RoleEnum.ADMIN, "/api/v1/search", "GET"),
         (RoleEnum.ADMIN, "/api/v1/export", "GET"),
-        
+        (RoleEnum.ADMIN, "/api/v1/admin/org/{org_id}/log-type", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/admin/org/log-type", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/generate-report", "POST"),
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
@@ -175,6 +177,9 @@ async def _init_default_permissions():
         (RoleEnum.MANAGER, "/api/v1/correctLog", "POST"),
         (RoleEnum.MANAGER, "/api/v1/search", "GET"),
         (RoleEnum.MANAGER, "/api/v1/export", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/admin/org/{org_id}/log-type", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/admin/org/log-type", "PUT"),
+        (RoleEnum.MANAGER, "/api/v1/generate-report", "POST"),
         
         # Employee - Limited access, only their own profile
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),

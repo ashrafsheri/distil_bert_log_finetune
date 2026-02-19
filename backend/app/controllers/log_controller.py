@@ -10,12 +10,14 @@ import uuid
 import json
 import logging
 from datetime import datetime
+from pydantic import BaseModel
 from app.models.log_entry import LogEntry, LogEntryResponse, AnomalyDetails, CorrectLogRequest
 from app.serializers.log_serializer import LogSerializer
 from app.services.log_service import LogService
 from app.services.elasticsearch_service import ElasticsearchService
 from app.services.log_parser_service import LogParserService
 from app.services.anomaly_detection_service import AnomalyDetectionService
+from app.services.report_service import ReportService
 from app.utils.firebase_auth import get_current_user, validate_api_key
 from app.utils.permissions import check_permission
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,6 +39,14 @@ def get_log_parser_service() -> LogParserService:
 
 def get_anomaly_detection_service() -> AnomalyDetectionService:
     return AnomalyDetectionService()
+
+def get_report_service() -> ReportService:
+    return ReportService()
+
+# Request model for report generation
+class GenerateReportRequest(BaseModel):
+    start_time: str  # ISO format datetime string
+    end_time: str    # ISO format datetime string
 
 @router.get("/fetch", response_model=LogEntryResponse)
 async def fetch_logs(
@@ -301,6 +311,19 @@ async def receive_fluent_bit_logs(
         # Generate internal batch ID for tracking
         batch_id = str(uuid.uuid4())
 
+        # Fetch organization to get log_type
+        from sqlalchemy import select
+        from app.models.org_db import OrgDB
+        
+        result = await db.execute(select(OrgDB).where(OrgDB.id == org_id))
+        org = result.scalar_one_or_none()
+        
+        if not org:
+            raise HTTPException(status_code=404, detail=f"Organization {org_id} not found")
+        
+        log_type = org.log_type  # Get the log type (apache or nginx)
+        logger.info(f"Processing logs for org {org_id} with log_type: {log_type}")
+
         # Parse the raw request body
         body = await request.body()
         
@@ -309,6 +332,7 @@ async def receive_fluent_bit_logs(
         print(f"Body length: {len(body)} bytes", flush=True)
         print(f"Body (first 500 bytes): {body[:500]}", flush=True)
         print(f"Org ID from API key: {org_id}", flush=True)
+        print(f"Log type: {log_type}", flush=True)
         
         request_data = LogService.parse_fluent_bit_request(body)
         print(f"Parsed data type: {type(request_data)}, count: {len(request_data) if hasattr(request_data, '__len__') else 'N/A'}", flush=True)
@@ -341,19 +365,24 @@ async def receive_fluent_bit_logs(
             logger.warning("Anomaly detection failed, processing logs without detection")
             anomaly_results = [{"is_anomaly": False, "anomaly_score": 0.0, "details": {}}] * len(raw_logs)
         
-        # Parse logs first to get IP addresses
+        # Parse logs using the appropriate parser based on org's log_type
         parsed_logs_data = []
         for i, raw_log in enumerate(raw_logs):
             try:
-                parsed_log = log_parser_service.parse_apache_log(raw_log)
+                # Use appropriate parser based on log_type
+                if log_type == "nginx":
+                    parsed_log = log_parser_service.parse_nginx_log(raw_log)
+                else:  # Default to apache
+                    parsed_log = log_parser_service.parse_apache_log(raw_log)
+                
                 if parsed_log is None:
-                    logger.warning(f"Could not parse log: {raw_log[:100]}...")
+                    logger.warning(f"Could not parse {log_type} log: {raw_log[:100]}...")
                     continue
                 parsed_logs_data.append(
                     LogSerializer.serialize_parsed_log_data(parsed_log, raw_log, i)
                 )
             except Exception as e:
-                logger.error(f"Error parsing log: {e}")
+                logger.error(f"Error parsing {log_type} log: {e}")
                 continue
         
         # Get unique IP addresses from parsed logs
@@ -410,3 +439,91 @@ async def receive_fluent_bit_logs(
         logger.error(f"Full traceback: {error_details}")
         raise HTTPException(status_code=500, detail=f"Failed to process logs: {str(e)}")
 
+
+@router.post("/generate-report")
+async def generate_security_report(
+    request: GenerateReportRequest,
+    elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
+    report_service: ReportService = Depends(get_report_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Generate a PDF security report for the specified time range
+    
+    Args:
+        request: GenerateReportRequest with start_time and end_time
+        
+    Returns:
+        PDF file as StreamingResponse
+    """
+    try:
+        # Parse datetime strings
+        try:
+            start_dt = datetime.fromisoformat(request.start_time.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(request.end_time.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"
+            )
+
+        # Validate time range
+        if end_dt <= start_dt:
+            raise HTTPException(
+                status_code=400,
+                detail="End time must be after start time"
+            )
+
+        # Check 30-day limit
+        duration = end_dt - start_dt
+        if duration.days > 30:
+            raise HTTPException(
+                status_code=400,
+                detail="Time range cannot exceed 30 days"
+            )
+
+        # Get org_id from current user
+        org_id = current_user.get("org_id")
+        if not org_id and current_user.get("role") != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="User must belong to an organization to generate reports"
+            )
+
+        logger.info(f"Generating security report for org {org_id}, from {start_dt} to {end_dt}")
+
+        # Generate PDF report (pass user uid for dummy data if needed)
+        pdf_buffer = await report_service.generate_security_report(
+            elasticsearch_service=elasticsearch_service,
+            org_id=org_id,
+            start_time=start_dt,
+            end_time=end_dt,
+            user_uid=current_user.get("uid")
+        )
+
+        # Generate filename with timestamp
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"security_report_{org_id}_{timestamp}.pdf"
+
+        logger.info(f"Successfully generated report: {filename}")
+
+        # Return PDF as streaming response
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/pdf"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate report: {str(e)}"
+        )
