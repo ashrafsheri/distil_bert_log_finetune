@@ -2,11 +2,60 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { adminService } from '../services/adminService';
 
 const ProfilePage: React.FC = () => {
   const { currentUser, userInfo, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [logoutLoading, setLogoutLoading] = React.useState(false);
+  const [logType, setLogType] = React.useState<'apache' | 'nginx'>('apache');
+  const [logTypeLoading, setLogTypeLoading] = React.useState(false);
+  const [logTypeSaving, setLogTypeSaving] = React.useState(false);
+  const [logTypeMessage, setLogTypeMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Fetch log type if user is manager or admin
+  React.useEffect(() => {
+    const fetchLogType = async () => {
+      if (!userInfo?.org_id || (userInfo.role !== 'manager' && userInfo.role !== 'admin')) {
+        return;
+      }
+
+      try {
+        setLogTypeLoading(true);
+        const response = await adminService.getOrgLogType(userInfo.org_id);
+        setLogType(response.log_type);
+      } catch (error) {
+        console.error('Failed to fetch log type:', error);
+      } finally {
+        setLogTypeLoading(false);
+      }
+    };
+
+    fetchLogType();
+  }, [userInfo?.org_id, userInfo?.role]);
+
+  const handleLogTypeUpdate = async () => {
+    if (!userInfo?.org_id) {
+      return;
+    }
+
+    try {
+      setLogTypeSaving(true);
+      setLogTypeMessage(null);
+      await adminService.updateOrgLogType({
+        org_id: userInfo.org_id,
+        log_type: logType
+      });
+      setLogTypeMessage({ type: 'success', text: 'Log type updated successfully!' });
+    } catch (error) {
+      setLogTypeMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to update log type' 
+      });
+    } finally {
+      setLogTypeSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -147,6 +196,78 @@ const ProfilePage: React.FC = () => {
             </Link>
           </div>
         </div>
+
+        {/* Log Type Settings - Only show for managers and admins with org_id */}
+        {userInfo?.org_id && (userInfo.role === 'manager' || userInfo.role === 'admin') && (
+          <div className="glass-strong rounded-2xl border border-vt-primary/20 p-6 mb-6 animate-scale-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-vt-primary/30 to-vt-primary/10 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-vt-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-vt-light">Log Type Configuration</h3>
+                <p className="text-sm text-vt-muted">Select your organization's web server log format</p>
+              </div>
+            </div>
+            
+            {logTypeLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Log Format Type
+                  </label>
+                  <select
+                    value={logType}
+                    onChange={(e) => setLogType(e.target.value as 'apache' | 'nginx')}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary"
+                  >
+                    <option value="apache">Apache</option>
+                    <option value="nginx">Nginx</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-2">
+                    This setting determines how logs are parsed for your organization
+                  </p>
+                </div>
+
+                {logTypeMessage && (
+                  <div className={`p-3 rounded-lg ${
+                    logTypeMessage.type === 'success' 
+                      ? 'bg-green-500/20 border border-green-500/50 text-green-300' 
+                      : 'bg-red-500/20 border border-red-500/50 text-red-300'
+                  }`}>
+                    {logTypeMessage.text}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleLogTypeUpdate}
+                  disabled={logTypeSaving}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-vt-primary to-vt-primary/80 text-white font-semibold rounded-lg hover:from-vt-primary/90 hover:to-vt-primary/70 focus:outline-none focus:ring-2 focus:ring-vt-primary focus:ring-offset-2 focus:ring-offset-vt-dark transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {logTypeSaving ? (
+                    <>
+                      <LoadingSpinner />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Save Log Type</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Logout Section */}
         <div className="glass-strong rounded-2xl border border-vt-error/20 p-6 animate-slide-up stagger-1">

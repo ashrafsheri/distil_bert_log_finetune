@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional, List
 
-from app.models.org import OrgCreate, OrgResponse, OrgSummary, DeleteOrgRequest, RegenerateApiKeyRequest, RegenerateApiKeyResponse
+from app.models.org import OrgCreate, OrgResponse, OrgSummary, DeleteOrgRequest, RegenerateApiKeyRequest, RegenerateApiKeyResponse, UpdateLogTypeRequest, UpdateLogTypeResponse
 from app.services.org_service import OrgService
 from app.utils.database import get_db
 from app.utils.permissions import check_permission
@@ -31,12 +31,8 @@ async def create_org(
     Only accessible to admin users.
     """
     try:
-        org_data = OrgCreate(
-            name=request.name,
-            manager_email=request.manager_email
-        )
-
-        result = await org_service.create_org(org_data, current_user["uid"], db)
+        # Pass the request directly which includes log_type
+        result = await org_service.create_org(request, current_user["uid"], db)
 
         return result
 
@@ -115,3 +111,69 @@ async def get_all_orgs(
         return [OrgSummary(**org) for org in orgs]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve organizations: {str(e)}")
+
+
+@router.get("/org/{org_id}/log-type")
+async def get_org_log_type(
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(check_permission("/api/v1/admin/org/{org_id}/log-type", "GET")),
+    org_service: OrgService = Depends(lambda: OrgService())
+):
+    """
+    Get the log type for a specific organization.
+    
+    Accessible to admin and manager users of the organization.
+    """
+    try:
+        # Check if user is admin or belongs to the org
+        if current_user.get("role") != "admin" and current_user.get("org_id") != org_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to access this organization")
+        
+        org = await org_service.get_org_by_id(org_id, db)
+        
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        return {
+            "org_id": org.id,
+            "log_type": org.log_type
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get log type: {str(e)}")
+
+
+@router.put("/org/log-type", response_model=UpdateLogTypeResponse)
+async def update_org_log_type(
+    request: UpdateLogTypeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(check_permission("/api/v1/admin/org/log-type", "PUT")),
+    org_service: OrgService = Depends(lambda: OrgService())
+):
+    """
+    Update the log type for an organization.
+    
+    Accessible to admin and manager users of the organization.
+    """
+    try:
+        # Check if user is admin or belongs to the org
+        if current_user.get("role") != "admin" and current_user.get("org_id") != request.org_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to update this organization")
+        
+        success = await org_service.update_log_type(request.org_id, request.log_type, db)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        return UpdateLogTypeResponse(
+            org_id=request.org_id,
+            log_type=request.log_type,
+            message=f"Log type updated to {request.log_type} successfully"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update log type: {str(e)}")
+

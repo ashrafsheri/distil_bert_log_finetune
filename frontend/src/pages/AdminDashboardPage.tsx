@@ -10,6 +10,7 @@ import ApiKeyRegenerationResult from '../components/ApiKeyRegenerationResult';
 interface CreateOrgFormData {
   name: string;
   email: string;
+  logType: 'apache' | 'nginx';
 }
 
 const AdminDashboardPage: React.FC = () => {
@@ -19,7 +20,8 @@ const AdminDashboardPage: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createFormData, setCreateFormData] = useState<CreateOrgFormData>({
     name: '',
-    email: ''
+    email: '',
+    logType: 'apache'
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -55,13 +57,14 @@ const AdminDashboardPage: React.FC = () => {
       setCreateLoading(true);
       const request: CreateOrgRequest = {
         name: createFormData.name.trim(),
-        manager_email: createFormData.email.trim()
+        manager_email: createFormData.email.trim(),
+        log_type: createFormData.logType
       };
 
       const response = await adminService.createOrg(request);
       setOrgCreationResult(response);
 
-      setCreateFormData({ name: '', email: '' });
+      setCreateFormData({ name: '', email: '', logType: 'apache' });
       setShowCreateForm(false);
       fetchOrgs(); // Refresh the list
     } catch (err) {
@@ -159,6 +162,22 @@ const AdminDashboardPage: React.FC = () => {
                   placeholder="Enter manager email"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-3">
+                  Log Type
+                </label>
+                <select
+                  value={createFormData.logType}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, logType: e.target.value as 'apache' | 'nginx' }))}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
+                >
+                  <option value="apache">Apache</option>
+                  <option value="nginx">Nginx</option>
+                </select>
+                <p className="text-xs text-slate-400 mt-2">
+                  Select the web server log format for this organization
+                </p>
               </div>
               <div className="flex gap-4 pt-4">
                 <Button
