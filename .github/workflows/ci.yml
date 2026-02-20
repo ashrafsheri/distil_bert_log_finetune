@@ -1,0 +1,63 @@
+name: CI-GHCR
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - backend/**
+      - frontend/**
+      - realtime_anomaly_detection/**
+      - .github/workflows/**
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  GHCR_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1 Checkout repository
+      - uses: actions/checkout@v4
+
+      # 2 Set up Docker Buildx
+      - uses: docker/setup-buildx-action@v3
+
+      # 3 Login to GHCR
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # 4 Build & Push Backend
+      - name: Build & Push Backend
+        run: |
+          docker buildx build \
+            -t $GHCR_IMAGE_PREFIX/backend:${{ github.sha }} \
+            -t $GHCR_IMAGE_PREFIX/backend:latest \
+            --push backend
+
+      # 5 Build & Push Frontend
+      - name: Build & Push Frontend
+        run: |
+          docker buildx build \
+            --build-arg VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }} \
+            --build-arg VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }} \
+            --build-arg VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }} \
+            --build-arg VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }} \
+            --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }} \
+            --build-arg VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }} \
+            --build-arg VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }} \
+            -t $GHCR_IMAGE_PREFIX/frontend:${{ github.sha }} \
+            -t $GHCR_IMAGE_PREFIX/frontend:latest \
+            --push frontend
+
+      # 6 Build & Push Anomaly Detection
+      - name: Build & Push Anomaly Detection
+        run: |
+          docker buildx build \
+            -t $GHCR_IMAGE_PREFIX/anomaly-detection:${{ github.sha }} \
+            -t $GHCR_IMAGE_PREFIX/anomaly-detection:latest \
+            --push realtime_anomaly_detection

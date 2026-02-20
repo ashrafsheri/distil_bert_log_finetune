@@ -1,0 +1,102 @@
+name: CD - Deploy to K3s
+
+on:
+  workflow_run:
+    workflows: ["CI-GHCR"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  GHCR_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # 1 Checkout the repo
+      - uses: actions/checkout@v4
+
+      # 2 Deploy to k3s server via SSH
+      - name: Deploy to K3s Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            # Navigate to project directory
+            cd ${{ secrets.PROJECT_DIR || '~/distil_bert_log_finetune' }}
+
+            # Pull latest code
+            git pull origin main
+
+            # Ensure namespace exists
+            sudo kubectl create namespace logguard 2>/dev/null || true
+
+            # Create/update GHCR image pull secret
+            sudo kubectl delete secret ghcr-secret -n logguard 2>/dev/null || true
+            sudo kubectl create secret docker-registry ghcr-secret \
+              --docker-server=ghcr.io \
+              --docker-username=${{ secrets.GHCR_USERNAME }} \
+              --docker-password=${{ secrets.GHCR_PAT }} \
+              -n logguard
+
+            # Create/update Firebase service account secret (if provided)
+            if [ -f backend/app/serviceAccountKey.json ]; then
+              sudo kubectl delete secret firebase-secret -n logguard 2>/dev/null || true
+              sudo kubectl create secret generic firebase-secret \
+                --from-file=serviceAccountKey.json=backend/app/serviceAccountKey.json \
+                -n logguard
+            fi
+
+            # Apply all K8s manifests
+            sudo kubectl apply -f k8s/namespace.yaml
+            sudo kubectl apply -f k8s/postgres-secret.yaml
+            sudo kubectl apply -f k8s/backend-secret.yaml
+            sudo kubectl apply -f k8s/postgres-pvc.yaml
+            sudo kubectl apply -f k8s/elasticsearch-pvc.yaml
+            sudo kubectl apply -f k8s/model-artifacts-pvc.yaml
+            sudo kubectl apply -f k8s/postgres-deployment.yaml
+            sudo kubectl apply -f k8s/postgres-service.yaml
+            sudo kubectl apply -f k8s/elasticsearch-deployment.yaml
+            sudo kubectl apply -f k8s/elasticsearch-service.yaml
+            sudo kubectl apply -f k8s/backend-deployment.yaml
+            sudo kubectl apply -f k8s/backend-service.yaml
+            sudo kubectl apply -f k8s/anomaly-detection-deployment.yaml
+            sudo kubectl apply -f k8s/anomaly-detection-service.yaml
+            sudo kubectl apply -f k8s/frontend-deployment.yaml
+            sudo kubectl apply -f k8s/frontend-service.yaml
+            sudo kubectl apply -f k8s/ingress.yaml
+
+            # Update images with the specific commit SHA
+            COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
+            sudo kubectl set image deployment/backend \
+              backend=${{ env.GHCR_IMAGE_PREFIX }}/backend:${COMMIT_SHA} \
+              -n logguard
+            sudo kubectl set image deployment/frontend \
+              frontend=${{ env.GHCR_IMAGE_PREFIX }}/frontend:${COMMIT_SHA} \
+              -n logguard
+            sudo kubectl set image deployment/anomaly-detection \
+              anomaly-detection=${{ env.GHCR_IMAGE_PREFIX }}/anomaly-detection:${COMMIT_SHA} \
+              -n logguard
+
+            # Wait for rollouts to complete
+            sudo kubectl rollout status deployment/postgres -n logguard --timeout=120s
+            sudo kubectl rollout status deployment/elasticsearch -n logguard --timeout=180s
+            sudo kubectl rollout status deployment/backend -n logguard --timeout=120s
+            sudo kubectl rollout status deployment/frontend -n logguard --timeout=120s
+            sudo kubectl rollout status deployment/anomaly-detection -n logguard --timeout=180s
+
+            # Show deployment status
+            echo "=== Deployment Status ==="
+            sudo kubectl get pods -n logguard
+            sudo kubectl get services -n logguard
+            sudo kubectl get ingress -n logguard
