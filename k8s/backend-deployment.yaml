@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: logguard
+  labels:
+    app: backend
+    app.kubernetes.io/part-of: logguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+      containers:
+        - name: backend
+          image: ghcr.io/OWNER/backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: FIREBASE_SERVICE_ACCOUNT_KEY
+              value: /app/secrets/serviceAccountKey.json
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_HOST
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_PORT
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_USERNAME
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_PASSWORD
+            - name: SMTP_USE_TLS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_USE_TLS
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_FROM
+            - name: ALERT_COOLDOWN_SECONDS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: ALERT_COOLDOWN_SECONDS
+            - name: ELASTICSEARCH_URL
+              value: http://elasticsearch:9200
+          volumeMounts:
+            - name: firebase-credentials
+              mountPath: /app/secrets
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-secret
+            items:
+              - key: serviceAccountKey.json
+                path: serviceAccountKey.json

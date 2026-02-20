@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detection
+  namespace: logguard
+  labels:
+    app: anomaly-detection
+    app.kubernetes.io/part-of: logguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anomaly-detection
+  template:
+    metadata:
+      labels:
+        app: anomaly-detection
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: anomaly-detection
+          image: ghcr.io/OWNER/anomaly-detection:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: MODEL_DIR
+              value: /app/artifacts/ensemble_model_export
+            - name: LOG_LEVEL
+              value: INFO
+            - name: ANOMALY_SERVICE_PORT
+              value: "8001"
+          volumeMounts:
+            - name: model-artifacts
+              mountPath: /app/artifacts/ensemble_model_export
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            failureThreshold: 12
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: model-artifacts
+          persistentVolumeClaim:
+            claimName: model-artifacts-pvc

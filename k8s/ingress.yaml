@@ -1,0 +1,93 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logguard-ingress
+  namespace: logguard
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # WebSocket support for /ws paths
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Frontend — catch-all for the UI
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+
+          # Backend API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+
+          # Backend WebSocket
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+
+          # Anomaly detection API (with rewrite)
+          - path: /anomaly
+            pathType: Prefix
+            backend:
+              service:
+                name: anomaly-detection
+                port:
+                  number: 8001
+
+          # Elasticsearch proxy (with rewrite)
+          - path: /elasticsearch
+            pathType: Prefix
+            backend:
+              service:
+                name: elasticsearch
+                port:
+                  number: 9200
+---
+# Separate ingress for paths that need URL rewriting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logguard-ingress-rewrite
+  namespace: logguard
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Anomaly detection with prefix strip: /anomaly/health -> /health
+          - path: /anomaly(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: anomaly-detection
+                port:
+                  number: 8001
+
+          # Elasticsearch with prefix strip: /elasticsearch/_search -> /_search
+          - path: /elasticsearch(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: elasticsearch
+                port:
+                  number: 9200
