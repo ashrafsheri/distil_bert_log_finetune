@@ -45,6 +45,48 @@ async def create_user(
                 detail="Only admins can create admin users"
             )
     
+    # HORIZONTAL PRIVILEGE SEPARATION:
+    # Managers can only create users in their own organization
+    if current_user["role"] == "manager":
+        # If organization_id is provided, ensure it matches manager's org
+        if user_data.organization_id and user_data.organization_id != current_user["org_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only create users in your own organization"
+            )
+        # Enforce manager's organization
+        org_id_to_use = current_user["org_id"]
+    elif current_user["role"] == "admin":
+        # VERTICAL PRIVILEGE SEPARATION:
+        # Admins can create users in any organization
+        if user_data.role == "admin":
+            org_id_to_use = "-1"  # Admins are not tied to a specific org
+        else:
+            # For non-admin users, organization_id is required
+            if not user_data.organization_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="organization_id is required when creating non-admin users"
+                )
+            # Verify organization exists
+            from sqlalchemy import select
+            from app.models.organization_db import OrganizationDB
+            result = await db.execute(
+                select(OrganizationDB).where(OrganizationDB.id == user_data.organization_id)
+            )
+            org = result.scalar_one_or_none()
+            if not org:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Organization {user_data.organization_id} not found"
+                )
+            org_id_to_use = user_data.organization_id
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to create users"
+        )
+    
     from firebase_admin import auth
     from app.utils.firebase_auth import get_firebase_app
     
@@ -74,19 +116,25 @@ async def create_user(
         
         # Create user in database
         try:
-            # Determine org_id based on role
-            if user_data.role == "admin":
-                org_id = "-1"  # Admins are not tied to a specific org
-            else:
-                org_id = current_user["org_id"]
-            
             user_service = get_user_service(db)
             user = await user_service.create_user(UserCreate(
                 email=user_data.email,
                 uid=firebase_uid,
                 role=user_data.role,
-                org_id=org_id
+                org_id=org_id_to_use
             ))
+            
+            # Get organization name if user belongs to one
+            org_name = None
+            if user.org_id and user.org_id != "-1":
+                from sqlalchemy import select
+                from app.models.organization_db import OrganizationDB
+                result = await db.execute(
+                    select(OrganizationDB).where(OrganizationDB.id == user.org_id)
+                )
+                org = result.scalar_one_or_none()
+                if org:
+                    org_name = org.name
             
             return UserResponse(
                 email=user.email,
@@ -95,7 +143,8 @@ async def create_user(
                 org_id=user.org_id,
                 enabled=user.enabled,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
+                org_name=org_name
             )
         except ValueError as e:
             # If database creation fails, rollback Firebase user
@@ -156,11 +205,24 @@ async def get_all_users(
     """
     try:
         user_service = get_user_service(db)
-        # Filter users by org_id unless current user is admin
+        # HORIZONTAL PRIVILEGE SEPARATION: Filter users by org_id unless current user is admin
         if current_user["role"] == "admin":
             users = await user_service.get_all_users()
         else:
             users = await user_service.get_all_users(org_id=current_user["org_id"])
+        
+        # Get organization names for all users
+        from sqlalchemy import select
+        from app.models.organization_db import OrganizationDB
+        org_ids = {user.org_id for user in users if user.org_id and user.org_id != "-1"}
+        org_names = {}
+        if org_ids:
+            result = await db.execute(
+                select(OrganizationDB).where(OrganizationDB.id.in_(org_ids))
+            )
+            orgs = result.scalars().all()
+            org_names = {org.id: org.name for org in orgs}
+        
         return [
             UserResponse(
                 email=user.email,
@@ -169,7 +231,8 @@ async def get_all_users(
                 org_id=user.org_id,
                 enabled=user.enabled,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
+                org_name=org_names.get(user.org_id) if user.org_id and user.org_id != "-1" else None
             )
             for user in users
         ]
@@ -214,7 +277,8 @@ async def get_user(
             org_id=user.org_id,
             enabled=user.enabled,
             created_at=user.created_at,
-            updated_at=user.updated_at
+            updated_at=user.updated_at,
+            org_name=current_user.get("org_name")  # Already available in current_user
         )
     except HTTPException:
         raise

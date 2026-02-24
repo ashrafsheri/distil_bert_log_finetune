@@ -169,6 +169,30 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/admin/org/{org_id}/log-type", "GET"),
         (RoleEnum.ADMIN, "/api/v1/admin/org/log-type", "PUT"),
         (RoleEnum.ADMIN, "/api/v1/generate-report", "POST"),
+        
+        # Admin - Organization management endpoints
+        (RoleEnum.ADMIN, "/api/v1/organizations/create", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/organizations/all", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/organizations/my-organizations", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "DELETE"),
+        
+        # Admin - Project management endpoints
+        (RoleEnum.ADMIN, "/api/v1/projects/create", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/projects/organization/{org_id}", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/projects/my-projects", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "DELETE"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/regenerate-api-key", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members", "GET"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members/{member_id}", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members/{member_id}", "DELETE"),
+        (RoleEnum.ADMIN, "/api/v1/projects/regenerate-api-key", "POST"),
+        (RoleEnum.ADMIN, "/api/v1/projects/log-type", "PUT"),
+        
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
@@ -181,9 +205,35 @@ async def _init_default_permissions():
         (RoleEnum.MANAGER, "/api/v1/admin/org/log-type", "PUT"),
         (RoleEnum.MANAGER, "/api/v1/generate-report", "POST"),
         
+        
+        # Manager - Organization and project access
+        (RoleEnum.MANAGER, "/api/v1/organizations/my-organizations", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/organizations/{org_id}", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/create", "POST"),
+        (RoleEnum.MANAGER, "/api/v1/projects/organization/{org_id}", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/my-projects", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "PUT"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "DELETE"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/log-type", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/log-type", "PUT"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/members", "GET"),
+        (RoleEnum.MANAGER, "/api/v1/projects/members/add", "POST"),
+        (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}", "DELETE"),
+        (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"),
+        (RoleEnum.MANAGER, "/api/v1/projects/regenerate-api-key", "POST"),
+        
         # Employee - Limited access, only their own profile
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid/{uid}/password", "PUT"),
+        
+        # Employee - Organization and project access (read-only)
+        (RoleEnum.EMPLOYEE, "/api/v1/organizations/my-organizations", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/organizations/{org_id}", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/my-projects", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/log-type", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/members", "GET"),
         
         # All roles - Log endpoints (you can customize these)
         (RoleEnum.ADMIN, "/api/v1/fetch", "GET"),

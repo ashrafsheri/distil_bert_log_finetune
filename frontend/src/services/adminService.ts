@@ -1,10 +1,13 @@
 /**
  * Admin Service
  * Provides methods for admin operations like organization management
+ * Updated to use new hierarchy: Organizations → Projects
  */
 
 import { apiService } from './apiService';
+import { organizationService, OrganizationSummary } from './organizationService';
 
+// Legacy interface for backward compatibility
 export interface OrgSummary {
   id: string;
   name: string;
@@ -19,7 +22,8 @@ export interface CreateOrgRequest {
 
 export interface CreateOrgResponse {
   org_id: string;
-  api_key: string;
+  name: string;
+  message: string;
   manager_email: string;
   manager_password: string;
 }
@@ -56,50 +60,68 @@ export interface GetLogTypeResponse {
 export class AdminService {
   /**
    * Get all organizations with user counts
+   * Now uses the new /api/v1/organizations/all endpoint
    */
   async getAllOrgs(): Promise<OrgSummary[]> {
-    const response = await apiService.get<OrgSummary[]>('/api/v1/admin/orgs');
-    return response.data;
+    const response = await apiService.get<OrganizationSummary[]>('/api/v1/organizations/all');
+    // Map to legacy format for backward compatibility
+    return response.data.map(org => ({
+      id: org.id,
+      name: org.name,
+      user_count: org.user_count || 0
+    }));
   }
 
   /**
    * Create a new organization
+   * Now uses the new /api/v1/organizations endpoint
    */
   async createOrg(data: CreateOrgRequest): Promise<CreateOrgResponse> {
-    const response = await apiService.post<CreateOrgResponse>('/api/v1/admin/create-org', data);
-    return response.data;
+    // Create organization with manager
+    const orgResponse = await organizationService.createOrganization({ 
+      name: data.name,
+      manager_email: data.manager_email 
+    });
+    
+    // Return the complete response
+    return orgResponse;
   }
 
   /**
    * Delete an organization
+   * Now uses the new /api/v1/organizations/{id} endpoint
    */
   async deleteOrg(orgId: string): Promise<void> {
-    await apiService.delete(`/api/v1/admin/delete-org/${orgId}`);
+    await organizationService.deleteOrganization(orgId);
   }
-
 
   /**
    * Regenerate API key for an organization
+   * Note: API keys are now at the project level, not organization level
+   * This method will need a projectId instead
    */
-  async regenerateApiKey(data: RegenerateApiKeyRequest): Promise<RegenerateApiKeyResponse> {
-    const response = await apiService.post<RegenerateApiKeyResponse>('/api/v1/admin/regenerate-api-key', data);
-    return response.data;
+  async regenerateApiKey(_data: RegenerateApiKeyRequest): Promise<RegenerateApiKeyResponse> {
+    // This needs to be updated to work with projects
+    // For now, throw an error indicating projects should be used
+    throw new Error('API keys are now managed at the project level. Please use projectService.regenerateApiKey(projectId)');
   }
 
   /**
    * Get log type for an organization
+   * Note: Log types are now at the project level, not organization level
    */
-  async getOrgLogType(orgId: string): Promise<GetLogTypeResponse> {
-    const response = await apiService.get<GetLogTypeResponse>(`/api/v1/admin/org/${orgId}/log-type`);
-    return response.data;
+  async getOrgLogType(_orgId: string): Promise<GetLogTypeResponse> {
+    // Log types are now per-project
+    throw new Error('Log types are now managed at the project level. Please use the project details endpoint.');
   }
 
   /**
    * Update log type for an organization
+   * Note: Log types are now at the project level, not organization level
    */
-  async updateOrgLogType(data: UpdateLogTypeRequest): Promise<UpdateLogTypeResponse> {
-    const response = await apiService.put<UpdateLogTypeResponse>('/api/v1/admin/org/log-type', data);
-    return response.data;
+  async updateOrgLogType(_data: UpdateLogTypeRequest): Promise<UpdateLogTypeResponse> {
+    // Log types are now per-project
+    throw new Error('Log types are now managed at the project level. Please use projectService.updateProject(projectId, { log_type })');
   }
 }
 

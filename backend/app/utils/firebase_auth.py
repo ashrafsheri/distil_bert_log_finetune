@@ -17,7 +17,7 @@ from sqlalchemy import select
 # Import get_db directly - no circular dependency
 from app.utils.database import get_db
 
-from app.models.org_db import OrgDB
+from app.models.project_db import ProjectDB
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +236,21 @@ async def get_current_user(
         user_info["created_at"] = db_user.created_at.isoformat() if db_user.created_at else None
         user_info["updated_at"] = db_user.updated_at.isoformat() if db_user.updated_at else None
         
+        # Get organization name if user belongs to one
+        if db_user.org_id and db_user.org_id != "-1":
+            from sqlalchemy import select
+            from app.models.organization_db import OrganizationDB
+            result = await db.execute(
+                select(OrganizationDB).where(OrganizationDB.id == db_user.org_id)
+            )
+            org = result.scalar_one_or_none()
+            if org:
+                user_info["org_name"] = org.name
+            else:
+                user_info["org_name"] = None
+        else:
+            user_info["org_name"] = None
+        
         return user_info
     except HTTPException:
         raise
@@ -247,38 +262,38 @@ async def get_current_user(
         )
 
 
-async def get_org_id(api_key: str, db: AsyncSession) -> str:
+async def get_project_id_from_api_key(api_key: str, db: AsyncSession) -> str:
     """
-    Get organization ID by API key
+    Get project ID by API key
     
-    Verifies that the API key exists and returns the corresponding org_id
+    Verifies that the API key exists and returns the corresponding project_id
     
     Args:
         api_key: The API key to look up
         db: Database session
         
     Returns:
-        The organization ID
+        The project ID
         
     Raises:
-        HTTPException: If API key is invalid or org not found
+        HTTPException: If API key is invalid or project not found
     """
     try:
         # For development/testing: accept test API key
         if api_key == "sk-test-key-12345":
-            return "org-5eacc5cc"
+            return "org-5eacc5cc"  # Legacy test case
         
-        result = await db.execute(select(OrgDB).where(OrgDB.api_key == api_key))
-        org = result.scalar_one_or_none()
+        result = await db.execute(select(ProjectDB).where(ProjectDB.api_key == api_key))
+        project = result.scalar_one_or_none()
         
-        if not org:
+        if not project:
             logger.warning(f"Invalid API key provided: {api_key[:10]}...")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid API key"
             )
         
-        return org.id
+        return project.id
         
     except HTTPException:
         raise
@@ -295,14 +310,14 @@ async def validate_api_key(
     db: AsyncSession = Depends(get_db)
 ) -> str:
     """
-    FastAPI dependency to validate API key and return org_id
+    FastAPI dependency to validate API key and return project_id
     
-    Accepts API key from either X-API-Key header or api_key query parameter
+    Accepts API key from X-API-Key header
     
     Usage:
         @router.post("/endpoint")
-        async def endpoint(org_id: str = Depends(validate_api_key)):
-            # org_id is now validated and available
+        async def endpoint(project_id: str = Depends(validate_api_key)):
+            # project_id is now validated and available
             ...
     
     Args:
@@ -310,19 +325,17 @@ async def validate_api_key(
         db: Database session
         
     Returns:
-        Organization ID
+        Project ID
         
     Raises:
         HTTPException: If API key is missing or invalid
     """
-    # Use header first, then query parameter
-  
     if not api_key:
-        logger.warning("Missing X-API-Key header or api_key query parameter")
+        logger.warning("Missing X-API-Key header")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-API-Key header or api_key query parameter. Please provide a valid API key."
+            detail="Missing X-API-Key header. Please provide a valid API key."
         )
     
-    return await get_org_id(api_key, db)
+    return await get_project_id_from_api_key(api_key, db)
 
