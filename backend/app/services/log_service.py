@@ -20,7 +20,7 @@ from fastapi import HTTPException
 from app.models.log_entry import LogEntry, LogEntryCreate, CorrectLogRequest
 from app.models.ip_db import IPDB, IPStatusEnum
 from app.models.user_db import UserDB, RoleEnum
-from app.models.org_db import OrgDB
+from app.models.project_db import ProjectDB
 from app.services.elasticsearch_service import ElasticsearchService
 from app.services.email_service import can_send_alert, mark_alert_sent, send_email
 from app.controllers.websocket_controller import send_log_update
@@ -656,7 +656,7 @@ class LogService:
         try:
             # Get current org data
             result = await db.execute(
-                select(OrgDB).where(OrgDB.id == org_id)
+                select(ProjectDB).where(ProjectDB.id == org_id)
             )
             org = result.scalar_one_or_none()
             
@@ -668,8 +668,8 @@ class LogService:
                 
                 # Update organization
                 await db.execute(
-                    update(OrgDB)
-                    .where(OrgDB.id == org_id)
+                    update(ProjectDB)
+                    .where(ProjectDB.id == org_id)
                     .values(
                         log_count=new_log_count,
                         warmup_progress=new_progress

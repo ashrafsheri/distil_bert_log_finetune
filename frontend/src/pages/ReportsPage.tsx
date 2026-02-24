@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth } from '../config/firebase';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import { projectService, ProjectSummary } from '../services/projectService';
 
 const ReportsPage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -12,15 +13,31 @@ const ReportsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [projectsLoading, setProjectsLoading] = useState(true);
 
-  // Set default dates (last 7 days)
-  React.useEffect(() => {
+  // Set default dates (last 7 days) and load projects
+  useEffect(() => {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 7);
 
     setEndDate(end.toISOString().split('T')[0]);
     setStartDate(start.toISOString().split('T')[0]);
+
+    const loadProjects = async () => {
+      try {
+        const data = await projectService.getMyProjects();
+        setProjects(data);
+        if (data.length === 1) setSelectedProjectId(data[0].id);
+      } catch (err) {
+        console.error('Failed to load projects:', err);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    loadProjects();
   }, []);
 
   const handleGenerateReport = async (e: React.FormEvent) => {
@@ -80,7 +97,8 @@ const ReportsPage: React.FC = () => {
         },
         body: JSON.stringify({
           start_time: start.toISOString(),
-          end_time: end.toISOString()
+          end_time: end.toISOString(),
+          ...(selectedProjectId && { project_id: selectedProjectId })
         })
       });
 
@@ -134,6 +152,32 @@ const ReportsPage: React.FC = () => {
         <Card className="p-8">
           <form onSubmit={handleGenerateReport}>
             <div className="space-y-6">
+              {/* Project Selector */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Project <span className="text-slate-500">(optional — leave blank for all)</span>
+                </label>
+                {projectsLoading ? (
+                  <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <LoadingSpinner />
+                    <span>Loading projects...</span>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary"
+                  >
+                    <option value="">All Projects</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.log_type}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               {/* Quick Select Buttons */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-3">

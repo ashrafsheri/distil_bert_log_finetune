@@ -7,7 +7,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, userInfo } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -22,14 +22,12 @@ const LoginPage: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      await login({ email, password });
-      // Wait a bit for userInfo to be fetched
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const userInfo = await login({ email, password });
       // Navigate based on role
-      if (userInfo?.role === 'admin') {
+      if (userInfo.role === 'admin') {
         navigate('/admin-dashboard');
       } else {
-        navigate('/dashboard');
+        navigate('/projects');
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to log in';

@@ -1,6 +1,7 @@
 import { apiService } from './apiService';
 
 export interface LogSearchParams {
+  project_id?: string; // NEW: Project ID for filtering logs
   ip?: string;
   api?: string;
   status_code?: number;
@@ -29,15 +30,17 @@ export interface LogSearchResponse {
 }
 
 export const logService = {
-  async fetchLogs(limit: number, offset: number): Promise<LogSearchResponse> {
+  async fetchLogs(limit: number, offset: number, projectId?: string): Promise<LogSearchResponse> {
     const qs = new URLSearchParams();
     qs.set('limit', String(limit));
     qs.set('offset', String(offset));
+    if (projectId) qs.set('project_id', projectId);
     const response = await apiService.get<LogSearchResponse>(`/api/v1/logs/fetch?${qs.toString()}`);
     return response.data;
   },
   async searchLogs(params: LogSearchParams): Promise<LogSearchResponse> {
     const qs = new URLSearchParams();
+    if (params.project_id) qs.set('project_id', params.project_id);
     if (params.ip) qs.set('ip', params.ip);
     if (params.api) qs.set('api', params.api);
     if (typeof params.status_code === 'number') qs.set('status_code', String(params.status_code));
@@ -52,6 +55,7 @@ export const logService = {
   },
   async exportLogs(params: LogSearchParams): Promise<Blob> {
     const qs = new URLSearchParams();
+    if (params.project_id) qs.set('project_id', params.project_id);
     if (params.ip) qs.set('ip', params.ip);
     if (params.api) qs.set('api', params.api);
     if (typeof params.status_code === 'number') qs.set('status_code', String(params.status_code));
@@ -62,10 +66,10 @@ export const logService = {
     const response = await apiService.getBlob(url);
     return response.data;
   },
-  async correctLog(ip: string, status: 'clean' | 'malicious'): Promise<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }> {
+  async correctLog(ip: string, status: 'clean' | 'malicious', projectId?: string): Promise<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }> {
     const response = await apiService.post<{ message: string; ip: string; status: string; database_updated: boolean; elasticsearch_updated: boolean; logs_updated_count: number }>(
       '/api/v1/logs/correctLog',
-      { ip, status }
+      { ip, status, project_id: projectId }
     );
     return response.data;
   },

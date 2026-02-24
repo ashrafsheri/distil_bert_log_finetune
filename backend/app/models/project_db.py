@@ -1,19 +1,19 @@
 """
-Organization Database Model
-SQLAlchemy model for organization table in PostgreSQL
+Project Database Model
+SQLAlchemy model for project table in PostgreSQL
+Projects belong to organizations and have their own API keys and log types
 """
 
-from sqlalchemy import Column, String, DateTime, Integer, Float, Enum as SQLEnum, text
+from sqlalchemy import Column, String, DateTime, Integer, Float, Enum as SQLEnum, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 import enum
 
-# Import Base from database module
 from app.utils.database import Base
 
 
 class ModelStatus(str, enum.Enum):
-    """Enum for organization model training status"""
+    """Enum for project model training status"""
     warmup = "warmup"
     training = "training"
     ready = "ready"
@@ -28,11 +28,12 @@ model_status_enum = PgEnum(
 )
 
 
-class OrgDB(Base):
-    """SQLAlchemy model for organizations table"""
-    __tablename__ = "organizations"
+class ProjectDB(Base):
+    """SQLAlchemy model for projects table"""
+    __tablename__ = "projects"
 
     id = Column(String, primary_key=True, index=True, nullable=False)
+    org_id = Column(String, ForeignKey('organizations.id', ondelete='CASCADE'), nullable=False, index=True)
     name = Column(String, nullable=False)
     api_key = Column(String, unique=True, index=True, nullable=False)
     created_by = Column(String, nullable=False)  # uid of creator
@@ -46,7 +47,6 @@ class OrgDB(Base):
     warmup_threshold = Column(Integer, default=10000, nullable=True)
     warmup_progress = Column(Float, default=0.0, nullable=True)
     student_trained_at = Column(DateTime(timezone=True), nullable=True)
-    manager_email = Column(String, nullable=True)
 
     def __repr__(self):
-        return f"<OrgDB(id={self.id}, name={self.name}, api_key={self.api_key[:10]}...)>"
+        return f"<ProjectDB(id={self.id}, name={self.name}, org_id={self.org_id}, api_key={self.api_key[:10]}...)>"

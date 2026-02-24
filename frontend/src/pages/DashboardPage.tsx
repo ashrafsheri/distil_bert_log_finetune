@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLogs } from '../hooks/useLogs';
@@ -7,8 +8,13 @@ import { useAuth } from '../context/AuthContext';
 import Select from '../components/Select';
 import Button from '../components/Button';
 import { logService } from '../services/logService';
+import { projectService, ProjectSummary } from '../services/projectService';
 
 const DashboardPage: React.FC = () => {
+  const { projectId } = useParams<{ projectId?: string }>();
+  const [currentProject, setCurrentProject] = useState<ProjectSummary | null>(null);
+  const [projectLoading, setProjectLoading] = useState(false);
+  
   const {
     logs,
     isLoading,
@@ -26,7 +32,8 @@ const DashboardPage: React.FC = () => {
     // stepPending,
     // applyPending,
     // discardPending,
-  } = useLogs();
+  } = useLogs(projectId); // Pass projectId to useLogs hook
+  
   const [statsUpdated, setStatsUpdated] = useState(false);
   const [previousLogCount, setPreviousLogCount] = useState(0);
   // showAnomaliesOnly is still used in displayLogs logic
@@ -48,6 +55,27 @@ const DashboardPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+
+  // Load project information
+  useEffect(() => {
+    if (projectId) {
+      loadProjectInfo();
+    }
+  }, [projectId]);
+
+  const loadProjectInfo = async () => {
+    if (!projectId) return;
+    
+    try {
+      setProjectLoading(true);
+      const project = await projectService.getProject(projectId);
+      setCurrentProject(project);
+    } catch (err) {
+      console.error('Error loading project:', err);
+    } finally {
+      setProjectLoading(false);
+    }
+  };
   const [browseResults, setBrowseResults] = useState<typeof logs | null>(null);
   const [browseTotal, setBrowseTotal] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -136,7 +164,7 @@ const DashboardPage: React.FC = () => {
 
   const handleCorrectLog = useCallback(async (ip: string, status: 'clean' | 'malicious') => {
     try {
-      const result = await logService.correctLog(ip, status);
+      const result = await logService.correctLog(ip, status, projectId);
       
       // Show success notification with details
       setCorrectionSuccess({
@@ -156,7 +184,7 @@ const DashboardPage: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to correct log status';
       setSearchError(errorMessage);
     }
-  }, [refetch]);
+  }, [refetch, projectId]);
 
   const handleSearch = useCallback(async () => {
     if (!isPrivileged) return;
@@ -165,6 +193,7 @@ const DashboardPage: React.FC = () => {
       setSearchError(null);
       const currentOffset = (page - 1) * pageSize;
       const params: Record<string, unknown> = {};
+      if (projectId) params.project_id = projectId;
       if (searchIp.trim()) params.ip = searchIp.trim();
       if (searchApi.trim()) params.api = searchApi.trim();
       if (searchStatus.trim()) params.status_code = Number(searchStatus.trim());
@@ -191,7 +220,7 @@ const DashboardPage: React.FC = () => {
     } finally {
       setSearchLoading(false);
     }
-  }, [isPrivileged, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate, page, pageSize]);
+  }, [isPrivileged, projectId, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate, page, pageSize]);
 
   const clearSearch = useCallback(() => {
     setSearchIp('');
@@ -207,11 +236,11 @@ const DashboardPage: React.FC = () => {
     setSearchTotal(0);
     // Load browse defaults
     (async () => {
-      const res = await logService.fetchLogs(25, 0);
+      const res = await logService.fetchLogs(25, 0, projectId);
       setBrowseResults(res.logs as typeof logs);
       setBrowseTotal(res.total_count || 0);
     })();
-  }, []);
+  }, [projectId]);
 
   const handleExport = useCallback(async () => {
     if (!isPrivileged) {
@@ -222,6 +251,7 @@ const DashboardPage: React.FC = () => {
       setExportLoading(true);
       setSearchError(''); // Clear any previous errors
       const params: Record<string, unknown> = {};
+      if (projectId) params.project_id = projectId;
       if (searchIp.trim()) params.ip = searchIp.trim();
       if (searchApi.trim()) params.api = searchApi.trim();
       if (searchStatus.trim()) params.status_code = Number(searchStatus.trim());
@@ -236,7 +266,8 @@ const DashboardPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `logguard_export_${new Date().toISOString().split('T')[0]}.csv`;
+      const projectName = currentProject?.name || 'project';
+      link.download = `logguard_${projectName}_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -247,7 +278,7 @@ const DashboardPage: React.FC = () => {
     } finally {
       setExportLoading(false);
     }
-  }, [isPrivileged, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate]);
+  }, [isPrivileged, projectId, currentProject, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate]);
 
   // Pause/resume stream based on page number
   useEffect(() => {
@@ -271,11 +302,11 @@ const DashboardPage: React.FC = () => {
     if (searchResults) return; // search mode controls its own fetch
     (async () => {
       const offset = (page - 1) * pageSize;
-      const res = await logService.fetchLogs(pageSize, offset);
+      const res = await logService.fetchLogs(pageSize, offset, projectId);
       setBrowseResults(res.logs as typeof logs);
       setBrowseTotal(res.total_count || 0);
     })();
-  }, [searchResults, page, pageSize]);
+  }, [searchResults, page, pageSize, projectId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-vt-dark via-vt-dark to-vt-blue/5">
@@ -290,7 +321,12 @@ const DashboardPage: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <h1 className="text-3xl lg:text-5xl font-bold gradient-text">Security Dashboard</h1>
+                <div>
+                  <h1 className="text-3xl lg:text-5xl font-bold gradient-text">Security Dashboard</h1>
+                  {currentProject && (
+                    <p className="text-sm text-vt-primary mt-1">{currentProject.name}</p>
+                  )}
+                </div>
               </div>
               <p className="text-vt-muted text-base lg:text-lg ml-16 lg:ml-18">Real-time log monitoring with AI-powered threat detection</p>
             </div>
@@ -310,8 +346,25 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Project Not Selected Message */}
+        {!projectId && !projectLoading && (
+          <div className="glass-strong rounded-2xl p-8 border border-vt-warning/30 mb-8 text-center">
+            <svg className="mx-auto h-12 w-12 text-vt-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 className="mt-4 text-lg font-medium text-vt-light">No Project Selected</h3>
+            <p className="mt-2 text-sm text-vt-muted">Please select a project from the Projects page to view logs.</p>
+            <Button
+              onClick={() => window.location.href = '/projects'}
+              className="mt-4"
+            >
+              Go to Projects
+            </Button>
+          </div>
+        )}
+
         {/* Search (Admin/Manager only) */}
-        {isPrivileged && (
+        {isPrivileged && projectId && (
           <div className="glass-strong rounded-2xl p-6 border border-vt-primary/20 mb-8 animate-slide-up">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="flex-1">

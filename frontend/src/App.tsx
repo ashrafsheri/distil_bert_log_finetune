@@ -8,6 +8,7 @@ import MainLayout from './layouts/MainLayout';
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import ProjectsDashboard from './pages/ProjectsDashboard';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -32,8 +33,24 @@ function App() {
               } />
               
               {/* Protected routes */}
+              <Route path="/projects" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
+                  <MainLayout>
+                    <ProjectsDashboard />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/dashboard/:projectId" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
+                  <MainLayout>
+                    <DashboardPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
               <Route path="/dashboard" element={
-                <ProtectedRoute requiredRoles={['manager', 'employee']}>
+                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
                   <MainLayout>
                     <DashboardPage />
                   </MainLayout>

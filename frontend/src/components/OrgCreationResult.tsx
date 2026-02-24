@@ -3,7 +3,7 @@ import Button from './Button';
 
 interface OrgCreationResultProps {
   orgId: string;
-  apiKey: string;
+  orgName: string;
   managerEmail: string;
   managerPassword: string;
   onClose: () => void;
@@ -11,7 +11,7 @@ interface OrgCreationResultProps {
 
 const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
   orgId,
-  apiKey,
+  orgName,
   managerEmail,
   managerPassword,
   onClose
@@ -64,16 +64,13 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
         </div>
 
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-300 mb-2">API Key</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Organization Name</label>
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
-              {apiKey}
+              {orgName}
             </code>
-            <CopyButton text={apiKey} fieldName="apiKey" />
+            <CopyButton text={orgName} fieldName="orgName" />
           </div>
-          <p className="text-xs text-amber-400 mt-2">
-            ⚠️ Keep this key secure and do not share it publicly
-          </p>
         </div>
 
         <div className="bg-slate-700/30 rounded-lg p-4">
