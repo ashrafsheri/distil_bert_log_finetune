@@ -148,25 +148,11 @@ class ReportService:
         """Fetch logs from Elasticsearch for the specified time range"""
         try:
             # Query Elasticsearch for logs in the time range
-            query = {
-                "bool": {
-                    "must": [
-                        {"term": {"org_id": org_id}},
-                        {
-                            "range": {
-                                "timestamp": {
-                                    "gte": start_time.isoformat(),
-                                    "lte": end_time.isoformat()
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-
             result = await elasticsearch_service.search_logs(
-                query=query,
-                size=10000  # Adjust based on expected volume
+                org_id=org_id,
+                from_datetime=start_time.isoformat(),
+                to_datetime=end_time.isoformat(),
+                limit=10000  # Adjust based on expected volume
             )
 
             return result.get('logs', [])
