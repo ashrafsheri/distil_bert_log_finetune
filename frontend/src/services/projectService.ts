@@ -58,14 +58,14 @@ export interface ProjectMemberDetail {
   project_id: string;
   user_id: string;
   user_email: string;
-  role: 'viewer' | 'editor' | 'admin' | 'owner';
+  role: 'project_staff' | 'project_admin' | 'owner';
   created_at: string;
 }
 
 export interface AddProjectMemberRequest {
   project_id: string;
   user_email: string;
-  role: 'viewer' | 'editor' | 'admin' | 'owner';
+  role: 'project_staff' | 'project_admin' | 'owner';
 }
 
 export interface AddProjectMemberResponse {
@@ -177,7 +177,7 @@ export class ProjectService {
   async updateProjectMemberRole(
     projectId: string, 
     userId: string, 
-    role: 'viewer' | 'editor' | 'admin' | 'owner'
+    role: 'project_staff' | 'project_admin' | 'owner'
   ): Promise<{ message: string }> {
     const response = await apiService.put<{ message: string }>(
       `/api/v1/projects/members/${projectId}/${userId}/role`,
@@ -185,6 +185,18 @@ export class ProjectService {
     );
     return response.data;
   }
+
+  /** Get organization members available to add to the project */
+  async getAvailableMembers(projectId: string): Promise<AvailableMember[]> {
+    const response = await apiService.get<AvailableMember[]>(`/api/v1/projects/${projectId}/available-members`);
+    return response.data;
+  }
 }
 
+/** Available organization member for adding to a project */
+export interface AvailableMember {
+  uid: string;
+  email: string;
+  org_role: string;
+}
 export const projectService = new ProjectService();

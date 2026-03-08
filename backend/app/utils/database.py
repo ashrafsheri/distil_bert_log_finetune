@@ -192,6 +192,7 @@ async def _init_default_permissions():
         (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members/{member_id}", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/projects/regenerate-api-key", "POST"),
         (RoleEnum.ADMIN, "/api/v1/projects/log-type", "PUT"),
+        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/available-members", "GET"),
         
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
@@ -222,6 +223,7 @@ async def _init_default_permissions():
         (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}", "DELETE"),
         (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"),
         (RoleEnum.MANAGER, "/api/v1/projects/regenerate-api-key", "POST"),
+        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/available-members", "GET"),
         
         # Employee - Limited access, only their own profile
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
@@ -234,6 +236,10 @@ async def _init_default_permissions():
         (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}", "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/log-type", "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/members", "GET"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/members/add", "POST"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/members/{project_id}/{user_id}", "DELETE"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"),
+        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/available-members", "GET"),
         
         # All roles - Log endpoints (you can customize these)
         (RoleEnum.ADMIN, "/api/v1/fetch", "GET"),

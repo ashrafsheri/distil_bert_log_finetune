@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 # Project role type definition
-ProjectRoleType = Literal["viewer", "editor", "admin", "owner"]
+ProjectRoleType = Literal["project_staff", "project_admin", "owner"]
 
 
 class ProjectMemberBase(BaseModel):
@@ -31,7 +31,7 @@ class ProjectMember(ProjectMemberBase):
                 "id": "pm-123",
                 "project_id": "proj-123",
                 "user_id": "user-uid-123",
-                "role": "editor",
+                "role": "project_staff",
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z"
             }
@@ -42,7 +42,7 @@ class ProjectMemberCreate(BaseModel):
     """Model for adding a user to a project"""
     project_id: str
     user_email: str  # We'll resolve email to user_id
-    role: ProjectRoleType = "viewer"
+    role: ProjectRoleType = "project_staff"
 
 
 class ProjectMemberUpdate(BaseModel):

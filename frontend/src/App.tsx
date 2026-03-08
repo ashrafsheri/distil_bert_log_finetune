@@ -9,6 +9,7 @@ import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProjectsDashboard from './pages/ProjectsDashboard';
+import ProjectMembersPage from './pages/ProjectMembersPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -37,6 +38,14 @@ function App() {
                 <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
                   <MainLayout>
                     <ProjectsDashboard />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/projects/:projectId/members" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}>
+                  <MainLayout>
+                    <ProjectMembersPage />
                   </MainLayout>
                 </ProtectedRoute>
               } />
