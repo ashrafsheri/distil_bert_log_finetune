@@ -31,6 +31,8 @@ const ProjectsDashboard: React.FC = () => {
   const selectedOrgId = searchParams.get('org');
   const { userInfo } = useAuth();
   const isAdmin = userInfo?.role === 'admin';
+  const isManager = userInfo?.role === 'manager';
+  const canCreateProject = isAdmin || isManager;
 
   useEffect(() => {
     loadData();
@@ -233,14 +235,16 @@ const ProjectsDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="mb-8">
-          <Button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-vt-primary hover:bg-vt-primary/80 px-6 py-3 text-lg"
-          >
-            {showCreateForm ? 'Cancel' : 'Create New Project'}
-          </Button>
-        </div>
+        {canCreateProject && (
+          <div className="mb-8">
+            <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-vt-primary hover:bg-vt-primary/80 px-6 py-3 text-lg"
+            >
+              {showCreateForm ? 'Cancel' : 'Create New Project'}
+            </Button>
+          </div>
+        )}
 
         {showCreateForm && (
           <Card className="mb-8 p-8">
@@ -403,21 +407,35 @@ const ProjectsDashboard: React.FC = () => {
                           >
                             View Dashboard
                           </Button>
-                          <Button
-                            onClick={() => handleChangeLogType(project)}
-                            size="sm"
-                            className="bg-vt-warning hover:bg-vt-warning/80 px-4 py-2"
-                          >
-                            Change Log Type
-                          </Button>
-                          <Button
-                            onClick={() => handleRegenerateApiKey(project.id, project.name)}
-                            size="sm"
-                            disabled={regeneratingKeyFor === project.id}
-                            className="bg-vt-success hover:bg-vt-success/80 px-4 py-2"
-                          >
-                            {regeneratingKeyFor === project.id ? 'Regenerating...' : 'Regenerate Key'}
-                          </Button>
+                          {(isAdmin || isManager) && (
+                            <Button
+                              onClick={() => navigate(`/projects/${project.id}/members`)}
+                              size="sm"
+                              variant="secondary"
+                              className="px-4 py-2"
+                            >
+                              Manage Members
+                            </Button>
+                          )}
+                          {(isAdmin || isManager) && (
+                            <Button
+                              onClick={() => handleChangeLogType(project)}
+                              size="sm"
+                              className="bg-vt-warning hover:bg-vt-warning/80 px-4 py-2"
+                            >
+                              Change Log Type
+                            </Button>
+                          )}
+                          {(isAdmin || isManager) && (
+                            <Button
+                              onClick={() => handleRegenerateApiKey(project.id, project.name)}
+                              size="sm"
+                              disabled={regeneratingKeyFor === project.id}
+                              className="bg-vt-success hover:bg-vt-success/80 px-4 py-2"
+                            >
+                              {regeneratingKeyFor === project.id ? 'Regenerating...' : 'Regenerate Key'}
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

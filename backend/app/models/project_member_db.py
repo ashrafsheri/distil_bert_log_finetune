@@ -13,10 +13,9 @@ from app.utils.database import Base
 
 class ProjectRoleEnum(str, enum.Enum):
     """Project-level role enumeration"""
-    VIEWER = "viewer"      # Can only view project data
-    EDITOR = "editor"      # Can view and add logs
-    ADMIN = "admin"        # Can manage project settings
-    OWNER = "owner"        # Full control over project
+    PROJECT_STAFF = "project_staff"    # Can view and access project data
+    PROJECT_ADMIN = "project_admin"    # Can manage project settings and members
+    OWNER = "owner"                     # Full control over project
 
 
 class ProjectMemberDB(Base):
@@ -27,7 +26,7 @@ class ProjectMemberDB(Base):
     id = Column(String, primary_key=True, index=True, nullable=False)
     project_id = Column(String, ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True)
     user_id = Column(String, ForeignKey('users.uid', ondelete='CASCADE'), nullable=False, index=True)
-    role = Column(SQLEnum(ProjectRoleEnum), nullable=False, default=ProjectRoleEnum.VIEWER)
+    role = Column(String, nullable=False, default="project_staff")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -37,4 +36,4 @@ class ProjectMemberDB(Base):
     )
 
     def __repr__(self):
-        return f"<ProjectMemberDB(project_id={self.project_id}, user_id={self.user_id}, role={self.role.value})>"
+        return f"<ProjectMemberDB(project_id={self.project_id}, user_id={self.user_id}, role={self.role})>"

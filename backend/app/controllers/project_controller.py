@@ -41,9 +41,21 @@ async def create_project(
     Accessible to admin and manager users.
     """
     try:
+        # Auto-fill org_id for managers if not provided
+        if not request.org_id or request.org_id.strip() == "":
+            if current_user.get("role") == "manager":
+                request.org_id = current_user.get("org_id")
+            elif current_user.get("role") != "admin":
+                raise HTTPException(status_code=400, detail="Organization ID is required")
+        
         # Check if user is admin or manager of the org
-        if current_user.get("role") not in ["admin", "manager"] or \
-           (current_user.get("role") == "manager" and current_user.get("org_id") != request.org_id):
+        is_admin = current_user.get("role") == "admin"
+        is_manager_in_org = (
+            current_user.get("role") == "manager" and 
+            current_user.get("org_id") == request.org_id
+        )
+
+        if not (is_admin or is_manager_in_org):
             raise HTTPException(status_code=403, detail="You don't have permission to create projects in this organization")
         
         result = await project_service.create_project(request, current_user["uid"], db)
@@ -54,7 +66,7 @@ async def create_project(
         raise
     except Exception as e:
         logger.error(f"Error creating project: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create project")
 
 
 @router.get("/organization/{org_id}", response_model=List[ProjectSummary])
@@ -80,7 +92,7 @@ async def get_projects_by_organization(
         raise
     except Exception as e:
         logger.error(f"Error getting projects: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve projects: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve projects")
 
 
 @router.get("/my-projects", response_model=List[ProjectSummary])
@@ -108,7 +120,7 @@ async def get_my_projects(
         return projects
     except Exception as e:
         logger.error(f"Error getting user projects: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve projects: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve projects")
 
 
 @router.put("/log-type", response_model=UpdateLogTypeResponse)
@@ -142,7 +154,7 @@ async def update_project_log_type(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to update this project")
@@ -162,7 +174,7 @@ async def update_project_log_type(
         raise
     except Exception as e:
         logger.error(f"Error updating log type: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update log type: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update log type")
 
 
 @router.get("/{project_id}", response_model=ProjectSummary)
@@ -209,7 +221,7 @@ async def get_project(
         raise
     except Exception as e:
         logger.error(f"Error getting project: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve project: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve project")
 
 
 @router.put("/{project_id}")
@@ -241,7 +253,7 @@ async def update_project(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to update this project")
@@ -256,7 +268,7 @@ async def update_project(
         raise
     except Exception as e:
         logger.error(f"Error updating project: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update project: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update project")
 
 
 @router.delete("/{project_id}")
@@ -302,7 +314,7 @@ async def delete_project(
         raise
     except Exception as e:
         logger.error(f"Error deleting project: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete project")
 
 
 @router.post("/regenerate-api-key", response_model=RegenerateApiKeyResponse)
@@ -333,7 +345,7 @@ async def regenerate_api_key(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to regenerate API key for this project")
@@ -351,7 +363,7 @@ async def regenerate_api_key(
         raise
     except Exception as e:
         logger.error(f"Error regenerating API key: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to regenerate API key: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to regenerate API key")
 
 
 @router.get("/{project_id}/log-type")
@@ -394,7 +406,7 @@ async def get_project_log_type(
         raise
     except Exception as e:
         logger.error(f"Error getting log type: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get log type: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get log type")
 
 
 # ==================== Project Member Management ====================
@@ -428,7 +440,7 @@ async def add_project_member(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to add members to this project")
@@ -441,7 +453,7 @@ async def add_project_member(
         raise
     except Exception as e:
         logger.error(f"Error adding project member: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to add member: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to add member")
 
 
 @router.delete("/members/{project_id}/{user_id}")
@@ -474,7 +486,7 @@ async def remove_project_member(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to remove members from this project")
@@ -489,7 +501,7 @@ async def remove_project_member(
         raise
     except Exception as e:
         logger.error(f"Error removing project member: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to remove member: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to remove member")
 
 
 @router.put("/members/{project_id}/{user_id}/role")
@@ -523,7 +535,7 @@ async def update_project_member_role(
             current_user.get("role") == "manager" and 
             current_user.get("org_id") == project.org_id
         )
-        has_project_permission = role in ["admin", "owner"]
+        has_project_permission = role in ["project_admin", "owner"]
         
         if not (is_admin or is_manager_in_org or has_project_permission):
             raise HTTPException(status_code=403, detail="You don't have permission to update member roles in this project")
@@ -538,7 +550,7 @@ async def update_project_member_role(
         raise
     except Exception as e:
         logger.error(f"Error updating member role: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update role: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update role")
 
 
 @router.get("/{project_id}/members", response_model=List[ProjectMemberDetail])
@@ -580,4 +592,53 @@ async def get_project_members(
         raise
     except Exception as e:
         logger.error(f"Error getting project members: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve members: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve members")
+
+
+@router.get("/{project_id}/available-members")
+async def get_available_members(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}/available-members", "GET")),
+    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
+    project_service: ProjectService = Depends(lambda: ProjectService())
+):
+    """
+    Get organization members who are not yet members of the project.
+    
+    Used by ProjectAdmins and Owners to see available users to add.
+    Only returns users from the same organization as the project.
+    
+    Accessible to:
+    - System admins: Any project
+    - Managers: Any project in their organization
+    - Project admins/owners: Their projects only
+    """
+    try:
+        project = await project_service.get_project_by_id(project_id, db)
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Check access permissions - only users who can manage members
+        role = await project_service.check_user_project_access(current_user["uid"], project_id, db)
+        is_admin = current_user.get("role") == "admin"
+        is_manager_in_org = (
+            current_user.get("role") == "manager" and 
+            current_user.get("org_id") == project.org_id
+        )
+        has_project_permission = role in ["project_admin", "owner"]
+        
+        if not (is_admin or is_manager_in_org or has_project_permission):
+            raise HTTPException(status_code=403, detail="You don't have permission to view available members")
+        
+        available = await member_service.get_available_org_members(project_id, db)
+        return available
+    except ValueError as e:
+        logger.error(f"Error getting available members: {e}")
+        raise HTTPException(status_code=400, detail="Failed to retrieve available members")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting available members: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve available members")

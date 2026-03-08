@@ -15,7 +15,7 @@ from app.models.project import (
 )
 from app.models.project_db import ProjectDB
 from app.models.project_member_db import ProjectMemberDB, ProjectRoleEnum
-from app.models.user_db import UserDB
+from app.models.user_db import UserDB, RoleEnum
 from app.models.organization_db import OrganizationDB
 import logging
 
@@ -83,9 +83,31 @@ class ProjectService:
             id=member_id,
             project_id=project_id,
             user_id=creator_uid,
-            role=ProjectRoleEnum.OWNER
+            role="owner"  # String value for owner role
         )
         db.add(project_member)
+
+        # Add all organization managers as project admins
+        managers_result = await db.execute(
+            select(UserDB).where(
+                UserDB.org_id == project_data.org_id,
+                UserDB.role == RoleEnum.MANAGER,
+                UserDB.uid != creator_uid  # Don't add creator twice
+            )
+        )
+        managers = managers_result.scalars().all()
+        
+        for manager in managers:
+            manager_member_id = f"pm-{uuid.uuid4().hex[:8]}"
+            manager_member = ProjectMemberDB(
+                id=manager_member_id,
+                project_id=project_id,
+                user_id=manager.uid,
+                role="project_admin"  # String value for project_admin role
+            )
+            db.add(manager_member)
+        
+        logger.info(f"Added {len(managers)} organization managers as project admins to project {project_id}")
 
         await db.commit()
         await db.refresh(project_db)
@@ -332,4 +354,4 @@ class ProjectService:
         )
         member = result.scalar_one_or_none()
         
-        return member.role.value if member else None
+        return member.role if member else None

@@ -61,6 +61,10 @@ class ProjectMemberService:
         if not user:
             raise ValueError(f"User with email {member_data.user_email} not found")
 
+        # Verify user belongs to the same organization as the project
+        if user.org_id != project.org_id:
+            raise ValueError("User must be a member of the same organization as the project")
+
         # Check if user already has access to this project
         existing_result = await db.execute(
             select(ProjectMemberDB)
@@ -78,7 +82,7 @@ class ProjectMemberService:
             id=member_id,
             project_id=member_data.project_id,
             user_id=user.uid,
-            role=ProjectRoleEnum[member_data.role.upper()]
+            role=member_data.role
         )
         db.add(project_member)
         await db.commit()
@@ -151,7 +155,7 @@ class ProjectMemberService:
         if not member:
             return False
         
-        member.role = ProjectRoleEnum[role_data.role.upper()]
+        member.role = role_data.role
         await db.commit()
         return True
 
@@ -184,7 +188,7 @@ class ProjectMemberService:
                 project_id=member.ProjectMemberDB.project_id,
                 user_id=member.ProjectMemberDB.user_id,
                 user_email=member.email,
-                role=member.ProjectMemberDB.role.value,
+                role=member.ProjectMemberDB.role,
                 created_at=member.ProjectMemberDB.created_at
             )
             for member in members
@@ -214,7 +218,7 @@ class ProjectMemberService:
         )
         member = result.scalar_one_or_none()
         
-        return member.role.value if member else None
+        return member.role if member else None
 
     async def get_user_projects(
         self, 
@@ -244,8 +248,54 @@ class ProjectMemberService:
                 "project_id": proj.ProjectDB.id,
                 "project_name": proj.ProjectDB.name,
                 "org_id": proj.ProjectDB.org_id,
-                "role": proj.ProjectMemberDB.role.value,
+                "role": proj.ProjectMemberDB.role,
                 "log_type": proj.ProjectDB.log_type
             }
             for proj in projects
+        ]
+
+    async def get_available_org_members(
+        self, 
+        project_id: str, 
+        db: AsyncSession
+    ) -> List[dict]:
+        """
+        Get organization members who are not yet members of the project
+        
+        Args:
+            project_id: Project ID
+            db: Database session
+            
+        Returns:
+            List of available member dictionaries with uid, email, and org_role
+        """
+        # Get project to find org_id
+        project_result = await db.execute(
+            select(ProjectDB).where(ProjectDB.id == project_id)
+        )
+        project = project_result.scalar_one_or_none()
+        if not project:
+            raise ValueError("Project not found")
+
+        # Get all users in the organization
+        org_users_result = await db.execute(
+            select(UserDB).where(UserDB.org_id == project.org_id)
+        )
+        org_users = org_users_result.scalars().all()
+
+        # Get current project member user IDs
+        members_result = await db.execute(
+            select(ProjectMemberDB.user_id).where(ProjectMemberDB.project_id == project_id)
+        )
+        member_user_ids = {row[0] for row in members_result.all()}
+
+        # Return org users who are not already project members
+        return [
+            {
+                "uid": user.uid,
+                "email": user.email,
+                "org_role": user.role.value if hasattr(user.role, 'value') else str(user.role)
+            }
+            for user in org_users
+            if user.uid not in member_user_ids
         ]
