@@ -79,7 +79,7 @@ const WelcomePage: React.FC = () => {
                 <div className="text-sm text-vt-muted uppercase tracking-wide">AI Models</div>
               </div>
               <div className="text-center border-x border-vt-muted/20">
-                <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">99.9%</div>
+                <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">99.99%</div>
                 <div className="text-sm text-vt-muted uppercase tracking-wide">Accuracy</div>
               </div>
               <div className="text-center">
