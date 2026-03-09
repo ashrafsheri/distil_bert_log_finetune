@@ -22,6 +22,12 @@ import urllib.parse
 import asyncio
 import requests
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass  # python-dotenv not installed; rely on environment variables being set externally
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -51,16 +57,16 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────────────────────
 # CONFIG — all overridable via environment variables
 # ──────────────────────────────────────────────────────────────────────────────
-APP_URL          = os.getenv("TEST_APP_URL",      "http://57.128.223.176/")
-ADMIN_EMAIL      = os.getenv("TEST_ADMIN_EMAIL",  "maazkshf123@gmail.com")
-ADMIN_PASSWORD   = os.getenv("TEST_ADMIN_PASS",   "maaz123")
-MANAGER_EMAIL    = os.getenv("TEST_MANAGER_EMAIL", "hamzamalik123@gmail.com")
-MANAGER_PASSWORD = os.getenv("TEST_MANAGER_PASS",  "Z8Xi!X7N#wsF")
-API_KEY          = os.getenv("TEST_API_KEY",      "sk-test-key-12345")
-FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY",  "AIzaSyCqdsNRsXnO-jY3foB04_ULqVHU8OsBhuo")
-BACKEND_API      = os.getenv("TEST_BACKEND_API",  "http://57.128.223.176/api/v1")
-WS_URL           = os.getenv("TEST_WS_URL",       "ws://57.128.223.176/ws")
-WAIT_TIMEOUT     = int(os.getenv("WAIT_TIMEOUT",  "15"))
+APP_URL          = os.getenv("TEST_APP_URL")
+ADMIN_EMAIL      = os.getenv("TEST_ADMIN_EMAIL")
+ADMIN_PASSWORD   = os.getenv("TEST_ADMIN_PASS")
+MANAGER_EMAIL    = os.getenv("TEST_MANAGER_EMAIL")
+MANAGER_PASSWORD = os.getenv("TEST_MANAGER_PASS")
+API_KEY          = os.getenv("TEST_API_KEY")
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
+BACKEND_API      = os.getenv("TEST_BACKEND_API")
+WS_URL           = os.getenv("TEST_WS_URL")
+WAIT_TIMEOUT     = int(os.getenv("WAIT_TIMEOUT", "15"))
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LOGGING UTILITIES
