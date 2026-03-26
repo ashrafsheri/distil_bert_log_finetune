@@ -1,0 +1,104 @@
+{
+  "test_run_at": "2026-03-26T06:51:21Z",
+  "logguard_endpoint": "http://57.128.223.176/api/v1/logs/agent/send-logs",
+  "organisations_tested": [
+    "SaaS Starter",
+    "Playground"
+  ],
+  "batch_size": 10,
+  "phases_run": [
+    {
+      "phase": "Warmup",
+      "rate_per_org": 5,
+      "total_rate": 10,
+      "duration_s": 30.2,
+      "logs_sent": 300,
+      "throughput_logs_s": 9.9
+    },
+    {
+      "phase": "Low",
+      "rate_per_org": 25,
+      "total_rate": 50,
+      "duration_s": 60.5,
+      "logs_sent": 2190,
+      "throughput_logs_s": 36.2
+    },
+    {
+      "phase": "Medium",
+      "rate_per_org": 50,
+      "total_rate": 100,
+      "duration_s": 60.5,
+      "logs_sent": 1410,
+      "throughput_logs_s": 23.3
+    },
+    {
+      "phase": "High",
+      "rate_per_org": 150,
+      "total_rate": 300,
+      "duration_s": 60.5,
+      "logs_sent": 1100,
+      "throughput_logs_s": 18.2
+    },
+    {
+      "phase": "Stress",
+      "rate_per_org": 300,
+      "total_rate": 600,
+      "duration_s": 60.0,
+      "logs_sent": 2080,
+      "throughput_logs_s": 34.7
+    },
+    {
+      "phase": "Max",
+      "rate_per_org": 500,
+      "total_rate": 1000,
+      "duration_s": 274.7,
+      "logs_sent": 1170,
+      "throughput_logs_s": 4.3
+    }
+  ],
+  "peak_rate_per_org": 500,
+  "peak_rate_total_logs_per_s": 1000,
+  "total_logs_accepted": 8250,
+  "total_post_requests": 827,
+  "total_post_errors": 2,
+  "post_error_rate_pct": 0.24,
+  "logguard_baseline_ms": 361.6,
+  "logguard_avg_ms_at_end": 2482.4,
+  "logguard_all_probe_ms": [
+    1383.8,
+    739.2,
+    914.2,
+    488.3,
+    945.8,
+    1129.9,
+    476.4,
+    1112.2,
+    604.5,
+    1805.6,
+    593.3,
+    657.2,
+    584.5,
+    649.3,
+    464.4,
+    535.2,
+    629.9,
+    649.4,
+    591.5,
+    702.1,
+    648.8,
+    592.3,
+    580.6,
+    603.4,
+    548.3,
+    484.7,
+    709.5,
+    591.9,
+    362.4,
+    10263.4
+  ],
+  "crash_detected": true,
+  "crash_reason": "Severe latency degradation: 10263ms (8\u00d7 baseline of 362ms)",
+  "crash_time": "2026-03-26T06:51:19Z",
+  "crash_at_total_logs": 8250,
+  "total_elapsed_seconds": 547
+}
