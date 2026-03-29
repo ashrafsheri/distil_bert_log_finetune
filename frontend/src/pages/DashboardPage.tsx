@@ -355,7 +355,9 @@ const DashboardPage: React.FC = () => {
             <h3 className="mt-4 text-lg font-medium text-vt-light">No Project Selected</h3>
             <p className="mt-2 text-sm text-vt-muted">Please select a project from the Projects page to view logs.</p>
             <Button
-              onClick={() => window.location.href = '/projects'}
+              onClick={() => {
+                globalThis.location.href = '/projects';
+              }}
               className="mt-4"
             >
               Go to Projects
@@ -368,8 +370,11 @@ const DashboardPage: React.FC = () => {
           <div className="glass-strong rounded-2xl p-6 border border-vt-primary/20 mb-8 animate-slide-up">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-xs text-vt-muted mb-2">IP Address</label>
+                <label htmlFor="dashboard-search-ip" className="block text-xs text-vt-muted mb-2">
+                  IP Address
+                </label>
                 <input
+                  id="dashboard-search-ip"
                   value={searchIp}
                   onChange={(e) => setSearchIp(e.target.value)}
                   placeholder="e.g. 192.168.1.5"
@@ -377,8 +382,11 @@ const DashboardPage: React.FC = () => {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-vt-muted mb-2">API URL</label>
+                <label htmlFor="dashboard-search-api" className="block text-xs text-vt-muted mb-2">
+                  API URL
+                </label>
                 <input
+                  id="dashboard-search-api"
                   value={searchApi}
                   onChange={(e) => setSearchApi(e.target.value)}
                   placeholder="e.g. /api/v1/users"
@@ -386,8 +394,11 @@ const DashboardPage: React.FC = () => {
                 />
               </div>
               <div className="w-40">
-                <label className="block text-xs text-vt-muted mb-2">Type</label>
+                <label htmlFor="dashboard-search-type" className="block text-xs text-vt-muted mb-2">
+                  Type
+                </label>
                 <Select
+                  id="dashboard-search-type"
                   value={searchMalicious}
                   onChange={(val) => setSearchMalicious(val as string)}
                   options={[
@@ -427,18 +438,24 @@ const DashboardPage: React.FC = () => {
             {showAdvanced && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="w-36">
-                  <label className="block text-xs text-vt-muted mb-2">Status Code</label>
+                  <label htmlFor="dashboard-search-status" className="block text-xs text-vt-muted mb-2">
+                    Status Code
+                  </label>
                   <input
+                    id="dashboard-search-status"
                     value={searchStatus}
-                    onChange={(e) => setSearchStatus(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setSearchStatus(e.target.value.replace(/\D/g, ''))}
                     placeholder="e.g. 404"
                     inputMode="numeric"
                     className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
                   />
                 </div>
                 <div className="w-44">
-                  <label className="block text-xs text-vt-muted mb-2">From</label>
+                  <label htmlFor="dashboard-search-from" className="block text-xs text-vt-muted mb-2">
+                    From
+                  </label>
                   <input
+                    id="dashboard-search-from"
                     type="date"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
@@ -446,8 +463,11 @@ const DashboardPage: React.FC = () => {
                   />
                 </div>
                 <div className="w-44">
-                  <label className="block text-xs text-vt-muted mb-2">To</label>
+                  <label htmlFor="dashboard-search-to" className="block text-xs text-vt-muted mb-2">
+                    To
+                  </label>
                   <input
+                    id="dashboard-search-to"
                     type="date"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
@@ -500,7 +520,7 @@ const DashboardPage: React.FC = () => {
               <div className="flex-1">
                 <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Threats Detected</p>
                 <p className={`text-3xl lg:text-4xl font-bold transition-all duration-300 ${
-                  statsUpdated && infectedCount > 0 ? 'text-vt-error' : 'text-vt-error'
+                  'text-vt-error'
                 }`}>
                   {infectedCount.toLocaleString()}
                 </p>

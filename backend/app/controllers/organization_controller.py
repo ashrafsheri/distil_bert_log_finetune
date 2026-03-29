@@ -3,9 +3,10 @@ Organization Controller
 Handles organization-related API endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Annotated, List
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 import logging
 
 from app.models.organization import (
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 @router.post("/create", response_model=OrganizationResponse)
 async def create_organization(
     request: OrganizationCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/create", "POST")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/create", "POST"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Create a new organization.
@@ -42,9 +43,9 @@ async def create_organization(
 
 @router.get("/all", response_model=List[OrganizationSummary])
 async def get_all_organizations(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/all", "GET")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/all", "GET"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Get all organizations with their project and user counts.
@@ -61,9 +62,9 @@ async def get_all_organizations(
 
 @router.get("/my-organizations", response_model=List[OrganizationSummary])
 async def get_my_organizations(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/my-organizations", "GET")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/my-organizations", "GET"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Get organizations the current user has access to.
@@ -81,9 +82,9 @@ async def get_my_organizations(
 @router.get("/{org_id}", response_model=OrganizationSummary)
 async def get_organization(
     org_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/{org_id}", "GET")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/{org_id}", "GET"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Get a specific organization by ID.
@@ -119,9 +120,9 @@ async def get_organization(
 async def update_organization(
     org_id: str,
     request: OrganizationUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/{org_id}", "PUT")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/{org_id}", "PUT"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Update an organization.
@@ -145,9 +146,9 @@ async def update_organization(
 @router.delete("/{org_id}")
 async def delete_organization(
     org_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/organizations/{org_id}", "DELETE")),
-    org_service: OrganizationService = Depends(lambda: OrganizationService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/{org_id}", "DELETE"))],
+    org_service: Annotated[OrganizationService, Depends(lambda: OrganizationService())],
 ):
     """
     Delete an organization.

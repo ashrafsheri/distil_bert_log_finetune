@@ -125,7 +125,7 @@ const ProjectMembersPage: React.FC = () => {
   /** Remove a member from the project */
   const handleRemoveMember = async (userId: string, email: string) => {
     if (!projectId) return;
-    if (!window.confirm(`Are you sure you want to remove ${email} from this project?`)) return;
+    if (!globalThis.confirm(`Are you sure you want to remove ${email} from this project?`)) return;
 
     try {
       setActionLoading(userId);
@@ -497,7 +497,7 @@ const ProjectMembersPage: React.FC = () => {
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="project-member-email" className="block text-sm font-medium text-slate-300 mb-2">
                 Select Organization Member
               </label>
               {availableMembers.length === 0 ? (
@@ -506,6 +506,7 @@ const ProjectMembersPage: React.FC = () => {
                 </p>
               ) : (
                 <Select
+                  id="project-member-email"
                   value={selectedUserEmail}
                   onChange={(val) => setSelectedUserEmail(val)}
                   options={availableMembers.map((m) => ({
@@ -518,10 +519,11 @@ const ProjectMembersPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="project-member-role" className="block text-sm font-medium text-slate-300 mb-2">
                 Project Role
               </label>
               <Select
+                id="project-member-role"
                 value={addRole}
                 onChange={(val) => setAddRole(val as 'project_staff' | 'project_admin')}
                 options={[
@@ -595,10 +597,11 @@ const ProjectMembersPage: React.FC = () => {
               </p>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-vt-light mb-2">
+                <label htmlFor="project-member-update-role" className="block text-sm font-medium text-vt-light mb-2">
                   Select Role
                 </label>
                 <Select
+                  id="project-member-update-role"
                   value={newRole}
                   onChange={(val) => setNewRole(val as 'project_staff' | 'project_admin')}
                   options={[

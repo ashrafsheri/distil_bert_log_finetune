@@ -5,8 +5,8 @@ LogGuard Backend - Real-time Log Monitoring System
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import os
 import uvicorn
 import logging
 
@@ -73,7 +73,7 @@ async def health_check():
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
+        host=os.getenv("UVICORN_HOST", "127.0.0.1"),
+        port=int(os.getenv("UVICORN_PORT", "8000")),
+        reload=os.getenv("UVICORN_RELOAD", "true").lower() == "true",
     )

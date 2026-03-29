@@ -165,9 +165,8 @@ class LogService:
             existing_ip.status = status_enum
 
             logger.warning(
-                f"[HUMAN CORRECTION] User {user_email} ({user_role}) changed IP {request.ip} "
-                f"status from '{old_status}' to '{request.status}' for org {org_id}. "
-                f"This overrides model predictions."
+                "[HUMAN CORRECTION] Existing IP status override recorded. "
+                "Manual correction will override model predictions."
             )
         else:
             # Create new IP record
@@ -179,8 +178,7 @@ class LogService:
             db.add(new_ip)
 
             logger.warning(
-                f"[HUMAN CORRECTION] User {user_email} ({user_role}) marked IP {request.ip} "
-                f"as '{request.status}' for org {org_id}. This is a new manual classification."
+                "[HUMAN CORRECTION] New IP status override recorded."
             )
 
         # Update all logs for this IP in Elasticsearch
@@ -192,10 +190,7 @@ class LogService:
 
         # Handle Elasticsearch update results
         if update_result["status"] == "error":
-            logger.error(
-                f"[HUMAN CORRECTION] Failed to update logs in Elasticsearch for IP {request.ip}: "
-                f"{update_result.get('message')}"
-            )
+            logger.error("[HUMAN CORRECTION] Failed to update logs in Elasticsearch")
             return {
                 "message": "IP status updated in database, but Elasticsearch update failed",
                 "ip": request.ip,
@@ -208,10 +203,7 @@ class LogService:
             }
 
         logs_count = update_result.get("update_count", 0)
-        logger.info(
-            f"[HUMAN CORRECTION] Successfully updated {logs_count} log(s) in Elasticsearch "
-            f"for IP {request.ip} to status '{request.status}' by user {user_email}"
-        )
+        logger.info("[HUMAN CORRECTION] Elasticsearch update completed for %s log(s)", logs_count)
 
         return {
             "message": "IP status updated successfully",

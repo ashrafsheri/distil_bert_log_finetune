@@ -100,6 +100,8 @@ def send_email(subject: str, body: str, recipients: List[str]) -> bool:
 
     sender = os.getenv("SMTP_FROM") or sender_username
 
+    email_sent = False
+
     try:
         msg = MIMEMultipart()
         msg["From"] = sender
@@ -107,14 +109,18 @@ def send_email(subject: str, body: str, recipients: List[str]) -> bool:
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
 
-        client.sendmail(sender, recipients, msg.as_string())
-        logger.info(f"Alert email sent to {len(recipients)} recipient(s): {recipients}")
-        return True
+        failed_recipients = client.sendmail(sender, recipients, msg.as_string())
+        if failed_recipients:
+            logger.error("Alert email was rejected for recipients: %s", sorted(failed_recipients))
+        else:
+            logger.info(f"Alert email sent to {len(recipients)} recipient(s): {recipients}")
+            email_sent = True
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
-        return False
     finally:
         try:
             client.quit()
         except Exception:
             pass
+
+    return email_sent

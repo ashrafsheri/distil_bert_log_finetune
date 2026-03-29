@@ -4,6 +4,7 @@ Uses online learning: Rule-based + Iso Forest initially, trains Transformer on f
 """
 
 import sys
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -255,10 +256,10 @@ def main():
     """Run the API server"""
     uvicorn.run(
         "server_adaptive:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False,  # Disable reload for background training
-        log_level="info"
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "8000")),
+        reload=os.getenv("RELOAD", "false").lower() == "true",
+        log_level=os.getenv("LOG_LEVEL", "info").lower(),
     )
 
 

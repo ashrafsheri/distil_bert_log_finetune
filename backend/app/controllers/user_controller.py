@@ -3,8 +3,9 @@ User Controller
 Handles user-related API endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List
+from typing import Annotated, List
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserCreate, UserUpdate, UserResponse, RoleType, RoleUpdate, PasswordUpdate, UserCreateWithPassword
@@ -19,8 +20,8 @@ router = APIRouter()
 @router.post("/create", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_data: UserCreateWithPassword,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/create", "POST"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/create", "POST"))],
 ):
     """
     Create a new user with complete logic (Firebase + Database)
@@ -191,8 +192,8 @@ async def create_user(
 
 @router.get("/", response_model=List[UserResponse])
 async def get_all_users(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/", "GET"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/", "GET"))],
 ):
     """
     Get all users
@@ -245,8 +246,8 @@ async def get_all_users(
 
 @router.get("/uid", response_model=UserResponse)
 async def get_user(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid", "GET"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/uid", "GET"))],
 ):
     """
     Get current user's data
@@ -293,8 +294,8 @@ async def get_user(
 async def update_user_enabled(
     uid: str,
     user_data: UserUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}/enabled", "PUT"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/uid/{uid}/enabled", "PUT"))],
 ):
     """
     Update user enabled status
@@ -349,8 +350,8 @@ async def update_user_enabled(
 async def update_user_role(
     uid: str,
     role_data: RoleUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}/role", "PATCH"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/uid/{uid}/role", "PATCH"))],
 ):
     """
     Update user role
@@ -412,8 +413,8 @@ async def update_user_role(
 async def update_user_password(
     uid: str,
     password_data: PasswordUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}/password", "PUT"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/uid/{uid}/password", "PUT"))],
 ):
     """
     Update user password using Firebase Admin SDK
@@ -474,8 +475,8 @@ async def update_user_password(
 @router.delete("/uid/{uid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     uid: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/users/uid/{uid}", "DELETE"))
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/users/uid/{uid}", "DELETE"))],
 ):
     """
     Delete (remove) a user

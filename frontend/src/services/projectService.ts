@@ -5,11 +5,13 @@
 
 import { apiService } from './apiService';
 
+export type ProjectLogType = 'apache' | 'nginx';
+
 export interface ProjectSummary {
   id: string;
   name: string;
   org_id: string;
-  log_type: 'apache' | 'nginx';
+  log_type: ProjectLogType;
   member_count: number;
   model_status?: string;
 }
@@ -17,7 +19,7 @@ export interface ProjectSummary {
 export interface CreateProjectRequest {
   name: string;
   org_id: string;
-  log_type?: 'apache' | 'nginx';
+  log_type?: ProjectLogType;
 }
 
 export interface CreateProjectResponse {
@@ -25,12 +27,12 @@ export interface CreateProjectResponse {
   api_key: string;
   name: string;
   org_id: string;
-  log_type: 'apache' | 'nginx';
+  log_type: ProjectLogType;
 }
 
 export interface UpdateProjectRequest {
   name?: string;
-  log_type?: 'apache' | 'nginx';
+  log_type?: ProjectLogType;
 }
 
 export interface RegenerateApiKeyRequest {
@@ -44,12 +46,12 @@ export interface RegenerateApiKeyResponse {
 
 export interface UpdateLogTypeRequest {
   project_id: string;
-  log_type: 'apache' | 'nginx';
+  log_type: ProjectLogType;
 }
 
 export interface UpdateLogTypeResponse {
   project_id: string;
-  log_type: 'apache' | 'nginx';
+  log_type: ProjectLogType;
   message: string;
 }
 
