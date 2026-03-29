@@ -147,6 +147,15 @@ async def _init_default_permissions():
     from app.models.user_db import RoleEnum
     from app.models.role_permission_db import RolePermissionDB, HTTPMethodEnum
     from sqlalchemy import select
+
+    USERS_UID_ROUTE = "/api/v1/users/uid"
+    ORGANIZATIONS_MY_ROUTE = "/api/v1/organizations/my-organizations"
+    ORGANIZATION_ROUTE = "/api/v1/organizations/{org_id}"
+    PROJECTS_MY_ROUTE = "/api/v1/projects/my-projects"
+    PROJECT_ROUTE = "/api/v1/projects/{project_id}"
+    PROJECT_MEMBERS_ROUTE = "/api/v1/projects/{project_id}/members"
+    PROJECT_AVAILABLE_MEMBERS_ROUTE = "/api/v1/projects/{project_id}/available-members"
+    FETCH_ROUTE = "/api/v1/fetch"
     
     # Default permissions configuration
     # Format: (role, api_path, http_method)
@@ -154,7 +163,7 @@ async def _init_default_permissions():
         # Admin - Full access to all user endpoints
         (RoleEnum.ADMIN, "/api/v1/users/create", "POST"),
         (RoleEnum.ADMIN, "/api/v1/users/", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/users/uid", "GET"),
+        (RoleEnum.ADMIN, USERS_UID_ROUTE, "GET"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/enabled", "PUT"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/users/uid/{uid}/role", "PATCH"),
@@ -173,31 +182,31 @@ async def _init_default_permissions():
         # Admin - Organization management endpoints
         (RoleEnum.ADMIN, "/api/v1/organizations/create", "POST"),
         (RoleEnum.ADMIN, "/api/v1/organizations/all", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/organizations/my-organizations", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "PUT"),
-        (RoleEnum.ADMIN, "/api/v1/organizations/{org_id}", "DELETE"),
+        (RoleEnum.ADMIN, ORGANIZATIONS_MY_ROUTE, "GET"),
+        (RoleEnum.ADMIN, ORGANIZATION_ROUTE, "GET"),
+        (RoleEnum.ADMIN, ORGANIZATION_ROUTE, "PUT"),
+        (RoleEnum.ADMIN, ORGANIZATION_ROUTE, "DELETE"),
         
         # Admin - Project management endpoints
         (RoleEnum.ADMIN, "/api/v1/projects/create", "POST"),
         (RoleEnum.ADMIN, "/api/v1/projects/organization/{org_id}", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/projects/my-projects", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "PUT"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}", "DELETE"),
+        (RoleEnum.ADMIN, PROJECTS_MY_ROUTE, "GET"),
+        (RoleEnum.ADMIN, PROJECT_ROUTE, "GET"),
+        (RoleEnum.ADMIN, PROJECT_ROUTE, "PUT"),
+        (RoleEnum.ADMIN, PROJECT_ROUTE, "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/regenerate-api-key", "POST"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members", "GET"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members", "POST"),
+        (RoleEnum.ADMIN, PROJECT_MEMBERS_ROUTE, "GET"),
+        (RoleEnum.ADMIN, PROJECT_MEMBERS_ROUTE, "POST"),
         (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members/{member_id}", "PUT"),
         (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/members/{member_id}", "DELETE"),
         (RoleEnum.ADMIN, "/api/v1/projects/regenerate-api-key", "POST"),
         (RoleEnum.ADMIN, "/api/v1/projects/log-type", "PUT"),
-        (RoleEnum.ADMIN, "/api/v1/projects/{project_id}/available-members", "GET"),
+        (RoleEnum.ADMIN, PROJECT_AVAILABLE_MEMBERS_ROUTE, "GET"),
         
         # Manager - Can view users
         (RoleEnum.MANAGER, "/api/v1/users/create", "POST"),
         (RoleEnum.MANAGER, "/api/v1/users/", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/users/uid", "GET"),
+        (RoleEnum.MANAGER, USERS_UID_ROUTE, "GET"),
         (RoleEnum.MANAGER, "/api/v1/users/uid/{uid}/enabled", "PUT"),
         (RoleEnum.MANAGER, "/api/v1/correctLog", "POST"),
         (RoleEnum.MANAGER, "/api/v1/search", "GET"),
@@ -208,43 +217,43 @@ async def _init_default_permissions():
         
         
         # Manager - Organization and project access
-        (RoleEnum.MANAGER, "/api/v1/organizations/my-organizations", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/organizations/{org_id}", "GET"),
+        (RoleEnum.MANAGER, ORGANIZATIONS_MY_ROUTE, "GET"),
+        (RoleEnum.MANAGER, ORGANIZATION_ROUTE, "GET"),
         (RoleEnum.MANAGER, "/api/v1/projects/create", "POST"),
         (RoleEnum.MANAGER, "/api/v1/projects/organization/{org_id}", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/projects/my-projects", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "PUT"),
-        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}", "DELETE"),
+        (RoleEnum.MANAGER, PROJECTS_MY_ROUTE, "GET"),
+        (RoleEnum.MANAGER, PROJECT_ROUTE, "GET"),
+        (RoleEnum.MANAGER, PROJECT_ROUTE, "PUT"),
+        (RoleEnum.MANAGER, PROJECT_ROUTE, "DELETE"),
         (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/log-type", "GET"),
         (RoleEnum.MANAGER, "/api/v1/projects/log-type", "PUT"),
-        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/members", "GET"),
+        (RoleEnum.MANAGER, PROJECT_MEMBERS_ROUTE, "GET"),
         (RoleEnum.MANAGER, "/api/v1/projects/members/add", "POST"),
         (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}", "DELETE"),
         (RoleEnum.MANAGER, "/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"),
         (RoleEnum.MANAGER, "/api/v1/projects/regenerate-api-key", "POST"),
-        (RoleEnum.MANAGER, "/api/v1/projects/{project_id}/available-members", "GET"),
+        (RoleEnum.MANAGER, PROJECT_AVAILABLE_MEMBERS_ROUTE, "GET"),
         
         # Employee - Limited access, only their own profile
-        (RoleEnum.EMPLOYEE, "/api/v1/users/uid", "GET"),
+        (RoleEnum.EMPLOYEE, USERS_UID_ROUTE, "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/users/uid/{uid}/password", "PUT"),
         
         # Employee - Organization and project access (read-only)
-        (RoleEnum.EMPLOYEE, "/api/v1/organizations/my-organizations", "GET"),
-        (RoleEnum.EMPLOYEE, "/api/v1/organizations/{org_id}", "GET"),
-        (RoleEnum.EMPLOYEE, "/api/v1/projects/my-projects", "GET"),
-        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}", "GET"),
+        (RoleEnum.EMPLOYEE, ORGANIZATIONS_MY_ROUTE, "GET"),
+        (RoleEnum.EMPLOYEE, ORGANIZATION_ROUTE, "GET"),
+        (RoleEnum.EMPLOYEE, PROJECTS_MY_ROUTE, "GET"),
+        (RoleEnum.EMPLOYEE, PROJECT_ROUTE, "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/log-type", "GET"),
-        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/members", "GET"),
+        (RoleEnum.EMPLOYEE, PROJECT_MEMBERS_ROUTE, "GET"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/members/add", "POST"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/members/{project_id}/{user_id}", "DELETE"),
         (RoleEnum.EMPLOYEE, "/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"),
-        (RoleEnum.EMPLOYEE, "/api/v1/projects/{project_id}/available-members", "GET"),
+        (RoleEnum.EMPLOYEE, PROJECT_AVAILABLE_MEMBERS_ROUTE, "GET"),
         
         # All roles - Log endpoints (you can customize these)
-        (RoleEnum.ADMIN, "/api/v1/fetch", "GET"),
-        (RoleEnum.MANAGER, "/api/v1/fetch", "GET"),
-        (RoleEnum.EMPLOYEE, "/api/v1/fetch", "GET"),
+        (RoleEnum.ADMIN, FETCH_ROUTE, "GET"),
+        (RoleEnum.MANAGER, FETCH_ROUTE, "GET"),
+        (RoleEnum.EMPLOYEE, FETCH_ROUTE, "GET"),
         
         # All roles - WebSocket (you may want to restrict this)
         (RoleEnum.ADMIN, "/ws", "GET"),
@@ -322,4 +331,3 @@ async def close_db():
     """
     await engine.dispose()
     logger.info("Database connections closed")
-

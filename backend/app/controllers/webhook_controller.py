@@ -3,7 +3,7 @@ Webhook Controller
 Handles webhooks from external services like the anomaly detection microservice
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Annotated, Optional
@@ -16,6 +16,12 @@ from app.utils.database import get_db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+WEBHOOK_RESPONSES = {
+    400: {"description": "Invalid model status"},
+    401: {"description": "Invalid API key"},
+    404: {"description": "Organization not found"},
+    500: {"description": "Failed to process webhook"},
+}
 
 
 class ModelStatusWebhook(BaseModel):
@@ -28,7 +34,7 @@ class ModelStatusWebhook(BaseModel):
     student_trained_at: Optional[str] = None
 
 
-@router.post("/model-status")
+@router.post("/model-status", responses=WEBHOOK_RESPONSES)
 async def receive_model_status_update(
     payload: ModelStatusWebhook,
     db: Annotated[AsyncSession, Depends(get_db)] = None,

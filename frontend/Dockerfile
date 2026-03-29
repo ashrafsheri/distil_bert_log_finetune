@@ -31,11 +31,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application (environment variables are injected at build time)
-RUN npm run build
-
-# Install a simple static file server
-RUN npm install -g serve
+# Build the application and install a simple static file server
+RUN npm run build && npm install -g serve
 
 # Expose port
 EXPOSE 3000

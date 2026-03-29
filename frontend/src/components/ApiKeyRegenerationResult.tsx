@@ -39,16 +39,16 @@ const ApiKeyRegenerationResult: React.FC<ApiKeyRegenerationResultProps> = ({
       </div>
 
       <div className="bg-slate-700 rounded-lg p-4">
-        <label className="block text-sm font-medium text-slate-300 mb-2">Organization ID</label>
-        <code className="block bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm">
+        <div className="block text-sm font-medium text-slate-300 mb-2">Organization ID</div>
+        <code aria-label="Organization ID" className="block bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm">
           {orgId}
         </code>
       </div>
 
       <div className="bg-slate-700 rounded-lg p-4">
-        <label className="block text-sm font-medium text-slate-300 mb-2">New API Key</label>
+        <div className="block text-sm font-medium text-slate-300 mb-2">New API Key</div>
         <div className="flex items-center gap-2">
-          <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
+          <code aria-label="New API Key" className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
             {newApiKey}
           </code>
           <Button

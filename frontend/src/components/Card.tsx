@@ -25,22 +25,23 @@ const Card: React.FC<CardProps> = ({
   
   const clickableStyle = onClick ? 'cursor-pointer hover:border-vt-primary/40' : '';
   
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={`${baseStyles} ${variantStyles[variant]} ${clickableStyle} ${className} block w-full text-left`}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <div
-      className={`${baseStyles} ${variantStyles[variant]} ${clickableStyle} ${className}`}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      tabIndex={onClick ? 0 : undefined}
-    >
+    <div className={`${baseStyles} ${variantStyles[variant]} ${className}`}>
       {children}
     </div>
   );
 };
 
 export default Card;
-

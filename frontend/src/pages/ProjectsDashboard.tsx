@@ -33,6 +33,11 @@ const ProjectsDashboard: React.FC = () => {
   const isAdmin = userInfo?.role === 'admin';
   const isManager = userInfo?.role === 'manager';
   const canCreateProject = isAdmin || isManager;
+  const projectNameInputId = 'create-project-name';
+  const organizationSelectId = 'create-project-organization';
+  const organizationDisplayId = 'selected-organization';
+  const createLogTypeSelectId = 'create-project-log-type';
+  const updateLogTypeSelectId = 'update-project-log-type';
 
   useEffect(() => {
     loadData();
@@ -109,7 +114,7 @@ const ProjectsDashboard: React.FC = () => {
   };
 
   const handleRegenerateApiKey = async (projectId: string, projectName: string) => {
-    if (!confirm(`Are you sure you want to regenerate the API key for "${projectName}"? The old key will no longer work.`)) {
+    if (!globalThis.confirm(`Are you sure you want to regenerate the API key for "${projectName}"? The old key will no longer work.`)) {
       return;
     }
 
@@ -251,10 +256,11 @@ const ProjectsDashboard: React.FC = () => {
             <h2 className="text-2xl font-semibold text-white mb-6">Create New Project</h2>
             <form className="space-y-6" onSubmit={handleCreateProject}>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <label htmlFor={projectNameInputId} className="block text-sm font-medium text-slate-300 mb-3">
                   Project Name
                 </label>
                 <input
+                  id={projectNameInputId}
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
@@ -266,10 +272,11 @@ const ProjectsDashboard: React.FC = () => {
               </div>
               {!selectedOrgId && isAdmin && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-3">
+                  <label htmlFor={organizationSelectId} className="block text-sm font-medium text-slate-300 mb-3">
                     Organization
                   </label>
                   <select
+                    id={organizationSelectId}
                     value={selectedOrg}
                     onChange={(e) => setSelectedOrg(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
@@ -285,10 +292,11 @@ const ProjectsDashboard: React.FC = () => {
               )}
               {selectedOrgId && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-3">
+                  <label htmlFor={organizationDisplayId} className="block text-sm font-medium text-slate-300 mb-3">
                     Organization
                   </label>
                   <input
+                    id={organizationDisplayId}
                     type="text"
                     value={selectedOrgId}
                     disabled
@@ -297,10 +305,11 @@ const ProjectsDashboard: React.FC = () => {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <label htmlFor={createLogTypeSelectId} className="block text-sm font-medium text-slate-300 mb-3">
                   Log Type
                 </label>
                 <select
+                  id={createLogTypeSelectId}
                   value={logType}
                   onChange={(e) => setLogType(e.target.value as 'apache' | 'nginx')}
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
@@ -478,10 +487,11 @@ const ProjectsDashboard: React.FC = () => {
                 <p className="text-slate-300 mb-4">
                   Change the log format type for <span className="font-semibold text-white">{selectedProject.name}</span>
                 </p>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor={updateLogTypeSelectId} className="block text-sm font-medium text-slate-300 mb-2">
                   Log Format Type
                 </label>
                 <select
+                  id={updateLogTypeSelectId}
                   value={newLogType}
                   onChange={(e) => setNewLogType(e.target.value as 'apache' | 'nginx')}
                   disabled={isUpdatingLogType}
@@ -542,4 +552,3 @@ const ProjectsDashboard: React.FC = () => {
 };
 
 export default ProjectsDashboard;
-

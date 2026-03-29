@@ -19,8 +19,8 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
-    // Error caught by boundary - silently handle
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Unhandled UI error:', error, errorInfo);
   }
 
   public render() {
@@ -36,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
             <h1 className="text-2xl font-bold text-vt-light mb-2">Something went wrong</h1>
             <p className="text-vt-muted mb-6">An unexpected error occurred. Please try refreshing the page.</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => globalThis.location.reload()}
               className="px-6 py-3 bg-vt-primary text-vt-dark font-semibold rounded-lg hover:bg-vt-primary/90 transition-colors"
             >
               Refresh Page

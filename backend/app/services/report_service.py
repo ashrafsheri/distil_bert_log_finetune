@@ -4,7 +4,7 @@ Generates PDF reports for security analytics
 """
 
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 import logging
 from collections import defaultdict
@@ -325,7 +325,7 @@ class ReportService:
                 dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 hour_key = dt.strftime('%Y-%m-%d %H:00')
                 timeline[hour_key] += 1
-            except:
+            except (TypeError, ValueError):
                 pass
 
         # Sort timeline
@@ -367,7 +367,7 @@ class ReportService:
 
         # Generated timestamp
         generated_at = Paragraph(
-            f"<b>Generated:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"<b>Generated:</b> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
             self.styles['Normal']
         )
         elements.append(generated_at)

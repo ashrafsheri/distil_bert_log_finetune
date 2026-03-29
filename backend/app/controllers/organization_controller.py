@@ -20,8 +20,25 @@ from app.utils.permissions import check_permission
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+ORGANIZATION_NOT_FOUND = "Organization not found"
+ORGANIZATION_CREATE_RESPONSES = {500: {"description": "Failed to create organization"}}
+ORGANIZATION_LIST_RESPONSES = {500: {"description": "Failed to retrieve organizations"}}
+ORGANIZATION_GET_RESPONSES = {
+    403: {"description": "You don't have permission to access this organization"},
+    404: {"description": ORGANIZATION_NOT_FOUND},
+    500: {"description": "Failed to retrieve organization"},
+}
+ORGANIZATION_UPDATE_RESPONSES = {
+    404: {"description": ORGANIZATION_NOT_FOUND},
+    500: {"description": "Failed to update organization"},
+}
+ORGANIZATION_DELETE_RESPONSES = {
+    404: {"description": ORGANIZATION_NOT_FOUND},
+    500: {"description": "Failed to delete organization"},
+}
 
-@router.post("/create", response_model=OrganizationResponse)
+
+@router.post("/create", response_model=OrganizationResponse, responses=ORGANIZATION_CREATE_RESPONSES)
 async def create_organization(
     request: OrganizationCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -41,7 +58,7 @@ async def create_organization(
         raise HTTPException(status_code=500, detail=f"Failed to create organization: {str(e)}")
 
 
-@router.get("/all", response_model=List[OrganizationSummary])
+@router.get("/all", response_model=List[OrganizationSummary], responses=ORGANIZATION_LIST_RESPONSES)
 async def get_all_organizations(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/all", "GET"))],
@@ -60,7 +77,7 @@ async def get_all_organizations(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve organizations: {str(e)}")
 
 
-@router.get("/my-organizations", response_model=List[OrganizationSummary])
+@router.get("/my-organizations", response_model=List[OrganizationSummary], responses=ORGANIZATION_LIST_RESPONSES)
 async def get_my_organizations(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[dict, Depends(check_permission("/api/v1/organizations/my-organizations", "GET"))],
@@ -79,7 +96,7 @@ async def get_my_organizations(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve organizations: {str(e)}")
 
 
-@router.get("/{org_id}", response_model=OrganizationSummary)
+@router.get("/{org_id}", response_model=OrganizationSummary, responses=ORGANIZATION_GET_RESPONSES)
 async def get_organization(
     org_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -99,14 +116,14 @@ async def get_organization(
         org = await org_service.get_organization_by_id(org_id, db)
         
         if not org:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            raise HTTPException(status_code=404, detail=ORGANIZATION_NOT_FOUND)
         
         # Get summary with counts
         orgs = await org_service.get_all_organizations(db)
         org_summary = next((o for o in orgs if o.id == org_id), None)
         
         if not org_summary:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            raise HTTPException(status_code=404, detail=ORGANIZATION_NOT_FOUND)
         
         return org_summary
     except HTTPException:
@@ -116,7 +133,7 @@ async def get_organization(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve organization: {str(e)}")
 
 
-@router.put("/{org_id}")
+@router.put("/{org_id}", responses=ORGANIZATION_UPDATE_RESPONSES)
 async def update_organization(
     org_id: str,
     request: OrganizationUpdate,
@@ -133,7 +150,7 @@ async def update_organization(
         success = await org_service.update_organization(org_id, request, db)
         
         if not success:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            raise HTTPException(status_code=404, detail=ORGANIZATION_NOT_FOUND)
         
         return {"message": f"Organization {org_id} updated successfully"}
     except HTTPException:
@@ -143,7 +160,7 @@ async def update_organization(
         raise HTTPException(status_code=500, detail=f"Failed to update organization: {str(e)}")
 
 
-@router.delete("/{org_id}")
+@router.delete("/{org_id}", responses=ORGANIZATION_DELETE_RESPONSES)
 async def delete_organization(
     org_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -159,7 +176,7 @@ async def delete_organization(
         success = await org_service.delete_organization(org_id, db)
         
         if not success:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            raise HTTPException(status_code=404, detail=ORGANIZATION_NOT_FOUND)
         
         return {"message": f"Organization {org_id} deleted successfully"}
     except HTTPException:

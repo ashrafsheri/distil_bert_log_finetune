@@ -30,21 +30,21 @@ const ProjectCreationResult: React.FC<ProjectCreationResultProps> = ({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
+          <div className="block text-sm font-medium text-slate-300 mb-2">
             Project ID
-          </label>
+          </div>
           <div className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg">
-            <code className="text-sm text-slate-300 font-mono break-all">{projectId}</code>
+            <code aria-label="Project ID" className="text-sm text-slate-300 font-mono break-all">{projectId}</code>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
+          <div className="block text-sm font-medium text-slate-300 mb-2">
             API Key
-          </label>
+          </div>
           <div className="relative">
             <div className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg pr-24">
-              <code className="text-sm text-green-400 font-mono break-all">{apiKey}</code>
+              <code aria-label="API key" className="text-sm text-green-400 font-mono break-all">{apiKey}</code>
             </div>
             <Button
               onClick={handleCopyApiKey}

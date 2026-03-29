@@ -6,6 +6,11 @@ import Card from '../components/Card';
 import { projectService, ProjectSummary } from '../services/projectService';
 
 const ReportsPage: React.FC = () => {
+  const projectSelectId = 'report-project';
+  const startDateInputId = 'report-start-date';
+  const startTimeInputId = 'report-start-time';
+  const endDateInputId = 'report-end-date';
+  const endTimeInputId = 'report-end-time';
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('00:00');
   const [endDate, setEndDate] = useState('');
@@ -109,7 +114,7 @@ const ReportsPage: React.FC = () => {
 
       // Get blob from response
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = globalThis.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
@@ -119,11 +124,11 @@ const ReportsPage: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      globalThis.URL.revokeObjectURL(url);
 
       setSuccess('Report generated and downloaded successfully!');
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Failed to generate report';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to generate report';
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -154,7 +159,7 @@ const ReportsPage: React.FC = () => {
             <div className="space-y-6">
               {/* Project Selector */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor={projectSelectId} className="block text-sm font-medium text-slate-300 mb-2">
                   Project <span className="text-slate-500">(optional — leave blank for all)</span>
                 </label>
                 {projectsLoading ? (
@@ -164,6 +169,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 ) : (
                   <select
+                    id={projectSelectId}
                     value={selectedProjectId}
                     onChange={(e) => setSelectedProjectId(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary"
@@ -180,9 +186,9 @@ const ReportsPage: React.FC = () => {
 
               {/* Quick Select Buttons */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <div className="block text-sm font-medium text-slate-300 mb-3">
                   Quick Select
-                </label>
+                </div>
                 <div className="flex flex-wrap gap-3">
                   <Button
                     type="button"
@@ -214,10 +220,11 @@ const ReportsPage: React.FC = () => {
               {/* Start Date/Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor={startDateInputId} className="block text-sm font-medium text-slate-300 mb-2">
                     Start Date
                   </label>
                   <input
+                    id={startDateInputId}
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
@@ -226,10 +233,11 @@ const ReportsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor={startTimeInputId} className="block text-sm font-medium text-slate-300 mb-2">
                     Start Time
                   </label>
                   <input
+                    id={startTimeInputId}
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
@@ -242,10 +250,11 @@ const ReportsPage: React.FC = () => {
               {/* End Date/Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor={endDateInputId} className="block text-sm font-medium text-slate-300 mb-2">
                     End Date
                   </label>
                   <input
+                    id={endDateInputId}
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
@@ -254,10 +263,11 @@ const ReportsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor={endTimeInputId} className="block text-sm font-medium text-slate-300 mb-2">
                     End Time
                   </label>
                   <input
+                    id={endTimeInputId}
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
