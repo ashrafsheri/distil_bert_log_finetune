@@ -9,7 +9,7 @@ interface AuthContextType {
   currentUser: User | null;
   userInfo: BackendUser | null;
   loading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<BackendUser>;
   createUser: (credentials: SignupCredentials) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -95,6 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfoData = await userService.getCurrentUser();
       setUserInfo(userInfoData);
       // State will update automatically via onAuthStateChange
+      return userInfoData; // Return the user info so caller can use it
     } catch (error) {
       // If fetching user info fails, logout and throw error
       try {

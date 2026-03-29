@@ -11,6 +11,7 @@ export interface User {
   role: 'admin' | 'manager' | 'employee';
   enabled: boolean;
   org_id?: string;
+  org_name?: string; // Organization name if user belongs to one
   created_at: string;
   updated_at: string;
 }

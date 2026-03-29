@@ -7,7 +7,8 @@ from fastapi import APIRouter
 
 from app.controllers.log_controller import router as log_router
 from app.controllers.user_controller import router as user_router
-from app.controllers.admin_controller import router as admin_router
+from app.controllers.organization_controller import router as organization_router
+from app.controllers.project_controller import router as project_router
 
 # Create main API router
 api_router = APIRouter()
@@ -15,4 +16,5 @@ api_router = APIRouter()
 # Include sub-routers
 api_router.include_router(log_router, prefix="/v1/logs", tags=["logs"])
 api_router.include_router(user_router, prefix="/v1/users", tags=["users"])
-api_router.include_router(admin_router, prefix="/v1/admin", tags=["admin"])
+api_router.include_router(organization_router, prefix="/v1/organizations", tags=["organizations"])
+api_router.include_router(project_router, prefix="/v1/projects", tags=["projects"])

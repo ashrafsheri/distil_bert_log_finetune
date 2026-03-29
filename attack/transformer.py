@@ -7,7 +7,7 @@ import time
 from collections import Counter
 
 # Base URL
-BASE_URL = "https://api.nexusmxp.com"
+BASE_URL = "lumsstudentcouncil.com"
 
 # 100 Common API endpoints
 COMMON_APIS = [
@@ -123,21 +123,22 @@ COMMON_APIS = [
 
 # Headers matching the original request
 HEADERS = {
-    "Host": "api.nexusmxp.com",
+    "Host": "lumsstudentcouncil.com",
+    "Content-Length": "0",
     "Sec-Ch-Ua-Platform": '"Windows"',
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept": "application/json, text/plain, */*",
-    "Sec-Ch-Ua": '"Chromium";v="141", "Not?A_Brand";v="8"',
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+    "Sec-Ch-Ua": '"Chromium";v="145", "Not:A-Brand";v="99"',
+    "Content-Type": "application/json",
     "Sec-Ch-Ua-Mobile": "?0",
-    "Origin": "https://nexusmxp.com",
-    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Origin": "https://lumsstudentcouncil.com",
+    "Sec-Fetch-Site": "same-origin",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Dest": "empty",
-    "Referer": "https://nexusmxp.com/",
+    "Referer": "https://lumsstudentcouncil.com/complaints",
     "Accept-Encoding": "gzip, deflate, br",
-    "Priority": "u=1, i",
-    "Connection": "keep-alive"
+    "Priority": "u=1, i"
 }
 
 

@@ -1,34 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { adminService, OrgSummary, CreateOrgRequest, CreateOrgResponse, RegenerateApiKeyResponse } from '../services/adminService';
+import { useNavigate } from 'react-router-dom';
+import { adminService, OrgSummary, CreateOrgRequest, CreateOrgResponse } from '../services/adminService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import OrgCreationResult from '../components/OrgCreationResult';
-import ApiKeyRegenerationResult from '../components/ApiKeyRegenerationResult';
 
 interface CreateOrgFormData {
   name: string;
   email: string;
-  logType: 'apache' | 'nginx';
 }
 
 const AdminDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const [orgs, setOrgs] = useState<OrgSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createFormData, setCreateFormData] = useState<CreateOrgFormData>({
     name: '',
-    email: '',
-    logType: 'apache'
+    email: ''
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Modal states
   const [orgCreationResult, setOrgCreationResult] = useState<CreateOrgResponse | null>(null);
-  const [apiKeyRegenerationResult, setApiKeyRegenerationResult] = useState<RegenerateApiKeyResponse | null>(null);
 
   const fetchOrgs = async () => {
     try {
@@ -57,14 +55,13 @@ const AdminDashboardPage: React.FC = () => {
       setCreateLoading(true);
       const request: CreateOrgRequest = {
         name: createFormData.name.trim(),
-        manager_email: createFormData.email.trim(),
-        log_type: createFormData.logType
+        manager_email: createFormData.email.trim()
       };
 
       const response = await adminService.createOrg(request);
       setOrgCreationResult(response);
 
-      setCreateFormData({ name: '', email: '', logType: 'apache' });
+      setCreateFormData({ name: '', email: '' });
       setShowCreateForm(false);
       fetchOrgs(); // Refresh the list
     } catch (err) {
@@ -86,23 +83,6 @@ const AdminDashboardPage: React.FC = () => {
       fetchOrgs(); // Refresh the list
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete organization');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRegenerateApiKey = async (orgId: string) => {
-    if (!confirm(`Are you sure you want to regenerate the API key for organization "${orgId}"? The old key will no longer work.`)) {
-      return;
-    }
-
-    try {
-      setActionLoading(orgId);
-      const response = await adminService.regenerateApiKey({ org_id: orgId });
-      setApiKeyRegenerationResult(response);
-      fetchOrgs(); // Refresh the list (though it won't change the display)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to regenerate API key');
     } finally {
       setActionLoading(null);
     }
@@ -162,22 +142,6 @@ const AdminDashboardPage: React.FC = () => {
                   placeholder="Enter manager email"
                   required
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
-                  Log Type
-                </label>
-                <select
-                  value={createFormData.logType}
-                  onChange={(e) => setCreateFormData(prev => ({ ...prev, logType: e.target.value as 'apache' | 'nginx' }))}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
-                >
-                  <option value="apache">Apache</option>
-                  <option value="nginx">Nginx</option>
-                </select>
-                <p className="text-xs text-slate-400 mt-2">
-                  Select the web server log format for this organization
-                </p>
               </div>
               <div className="flex gap-4 pt-4">
                 <Button
@@ -254,11 +218,10 @@ const AdminDashboardPage: React.FC = () => {
                         <div className="flex gap-3">
                           <Button
                             size="sm"
-                            onClick={() => handleRegenerateApiKey(org.id)}
-                            disabled={actionLoading === org.id}
-                            className="bg-vt-primary hover:bg-vt-primary/80 px-4 py-2"
+                            onClick={() => navigate(`/projects?org=${org.id}`)}
+                            className="bg-vt-success hover:bg-vt-success/80 px-4 py-2"
                           >
-                            {actionLoading === org.id ? '...' : '🔑 Regenerate Key'}
+                            View Projects
                           </Button>
                           <Button
                             size="sm"
@@ -267,7 +230,7 @@ const AdminDashboardPage: React.FC = () => {
                             variant="danger"
                             className="px-4 py-2"
                           >
-                            {actionLoading === org.id ? '...' : '🗑️ Delete'}
+                            {actionLoading === org.id ? '...' : 'Delete'}
                           </Button>
                         </div>
                       </td>
@@ -288,24 +251,10 @@ const AdminDashboardPage: React.FC = () => {
           {orgCreationResult && (
             <OrgCreationResult
               orgId={orgCreationResult.org_id}
-              apiKey={orgCreationResult.api_key}
+              orgName={orgCreationResult.name}
               managerEmail={orgCreationResult.manager_email}
               managerPassword={orgCreationResult.manager_password}
               onClose={() => setOrgCreationResult(null)}
-            />
-          )}
-        </Modal>
-
-        <Modal
-          isOpen={!!apiKeyRegenerationResult}
-          onClose={() => setApiKeyRegenerationResult(null)}
-          title="API Key Regenerated"
-        >
-          {apiKeyRegenerationResult && (
-            <ApiKeyRegenerationResult
-              orgId={apiKeyRegenerationResult.org_id}
-              newApiKey={apiKeyRegenerationResult.new_api_key}
-              onClose={() => setApiKeyRegenerationResult(null)}
             />
           )}
         </Modal>

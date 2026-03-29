@@ -5,7 +5,7 @@ Handles log-related API endpoints
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Query, status
 from fastapi.responses import StreamingResponse
-from typing import List
+from typing import List, Optional
 import uuid
 import json
 import logging
@@ -47,13 +47,16 @@ def get_report_service() -> ReportService:
 class GenerateReportRequest(BaseModel):
     start_time: str  # ISO format datetime string
     end_time: str    # ISO format datetime string
+    project_id: Optional[str] = None  # Optional project ID filter
 
 @router.get("/fetch", response_model=LogEntryResponse)
 async def fetch_logs(
     limit: int = 100,
     offset: int = 0,
+    project_id: str = Query(None, description="Project ID to filter logs"),
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Fetch latest logs for the frontend dashboard from Elasticsearch
@@ -61,25 +64,57 @@ async def fetch_logs(
     Args:
         limit: Maximum number of logs to return (default: 100)
         offset: Number of logs to skip (default: 0)
+        project_id: Optional project ID to filter logs by specific project
         
     Returns:
         LogEntryResponse: List of logs with WebSocket ID for real-time updates
     """
     try:
-        print(f"[FETCH] User role: {current_user.get('role')}, org_id: {current_user.get('org_id')}, uid: {current_user.get('uid')}", flush=True)
+        print(f"[FETCH] User role: {current_user.get('role')}, org_id: {current_user.get('org_id')}, uid: {current_user.get('uid')}, project_id: {project_id}", flush=True)
         
-        # For admin users, don't filter by org_id (they can see all logs)
-        # For other users, require org_id
-        if current_user.get("role") != "admin" and not current_user.get("org_id"):
-            print(f"[FETCH] User {current_user.get('uid')} has no org_id", flush=True)
-            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        # Import project service for project access checks
+        from app.services.project_service import ProjectService
+        project_service = ProjectService()
+        
+        # If project_id is provided, verify user has access to the project
+        org_id_filter = None
+        if project_id:
+            # Check if user has access to this project
+            if current_user.get("role") != "admin":
+                user_role = await project_service.check_user_project_access(
+                    current_user.get("uid"), project_id, db
+                )
+                if not user_role:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="You don't have access to this project"
+                    )
+            
+            # Get the project to verify it exists and get org_id
+            project = await project_service.get_project_by_id(project_id, db)
+            if not project:
+                raise HTTPException(status_code=404, detail="Project not found")
+            
+            # Use project's org_id for filtering (stored as project.id in ES for backward compatibility)
+            org_id_filter = project_id
+            print(f"[FETCH] Filtering by project: {project_id}", flush=True)
+        else:
+            # No project specified - show all logs user has access to
+            # For admin users, don't filter by org_id (they can see all logs)
+            # For other users, require org_id
+            if current_user.get("role") != "admin" and not current_user.get("org_id"):
+                print(f"[FETCH] User {current_user.get('uid')} has no org_id and no project_id", flush=True)
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Please select a project to view logs"
+                )
+            
+            org_id_filter = None if current_user.get("role") == "admin" else current_user.get("org_id")
         
         # Cap limit to 100 max
         safe_limit = min(max(limit, 1), 100)
         safe_offset = max(offset, 0)
         
-        # Determine org_id for filtering
-        org_id_filter = None if current_user.get("role") == "admin" else current_user.get("org_id")
         print(f"[FETCH] Querying ES with org_id_filter={org_id_filter}, limit={safe_limit}, offset={safe_offset}", flush=True)
         
         # Fetch logs from Elasticsearch with pagination
@@ -89,6 +124,8 @@ async def fetch_logs(
         
         return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[FETCH] Error fetching logs: {e}", flush=True)
         logger.error(f"Error fetching logs: {e}")
@@ -105,8 +142,10 @@ async def search_logs(
     to_date: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    project_id: str = Query(None, description="Project ID to filter logs"),
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
-    current_user: dict = Depends(check_permission("/api/v1/search", "GET"))
+    current_user: dict = Depends(check_permission("/api/v1/search", "GET")),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Search logs by ip, api url, status code, or malicious/clean flag.
@@ -114,9 +153,31 @@ async def search_logs(
     Only accessible to admin and manager roles (enforced via RBAC).
     """
     try:
-        # Check if user has org_id
-        if not current_user.get("org_id"):
-            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        # Import project service for project access checks
+        from app.services.project_service import ProjectService
+        project_service = ProjectService()
+        
+        # Determine org_id filter based on project_id or user's org
+        org_id_filter = None
+        if project_id:
+            # Check if user has access to this project
+            if current_user.get("role") != "admin":
+                user_role = await project_service.check_user_project_access(
+                    current_user.get("uid"), project_id, db
+                )
+                if not user_role:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="You don't have access to this project"
+                    )
+            
+            # Use project_id for filtering
+            org_id_filter = project_id
+        else:
+            # Check if user has org_id
+            if not current_user.get("org_id"):
+                raise HTTPException(status_code=403, detail="Please select a project to search logs")
+            org_id_filter = current_user["org_id"]
         
         infected = None
         if malicious is not None:
@@ -133,7 +194,7 @@ async def search_logs(
         safe_limit = min(max(limit, 1), 100)
         safe_offset = max(offset, 0)
         result = await elasticsearch_service.search_logs(
-            org_id=current_user["org_id"],
+            org_id=org_id_filter,
             ip=ip,
             api=api,
             status_code=status_code,
@@ -145,6 +206,8 @@ async def search_logs(
         )
 
         return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error searching logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to search logs: {str(e)}")
@@ -157,9 +220,11 @@ async def export_logs_to_csv(
     malicious: bool | None = None,
     from_date: str | None = None,
     to_date: str | None = None,
+    project_id: str = Query(None, description="Project ID to filter logs"),
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
     log_service: LogService = Depends(get_log_service),
-    current_user: dict = Depends(check_permission("/api/v1/export", "GET"))
+    current_user: dict = Depends(check_permission("/api/v1/export", "GET")),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Export logs to CSV with anomaly scores for each model.
@@ -168,9 +233,31 @@ async def export_logs_to_csv(
     Supports the same filters as search endpoint.
     """
     try:
-        # Check if user has org_id
-        if not current_user.get("org_id"):
-            raise HTTPException(status_code=403, detail="User must belong to an organization to access logs")
+        # Import project service for project access checks
+        from app.services.project_service import ProjectService
+        project_service = ProjectService()
+        
+        # Determine org_id filter based on project_id or user's org
+        org_id_filter = None
+        if project_id:
+            # Check if user has access to this project
+            if current_user.get("role") != "admin":
+                user_role = await project_service.check_user_project_access(
+                    current_user.get("uid"), project_id, db
+                )
+                if not user_role:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="You don't have access to this project"
+                    )
+            
+            # Use project_id for filtering
+            org_id_filter = project_id
+        else:
+            # Check if user has org_id
+            if not current_user.get("org_id"):
+                raise HTTPException(status_code=403, detail="Please select a project to export logs")
+            org_id_filter = current_user["org_id"]
         
         infected = None
         if malicious is not None:
@@ -186,7 +273,7 @@ async def export_logs_to_csv(
 
         # Get all matching logs (up to 10000 for export)
         result = await elasticsearch_service.search_logs(
-            org_id=current_user["org_id"],
+            org_id=org_id_filter,
             ip=ip,
             api=api,
             status_code=status_code,
@@ -256,7 +343,7 @@ async def correct_log(
 @router.post("/agent/debug-logs")
 async def debug_fluent_bit_logs(
     request: Request,
-    org_id: str = Depends(validate_api_key)
+    project_id: str = Depends(validate_api_key)
 ):
     """
     Debug endpoint to log exactly what Fluent-bit is sending
@@ -270,7 +357,7 @@ async def debug_fluent_bit_logs(
         logger.info(f"Body (first 1000 chars): {body[:1000]}")
         logger.info(f"Body type: {type(body)}")
         logger.info(f"Body length: {len(body)}")
-        logger.info(f"Org ID from API key: {org_id}")
+        logger.info(f"Project ID from API key: {project_id}")
         
         # Try to parse as JSON
         try:
@@ -294,7 +381,7 @@ async def receive_fluent_bit_logs(
     log_parser_service: LogParserService = Depends(get_log_parser_service),
     anomaly_detection_service: AnomalyDetectionService = Depends(get_anomaly_detection_service),
     db: AsyncSession = Depends(get_db),
-    org_id: str = Depends(validate_api_key)
+    project_id: str = Depends(validate_api_key)
 ):
     """
     Receive logs from Fluent Bit, process them through anomaly detection, and store in Elasticsearch
@@ -303,6 +390,7 @@ async def receive_fluent_bit_logs(
     
     Args:
         request: Raw request body from Fluent Bit
+        project_id: Project ID validated from API key
         
     Returns:
         dict: Confirmation message for Fluent Bit acknowledgment
@@ -311,18 +399,18 @@ async def receive_fluent_bit_logs(
         # Generate internal batch ID for tracking
         batch_id = str(uuid.uuid4())
 
-        # Fetch organization to get log_type
+        # Fetch project to get log_type
         from sqlalchemy import select
-        from app.models.org_db import OrgDB
+        from app.models.project_db import ProjectDB
         
-        result = await db.execute(select(OrgDB).where(OrgDB.id == org_id))
-        org = result.scalar_one_or_none()
+        result = await db.execute(select(ProjectDB).where(ProjectDB.id == project_id))
+        project = result.scalar_one_or_none()
         
-        if not org:
-            raise HTTPException(status_code=404, detail=f"Organization {org_id} not found")
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
         
-        log_type = org.log_type  # Get the log type (apache or nginx)
-        logger.info(f"Processing logs for org {org_id} with log_type: {log_type}")
+        log_type = project.log_type  # Get the log type (apache or nginx)
+        logger.info(f"Processing logs for project {project_id} with log_type: {log_type}")
 
         # Parse the raw request body
         body = await request.body()
@@ -331,7 +419,7 @@ async def receive_fluent_bit_logs(
         print(f"=== FLUENT-BIT REQUEST DEBUG ===", flush=True)
         print(f"Body length: {len(body)} bytes", flush=True)
         print(f"Body (first 500 bytes): {body[:500]}", flush=True)
-        print(f"Org ID from API key: {org_id}", flush=True)
+        print(f"Project ID from API key: {project_id}", flush=True)
         print(f"Log type: {log_type}", flush=True)
         
         request_data = LogService.parse_fluent_bit_request(body)
@@ -393,11 +481,11 @@ async def receive_fluent_bit_logs(
                 unique_ips.add(ip)
         
         # Query IP table for status overrides
-        ip_status_map = await LogService.get_ip_status_map(unique_ips, org_id, db)
+        ip_status_map = await LogService.get_ip_status_map(unique_ips, project_id, db)
         
         # Process parsed logs into formatted logs for storage
         processed_logs = await LogService.process_parsed_logs_batch(
-            parsed_logs_data, anomaly_results, ip_status_map, batch_id, org_id
+            parsed_logs_data, anomaly_results, ip_status_map, batch_id, project_id
         )
         
         # Store processed logs in Elasticsearch
@@ -406,11 +494,11 @@ async def receive_fluent_bit_logs(
             if not storage_success:
                 logger.error("Failed to store logs in Elasticsearch")
             
-            # Send logs to WebSocket connections for real-time updates (filtered by org_id)
-            await LogService.send_logs_to_websocket(processed_logs, org_id=org_id)
+            # Send logs to WebSocket connections for real-time updates (filtered by project_id)
+            await LogService.send_logs_to_websocket(processed_logs, org_id=project_id)
             
-            # Increment organization log count for warmup tracking
-            await LogService.increment_org_log_count(org_id, len(processed_logs), db)
+            # Increment project log count for warmup tracking
+            await LogService.increment_org_log_count(project_id, len(processed_logs), db)
         
         processed_count = len(processed_logs)
         anomalies_detected = sum(1 for log in processed_logs if log.get("infected", False))
@@ -418,7 +506,7 @@ async def receive_fluent_bit_logs(
 
         # Alert managers if anomalies detected
         await LogService.send_anomaly_alert(
-            anomalies_detected, processed_logs, batch_id, org_id, db
+            anomalies_detected, processed_logs, batch_id, project_id, db
         )
 
         # Return serialized response
@@ -445,16 +533,14 @@ async def generate_security_report(
     request: GenerateReportRequest,
     elasticsearch_service: ElasticsearchService = Depends(get_elasticsearch_service),
     report_service: ReportService = Depends(get_report_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(check_permission("/api/v1/generate-report", "POST")),
+    db: AsyncSession = Depends(get_db)
 ):
     """
-    Generate a PDF security report for the specified time range
-    
-    Args:
-        request: GenerateReportRequest with start_time and end_time
-        
-    Returns:
-        PDF file as StreamingResponse
+    Generate a PDF security report for the specified time range.
+
+    Optionally scoped to a specific project via project_id.
+    Accessible to admin and manager roles.
     """
     try:
         # Parse datetime strings
@@ -482,32 +568,71 @@ async def generate_security_report(
                 detail="Time range cannot exceed 30 days"
             )
 
-        # Get org_id from current user
-        org_id = current_user.get("org_id")
-        if not org_id and current_user.get("role") != "admin":
-            raise HTTPException(
-                status_code=403,
-                detail="User must belong to an organization to generate reports"
+        from app.services.project_service import ProjectService
+        project_service = ProjectService()
+
+        # Determine the filter ID (project_id takes priority over org_id)
+        filter_id = None
+        report_scope = "organization"
+        project_name = None
+
+        if request.project_id:
+            # Validate project exists
+            project = await project_service.get_project_by_id(request.project_id, db)
+            if not project:
+                raise HTTPException(status_code=404, detail="Project not found")
+
+            # Permission check: admin can access any project;
+            # manager can access projects in their org;
+            # others must be an explicit project member
+            is_admin = current_user.get("role") == "admin"
+            is_manager_in_org = (
+                current_user.get("role") == "manager" and
+                current_user.get("org_id") == project.org_id
             )
+            member_role = await project_service.check_user_project_access(
+                current_user.get("uid"), request.project_id, db
+            )
+            if not (is_admin or is_manager_in_org or member_role):
+                raise HTTPException(
+                    status_code=403,
+                    detail="You don't have permission to generate a report for this project"
+                )
 
-        logger.info(f"Generating security report for org {org_id}, from {start_dt} to {end_dt}")
+            filter_id = request.project_id
+            report_scope = "project"
+            project_name = project.name
+        else:
+            # No project specified — fall back to user's org
+            org_id = current_user.get("org_id")
+            if not org_id and current_user.get("role") != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Please select a project or ensure your account belongs to an organization"
+                )
+            filter_id = org_id  # may be None for admin (all data)
 
-        # Generate PDF report (pass user uid for dummy data if needed)
+        logger.info(
+            f"Generating security report — scope={report_scope}, "
+            f"filter_id={filter_id}, from={start_dt} to={end_dt}"
+        )
+
+        # Generate PDF report
         pdf_buffer = await report_service.generate_security_report(
             elasticsearch_service=elasticsearch_service,
-            org_id=org_id,
+            org_id=filter_id,
             start_time=start_dt,
             end_time=end_dt,
             user_uid=current_user.get("uid")
         )
 
-        # Generate filename with timestamp
+        # Build a descriptive filename
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"security_report_{org_id}_{timestamp}.pdf"
+        scope_label = project_name or filter_id or "all"
+        filename = f"security_report_{scope_label}_{timestamp}.pdf"
 
         logger.info(f"Successfully generated report: {filename}")
 
-        # Return PDF as streaming response
         return StreamingResponse(
             pdf_buffer,
             media_type="application/pdf",

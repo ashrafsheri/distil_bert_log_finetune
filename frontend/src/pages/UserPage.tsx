@@ -1,6 +1,7 @@
 import Select from '../components/Select';
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { organizationService, OrganizationSummary } from '../services/organizationService';
 import Button from '../components/Button';
 import Card from '../components/Card';
 
@@ -14,6 +15,8 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'manager' | 'employee'>('employee');
+  const [organizationId, setOrganizationId] = useState<string>('');
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +38,24 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
 
   const roleOptions = getRoleOptions();
 
+  // Load organizations for admin users
+  useEffect(() => {
+    const loadOrganizations = async () => {
+      if (userInfo?.role === 'admin') {
+        try {
+          const orgs = await organizationService.getAllOrganizations();
+          setOrganizations(orgs);
+        } catch (err) {
+          console.error('Error loading organizations:', err);
+        }
+      } else if (userInfo?.role === 'manager' && userInfo?.org_id) {
+        // For managers, set their organization
+        setOrganizationId(userInfo.org_id);
+      }
+    };
+    loadOrganizations();
+  }, [userInfo]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -43,6 +64,12 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
     // Validation
     if (!email || !password || !confirmPassword || !role) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    // For non-admin users, organization is required
+    if (role !== 'admin' && !organizationId) {
+      setError('Please select an organization');
       return;
     }
 
@@ -65,13 +92,19 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
 
     try {
       setLoading(true);
-      await createUser({ email, password, role });
+      await createUser({ 
+        email, 
+        password, 
+        role,
+        organization_id: role === 'admin' ? undefined : organizationId
+      });
       setSuccess(`User account created successfully for ${email} with role: ${role}!`);
       // Clear form
       setEmail('');
       setPassword('');
       setConfirmPassword('');
       setRole('employee');
+      setOrganizationId('');
       // Notify parent component if callback provided
       if (onUserCreated) {
         setTimeout(() => {
@@ -221,6 +254,63 @@ const UserPage: React.FC<UserPageProps> = ({ onUserCreated }) => {
                 />
               </div>
             </div>
+
+            {/* Organization Field - Only for non-admin users */}
+            {role !== 'admin' && (
+              <div>
+                <label htmlFor="organization" className="block text-sm font-medium text-vt-light mb-2">
+                  Organization {userInfo?.role === 'admin' && <span className="text-vt-error">*</span>}
+                </label>
+                {userInfo?.role === 'admin' ? (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                      <svg className="w-5 h-5 text-vt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <select
+                      id="organization"
+                      value={organizationId}
+                      onChange={(e) => setOrganizationId(e.target.value)}
+                      className="w-full pl-12 pr-10 py-3 bg-vt-muted/10 border border-vt-muted/20 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none"
+                      required
+                      disabled={loading}
+                    >
+                      <option value="">Select an organization</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                      <svg className="w-5 h-5 text-vt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg className="w-5 h-5 text-vt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={userInfo?.org_name || organizationId || 'Your Organization'}
+                      disabled
+                      className="w-full pl-12 pr-4 py-3 bg-vt-muted/5 border border-vt-muted/10 rounded-lg text-vt-muted cursor-not-allowed"
+                    />
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-vt-muted">
+                  {userInfo?.role === 'admin' 
+                    ? 'Select the organization this user will belong to' 
+                    : 'User will be created in your organization'}
+                </p>
+              </div>
+            )}
 
             {/* Role Field */}
             <div>

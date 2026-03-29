@@ -22,7 +22,7 @@ interface UseLogsReturn {
   discardPending: () => void;
 }
 
-export const useLogs = (): UseLogsReturn => {
+export const useLogs = (projectId?: string): UseLogsReturn => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +40,14 @@ export const useLogs = (): UseLogsReturn => {
       setIsLoading(true);
       setError(null);
       
+      // Build URL with projectId if provided
+      let url = API_ENDPOINTS.FETCH_LOGS;
+      if (projectId) {
+        url += `?project_id=${encodeURIComponent(projectId)}`;
+      }
+      
       // Use apiService for authenticated request
-      const response = await apiService.get<{ logs: LogEntry[]; total_count: number; infected_count: number; websocket_id?: string }>(API_ENDPOINTS.FETCH_LOGS);
+      const response = await apiService.get<{ logs: LogEntry[]; total_count: number; infected_count: number; websocket_id?: string }>(url);
       const data = response.data;
       
       if (Array.isArray(data.logs)) {
@@ -64,7 +70,7 @@ export const useLogs = (): UseLogsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   const enqueuePendingLog = useCallback((log: LogEntry) => {
     setPendingLogs(prev => [log, ...prev].slice(0, MAX_LOGS_DISPLAY));
