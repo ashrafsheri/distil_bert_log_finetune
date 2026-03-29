@@ -618,23 +618,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Stream Controls */}
-        {/* <div className="mb-6">
-          <StreamControls
-            isPaused={isStreamPaused}
-            pendingCount={pendingCount}
-            pendingThreatCount={pendingThreatCount}
-            onTogglePause={handleTogglePause}
-            onStep={stepPending}
-            onApplyAll={applyPending}
-            onDiscard={discardPending}
-            showAnomaliesOnly={showAnomaliesOnly}
-            onToggleAnomalies={handleToggleAnomalies}
-            lastUpdate={lastUpdate}
-          />
-        </div> */}
-
         {/* Focused Trail Summary */}
         {focusedIp && (
           <div className="mb-6 glass-strong rounded-2xl border border-vt-warning/30 p-6 animate-slide-up stagger-1">
