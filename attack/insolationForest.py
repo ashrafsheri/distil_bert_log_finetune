@@ -100,7 +100,7 @@ def run_requests(num_requests=1000, num_threads=10):
         
         # Process completed requests
         completed = 0
-        for future in as_completed(futures):
+        for _ in as_completed(futures):
             completed += 1
             if completed % 100 == 0:
                 print(f"Progress: {completed}/{num_requests} requests completed")
@@ -117,7 +117,7 @@ def run_requests(num_requests=1000, num_threads=10):
     print(f"Failed: {error_count}")
     print(f"Duration: {duration:.2f} seconds")
     print(f"Requests per second: {request_count / duration:.2f}")
-    print(f"\nStatus Code Distribution:")
+    print("\nStatus Code Distribution:")
     for status_code, count in sorted(status_codes.items()):
         print(f"  {status_code}: {count}")
 
@@ -167,4 +167,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

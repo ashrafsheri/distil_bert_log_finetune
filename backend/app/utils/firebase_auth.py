@@ -9,7 +9,6 @@ from firebase_admin import credentials, auth
 from fastapi import HTTPException, status, Depends, Query, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
-from typing import Optional
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -190,29 +189,13 @@ async def get_current_user(
         # Get user from database using the provided session
         user_service = get_user_service(db)
         db_users = await user_service.get_all_users()
-        if db_users is None:
-            logger.warning(f"No users found in database")
+        if not db_users:
+            logger.warning("No users found in database")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No users found in database. Please contact administrator."
             )
-        
-        if len(db_users) == 0:
-            logger.warning(f"No users found in database")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No users found in database. Please contact administrator."
-            )
-        
-        for db_user in db_users:
-            logger.debug(f"Checking user: {db_user}")
-        
-        if db_user is None:
-            logger.warning(f"User with uid '{user_info['uid']}' not found in database")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User account not found. Please contact administrator."
-            )
+
         db_user = await user_service.get_user(user_info["uid"])
         
         if db_user is None:
@@ -338,4 +321,3 @@ async def validate_api_key(
         )
     
     return await get_project_id_from_api_key(api_key, db)
-

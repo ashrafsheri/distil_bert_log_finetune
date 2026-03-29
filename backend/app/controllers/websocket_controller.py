@@ -26,7 +26,7 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, ConnectionInfo] = {}
     
-    async def connect(self, websocket: WebSocket, client_id: str, org_id: Optional[str] = None, user_role: Optional[str] = None):
+    def connect(self, websocket: WebSocket, client_id: str, org_id: Optional[str] = None, user_role: Optional[str] = None):
         """Store WebSocket connection with org_id (connection must already be accepted)"""
         self.active_connections[client_id] = ConnectionInfo(
             websocket=websocket,
@@ -54,7 +54,7 @@ class ConnectionManager:
         """Broadcast message to all connected clients, optionally filtered by org_id"""
         # Determine which clients to send to
         target_clients = []
-        for client_id, conn_info in list(self.active_connections.items()):
+        for client_id, conn_info in self.active_connections.items():
             # If org_id filter is provided, only send to matching orgs or admin users
             if org_id is not None:
                 if conn_info.user_role == "admin" or conn_info.org_id == org_id:
@@ -132,7 +132,7 @@ async def websocket_endpoint(
         logger.error(f"Error fetching user org_id for WebSocket: {e}")
     
     # Connection authenticated successfully, add to manager with org_id
-    await manager.connect(
+    manager.connect(
         websocket=websocket,
         client_id=client_id,
         org_id=user_org_id,
@@ -142,19 +142,18 @@ async def websocket_endpoint(
     try:
         while True:
             # Keep connection alive and handle incoming messages
-            await websocket.receive_text()
-            
-            # TODO: Handle incoming WebSocket messages
-            # This could include:
-            # - Client requesting specific log filters
-            # - Client subscribing to specific log types
-            # - Heartbeat/ping messages
-            
-            # Placeholder response
+            message_text = await websocket.receive_text()
+            try:
+                payload = json.loads(message_text)
+            except json.JSONDecodeError:
+                payload = {"type": "message", "raw": message_text}
+
+            message_type = payload.get("type", "message")
             response = {
-                "type": "acknowledgment",
-                "message": "Message received",
-                "timestamp": datetime.now().isoformat()
+                "type": "pong" if message_type == "ping" else "acknowledgment",
+                "message": "Heartbeat acknowledged" if message_type == "ping" else "Message received",
+                "received_type": message_type,
+                "timestamp": datetime.now().isoformat(),
             }
             
             await manager.send_personal_message(response, client_id)

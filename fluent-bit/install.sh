@@ -20,7 +20,7 @@ else
 fi
 
 if [[ "$OS" == "linux" ]]; then
-    if [ -f /etc/os-release ]; then
+    if [[ -f /etc/os-release ]]; then
         . /etc/os-release
         DISTRO=$ID
         VERSION_ID=$VERSION_ID
@@ -99,10 +99,10 @@ mkdir -p /var/log/fluent-bit
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/fluent-bit.conf" ]; then
+if [[ -f "$SCRIPT_DIR/fluent-bit.conf" ]]; then
     echo "Copying configuration files..."
     cp "$SCRIPT_DIR/fluent-bit.conf" "$CONFIG_PATH/"
-    [ -f "$SCRIPT_DIR/parsers.conf" ] && cp "$SCRIPT_DIR/parsers.conf" "$CONFIG_PATH/"
+    [[ -f "$SCRIPT_DIR/parsers.conf" ]] && cp "$SCRIPT_DIR/parsers.conf" "$CONFIG_PATH/"
 fi
 
 if [[ "$OS" == "linux" ]]; then

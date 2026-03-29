@@ -74,7 +74,7 @@ class ProjectMemberService:
         existing_member = existing_result.scalar_one_or_none()
         
         if existing_member:
-            raise ValueError(f"User already has access to this project")
+            raise ValueError("User already has access to this project")
 
         # Add member
         member_id = f"pm-{uuid.uuid4().hex[:8]}"

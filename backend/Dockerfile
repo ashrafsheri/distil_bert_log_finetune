@@ -9,10 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies for PostgreSQL
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
     curl \
-    postgresql-client \
+    gcc \
     libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

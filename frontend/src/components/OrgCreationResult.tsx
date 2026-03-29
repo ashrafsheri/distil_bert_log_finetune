@@ -9,6 +9,23 @@ interface OrgCreationResultProps {
   onClose: () => void;
 }
 
+interface CopyButtonProps {
+  copiedField: string | null;
+  fieldName: string;
+  onCopy: (text: string, fieldName: string) => void;
+  text: string;
+}
+
+const CopyButton: React.FC<CopyButtonProps> = ({ copiedField, fieldName, onCopy, text }) => (
+  <Button
+    size="sm"
+    onClick={() => onCopy(text, fieldName)}
+    className="ml-2 bg-slate-600 hover:bg-slate-500 text-xs px-2 py-1"
+  >
+    {copiedField === fieldName ? 'Copied!' : 'Copy'}
+  </Button>
+);
+
 const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
   orgId,
   orgName,
@@ -27,16 +44,6 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
       console.error('Failed to copy text: ', err);
     }
   };
-
-  const CopyButton: React.FC<{ text: string; fieldName: string }> = ({ text, fieldName }) => (
-    <Button
-      size="sm"
-      onClick={() => copyToClipboard(text, fieldName)}
-      className="ml-2 bg-slate-600 hover:bg-slate-500 text-xs px-2 py-1"
-    >
-      {copiedField === fieldName ? 'Copied!' : 'Copy'}
-    </Button>
-  );
 
   return (
     <div className="space-y-6">
@@ -59,7 +66,7 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
             <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {orgId}
             </code>
-            <CopyButton text={orgId} fieldName="orgId" />
+            <CopyButton copiedField={copiedField} fieldName="orgId" onCopy={copyToClipboard} text={orgId} />
           </div>
         </div>
 
@@ -69,7 +76,7 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
             <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {orgName}
             </code>
-            <CopyButton text={orgName} fieldName="orgName" />
+            <CopyButton copiedField={copiedField} fieldName="orgName" onCopy={copyToClipboard} text={orgName} />
           </div>
         </div>
 
@@ -79,7 +86,7 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
             <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {managerEmail}
             </code>
-            <CopyButton text={managerEmail} fieldName="managerEmail" />
+            <CopyButton copiedField={copiedField} fieldName="managerEmail" onCopy={copyToClipboard} text={managerEmail} />
           </div>
         </div>
 
@@ -89,7 +96,7 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
             <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {managerPassword}
             </code>
-            <CopyButton text={managerPassword} fieldName="managerPassword" />
+            <CopyButton copiedField={copiedField} fieldName="managerPassword" onCopy={copyToClipboard} text={managerPassword} />
           </div>
           <p className="text-xs text-amber-400 mt-2">
             ⚠️ This is a temporary password. The manager should change it after first login.

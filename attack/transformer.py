@@ -166,7 +166,7 @@ def make_request_to_api(api_path):
         
         response = requests.get(url, params=params, headers=HEADERS, timeout=10)
         return (True, response.status_code, api_path)
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         return (False, None, api_path)
 
 
@@ -223,11 +223,11 @@ def run_transformer_attack(num_requests=100):
     print(f"Duration: {duration:.2f} seconds")
     print(f"Requests per second: {num_requests / duration:.2f}")
     
-    print(f"\nStatus Code Distribution:")
+    print("\nStatus Code Distribution:")
     for status_code, count in sorted(status_codes.items()):
         print(f"  {status_code}: {count}")
     
-    print(f"\nTop 10 Most Accessed APIs:")
+    print("\nTop 10 Most Accessed APIs:")
     for api, count in accessed_apis.most_common(10):
         print(f"  {api}: {count} requests")
     
@@ -239,4 +239,3 @@ if __name__ == "__main__":
     print("Testing sequence-based anomaly detection with random API access patterns")
     print("=" * 60)
     run_transformer_attack(100)
-

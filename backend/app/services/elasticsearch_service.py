@@ -3,7 +3,7 @@ Elasticsearch Service
 Handles log storage and retrieval from Elasticsearch
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import (
@@ -13,6 +13,7 @@ from elasticsearch.exceptions import (
 import logging
 
 logger = logging.getLogger(__name__)
+ORG_ID_KEYWORD = "org_id.keyword"
 
 class ElasticsearchService:
     """
@@ -75,7 +76,7 @@ class ElasticsearchService:
         """Store a single log entry in Elasticsearch"""
         try:
             # Add timestamp for indexing
-            log_data["created_at"] = datetime.utcnow().isoformat()
+            log_data["created_at"] = datetime.now(timezone.utc).isoformat()
             
             # Index the document
             response = self.client.index(
@@ -105,14 +106,14 @@ class ElasticsearchService:
         
         if self.client is None:
             logger.warning("Elasticsearch not available, skipping log storage")
-            logger.debug(f"[ES] Client is None, skipping storage")
+            logger.debug("[ES] Client is None, skipping storage")
             return True
             
         try:
             bulk_body = []
             for log_data in logs_data:
                 # Add timestamp for indexing
-                log_data["created_at"] = datetime.utcnow().isoformat()
+                log_data["created_at"] = datetime.now(timezone.utc).isoformat()
                 
                 # Add index action
                 bulk_body.append({
@@ -161,7 +162,7 @@ class ElasticsearchService:
         try:
             must_clauses = []
             if org_id:
-                must_clauses.append({"term": {"org_id.keyword": org_id}})
+                must_clauses.append({"term": {ORG_ID_KEYWORD: org_id}})
             
             query = {
                 "query": {
@@ -231,7 +232,7 @@ class ElasticsearchService:
             return {"logs": [], "total": 0, "offset": offset, "limit": limit}
 
         try:
-            must_clauses: List[Dict] = [{"term": {"org_id.keyword": org_id}}]
+            must_clauses: List[Dict] = [{"term": {ORG_ID_KEYWORD: org_id}}]
 
             if ip:
                 must_clauses.append({"term": {"ip_address": ip}})
@@ -301,7 +302,7 @@ class ElasticsearchService:
                     "bool": {
                         "must": [
                             {"term": {"ip_address": ip_address}},
-                            {"term": {"org_id.keyword": org_id}}
+                            {"term": {ORG_ID_KEYWORD: org_id}}
                         ]
                     }
                 },

@@ -3,5 +3,5 @@ projectKey=ashrafsheri_distil_bert_log_finetune
 serverUrl=https://sonarcloud.io
 serverVersion=8.0.0.84103
 dashboardUrl=https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune
-ceTaskId=AZ073fkaeAaFV2G8v4d3
-ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZ073fkaeAaFV2G8v4d3
+ceTaskId=AZ07_lcKX_FO75Ngoto4
+ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZ07_lcKX_FO75Ngoto4

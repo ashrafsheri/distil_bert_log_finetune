@@ -79,10 +79,10 @@ class OrganizationService:
                 logger.info(f"Manager email already exists in Firebase, using existing UID: {firebase_uid}")
             except Exception as e:
                 logger.error(f"Failed to get existing Firebase user: {e}")
-                raise Exception(f"User with email '{org_data.manager_email}' already exists")
+                raise ValueError(f"User with email '{org_data.manager_email}' already exists")
         except Exception as e:
             logger.error(f"Failed to create Firebase user: {e}")
-            raise Exception(f"Failed to create manager user in Firebase: {str(e)}")
+            raise RuntimeError(f"Failed to create manager user in Firebase: {str(e)}")
 
         # Create org in database
         org_db = OrganizationDB(
