@@ -1,0 +1,3 @@
+
+g^"<UserDB(uid={self.uid}, email={self.email}, role={self.role.value}, enabled={self.enabled})>"strself" "("
+# #(n*T/Users/ashrafshahreyar/Coding/distil_bert_log_finetune/backend/app/models/user_db.py

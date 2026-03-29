@@ -3,9 +3,10 @@ Project Controller
 Handles project-related API endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Annotated, List
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 import logging
 
 from app.models.project import (
@@ -31,9 +32,9 @@ logger = logging.getLogger(__name__)
 @router.post("/create", response_model=ProjectResponse)
 async def create_project(
     request: ProjectCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/create", "POST")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/create", "POST"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Create a new project within an organization.
@@ -72,9 +73,9 @@ async def create_project(
 @router.get("/organization/{org_id}", response_model=List[ProjectSummary])
 async def get_projects_by_organization(
     org_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/organization/{org_id}", "GET")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/organization/{org_id}", "GET"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get all projects for an organization.
@@ -97,9 +98,9 @@ async def get_projects_by_organization(
 
 @router.get("/my-projects", response_model=List[ProjectSummary])
 async def get_my_projects(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/my-projects", "GET")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/my-projects", "GET"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get all projects the current user has access to.
@@ -126,9 +127,9 @@ async def get_my_projects(
 @router.put("/log-type", response_model=UpdateLogTypeResponse)
 async def update_project_log_type(
     request: UpdateLogTypeRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/log-type", "PUT")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/log-type", "PUT"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Update the log type for a project.
@@ -180,9 +181,9 @@ async def update_project_log_type(
 @router.get("/{project_id}", response_model=ProjectSummary)
 async def get_project(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}", "GET")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}", "GET"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get a specific project by ID.
@@ -228,9 +229,9 @@ async def get_project(
 async def update_project(
     project_id: str,
     request: ProjectUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}", "PUT")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}", "PUT"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Update a project.
@@ -274,9 +275,9 @@ async def update_project(
 @router.delete("/{project_id}")
 async def delete_project(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}", "DELETE")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}", "DELETE"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Delete a project.
@@ -320,9 +321,9 @@ async def delete_project(
 @router.post("/regenerate-api-key", response_model=RegenerateApiKeyResponse)
 async def regenerate_api_key(
     request: RegenerateApiKeyRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/regenerate-api-key", "POST")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/regenerate-api-key", "POST"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Regenerate API key for a project.
@@ -369,9 +370,9 @@ async def regenerate_api_key(
 @router.get("/{project_id}/log-type")
 async def get_project_log_type(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}/log-type", "GET")),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}/log-type", "GET"))],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get the log type for a specific project.
@@ -414,10 +415,10 @@ async def get_project_log_type(
 @router.post("/members/add", response_model=ProjectMemberResponse)
 async def add_project_member(
     request: ProjectMemberCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/members/add", "POST")),
-    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/members/add", "POST"))],
+    member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Add a user to a project with a specific role.
@@ -460,10 +461,10 @@ async def add_project_member(
 async def remove_project_member(
     project_id: str,
     user_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/members/{project_id}/{user_id}", "DELETE")),
-    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/members/{project_id}/{user_id}", "DELETE"))],
+    member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Remove a user from a project.
@@ -509,10 +510,10 @@ async def update_project_member_role(
     project_id: str,
     user_id: str,
     request: ProjectMemberUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/members/{project_id}/{user_id}/role", "PUT")),
-    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/members/{project_id}/{user_id}/role", "PUT"))],
+    member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Update a project member's role.
@@ -556,10 +557,10 @@ async def update_project_member_role(
 @router.get("/{project_id}/members", response_model=List[ProjectMemberDetail])
 async def get_project_members(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}/members", "GET")),
-    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}/members", "GET"))],
+    member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get all members of a project.
@@ -598,10 +599,10 @@ async def get_project_members(
 @router.get("/{project_id}/available-members")
 async def get_available_members(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(check_permission("/api/v1/projects/{project_id}/available-members", "GET")),
-    member_service: ProjectMemberService = Depends(lambda: ProjectMemberService()),
-    project_service: ProjectService = Depends(lambda: ProjectService())
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}/available-members", "GET"))],
+    member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
     """
     Get organization members who are not yet members of the project.

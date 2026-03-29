@@ -1,0 +1,4 @@
+
+$"Generate a secure API key"str
+) "sk-{secrets.token_urlsafe(32)}"str"
+e e(,*T/Users/ashrafshahreyar/Coding/distil_bert_log_finetune/backend/app/models/project.py

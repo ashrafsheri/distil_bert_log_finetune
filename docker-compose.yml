@@ -29,12 +29,12 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql+asyncpg://logguard_user:logguard_password@postgres:5432/logguard_db
+      - DATABASE_URL=postgresql+asyncpg://logguard_user:${POSTGRES_PASSWORD}@postgres:5432/logguard_db
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=logguard_db
       - POSTGRES_USER=logguard_user
-      - POSTGRES_PASSWORD=logguard_password
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       # Firebase Admin
       - FIREBASE_SERVICE_ACCOUNT_KEY=/app/serviceAccountKey.json
       # SMTP / Alerts (provide these in your shell or .env)
@@ -97,7 +97,7 @@ services:
     environment:
       - POSTGRES_DB=logguard_db
       - POSTGRES_USER=logguard_user
-      - POSTGRES_PASSWORD=logguard_password
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

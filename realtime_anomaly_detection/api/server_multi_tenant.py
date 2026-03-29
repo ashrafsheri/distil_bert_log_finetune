@@ -12,7 +12,7 @@ Features:
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from datetime import datetime
 
 # Add parent directory to path
@@ -363,7 +363,7 @@ async def create_project(request: CreateProjectRequest):
 
 @app.get("/projects", response_model=List[ProjectStatusResponse])
 async def list_projects(
-    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
 ):
     """
     List all projects (admin only in production).
@@ -396,7 +396,7 @@ async def list_projects(
 @app.delete("/projects/{project_id}")
 async def delete_project(
     project_id: str,
-    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
 ):
     """Delete a project (admin only)"""
     if detector is None:
@@ -416,7 +416,9 @@ async def delete_project(
 # ============================================================================
 
 @app.get("/project/status", response_model=ProjectStatusResponse)
-async def get_project_status(project_id: str = Depends(get_project_from_api_key)):
+async def get_project_status(
+    project_id: Annotated[str, Depends(get_project_from_api_key)],
+):
     """Get status of authenticated project"""
     if detector is None:
         raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
@@ -441,7 +443,7 @@ async def get_project_status(project_id: str = Depends(get_project_from_api_key)
 @app.post("/detect", response_model=DetectionResponse)
 async def detect_single(
     request: LogRequest,
-    api_key: str = Header(..., alias="X-API-Key")
+    api_key: Annotated[str, Header(alias="X-API-Key")],
 ):
     """
     Detect anomaly in a single log line.
@@ -503,7 +505,7 @@ async def detect_single(
 @app.post("/detect/batch", response_model=BatchDetectionResponse)
 async def detect_batch(
     request: BatchLogRequest,
-    api_key: str = Header(..., alias="X-API-Key")
+    api_key: Annotated[str, Header(alias="X-API-Key")],
 ):
     """
     Detect anomalies in multiple log lines.
@@ -577,7 +579,7 @@ async def detect_batch(
 
 @app.post("/project/reset-sessions")
 async def reset_project_sessions(
-    project_id: str = Depends(get_project_from_api_key)
+    project_id: Annotated[str, Depends(get_project_from_api_key)],
 ):
     """Reset all session history for a project"""
     if detector is None:
@@ -590,7 +592,7 @@ async def reset_project_sessions(
 @app.post("/project/reset-session/{session_id}")
 async def reset_session(
     session_id: str,
-    project_id: str = Depends(get_project_from_api_key)
+    project_id: Annotated[str, Depends(get_project_from_api_key)],
 ):
     """Reset a specific session for a project"""
     if detector is None:
@@ -606,7 +608,7 @@ async def reset_session(
 
 @app.get("/admin/teacher", response_model=TeacherInfoResponse)
 async def get_teacher_info(
-    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
 ):
     """Get teacher model information (admin)"""
     if detector is None:
@@ -628,7 +630,7 @@ async def get_teacher_info(
 @app.post("/admin/teacher/update")
 async def force_teacher_update(
     background_tasks: BackgroundTasks,
-    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
 ):
     """Force immediate teacher model update (admin)"""
     if detector is None:
@@ -643,7 +645,7 @@ async def force_teacher_update(
 
 @app.get("/admin/update-history")
 async def get_update_history(
-    admin_key: Optional[str] = Query(None, description=ADMIN_API_KEY_DESCRIPTION)
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
 ):
     """Get teacher update history (admin)"""
     if update_scheduler is None:

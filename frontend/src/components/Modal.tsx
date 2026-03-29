@@ -13,9 +13,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop with blur */}
-      <div
+      <button
+        type="button"
+        aria-label={`Close ${title}`}
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClose();
+          }
+        }}
       />
 
       {/* Modal */}

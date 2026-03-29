@@ -1,0 +1,3 @@
+
+lc"<ProjectDB(id={self.id}, name={self.name}, org_id={self.org_id}, api_key={self.api_key[:10]}...)>"strself3 3("
+4 4(s*W/Users/ashrafshahreyar/Coding/distil_bert_log_finetune/backend/app/models/project_db.py

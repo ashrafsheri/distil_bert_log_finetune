@@ -18,6 +18,7 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      automountServiceAccountToken: false
       initContainers:
         - name: fix-permissions
           image: busybox
@@ -44,9 +45,11 @@ spec:
           resources:
             requests:
               cpu: 500m
+              ephemeral-storage: 1Gi
               memory: 1Gi
             limits:
               cpu: "1"
+              ephemeral-storage: 2Gi
               memory: 1536Mi
           readinessProbe:
             httpGet:
