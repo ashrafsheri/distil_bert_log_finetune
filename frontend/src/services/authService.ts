@@ -15,6 +15,7 @@ export interface SignupCredentials {
   email: string;
   password: string;
   role: 'admin' | 'manager' | 'employee'; // Required, not optional
+  organization_id?: string; // Optional, required for non-admin users
 }
 
 export interface AuthService {
@@ -68,7 +69,8 @@ class AuthServiceImpl implements AuthService {
       await apiService.post('/api/v1/users/create', {
         email: credentials.email,
         password: credentials.password,
-        role: credentials.role
+        role: credentials.role,
+        ...(credentials.organization_id && { organization_id: credentials.organization_id })
       });
       
     } catch (error: unknown) {

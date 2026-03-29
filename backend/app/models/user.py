@@ -64,6 +64,7 @@ class UserCreateWithPassword(BaseModel):
     email: EmailStr
     password: str
     role: RoleType
+    organization_id: Optional[str] = None  # Required for non-admin users
 
 
 class UserResponse(UserBase):
@@ -71,4 +72,5 @@ class UserResponse(UserBase):
     enabled: bool = True
     created_at: datetime
     updated_at: datetime
+    org_name: Optional[str] = None  # Organization name if user belongs to one
 
