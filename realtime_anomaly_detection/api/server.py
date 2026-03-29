@@ -5,6 +5,7 @@ Provides REST API endpoints for ensemble inference
 
 import sys
 import os
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -17,6 +18,9 @@ from pydantic import BaseModel
 import uvicorn
 
 from models.ensemble_detector import EnsembleAnomalyDetector
+
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -209,7 +213,7 @@ async def detect_batch(request: BatchLogRequest):
                 
         except Exception as e:
             # Log error but continue processing
-            print(f"Error processing log: {e}")
+            logger.error("Error processing log: %s", e)
             continue
     
     return BatchDetectionResponse(
