@@ -35,6 +35,20 @@ jobs:
             # Navigate to project directory
             cd ${{ secrets.PROJECT_DIR || '~/distil_bert_log_finetune' }}
 
+            rollout_or_debug() {
+              local deployment="$1"
+              local timeout="$2"
+
+              if ! sudo kubectl rollout status "deployment/${deployment}" -n logguard --timeout="${timeout}"; then
+                echo "=== Rollout failed for ${deployment} ==="
+                sudo kubectl get pods -n logguard -o wide
+                sudo kubectl describe "deployment/${deployment}" -n logguard || true
+                sudo kubectl describe pods -n logguard -l "app=${deployment}" || true
+                sudo kubectl logs -n logguard "deployment/${deployment}" --tail=200 || true
+                exit 1
+              fi
+            }
+
             # Pull latest code
             git pull origin main
 
@@ -89,11 +103,11 @@ jobs:
               -n logguard
 
             # Wait for rollouts to complete
-            sudo kubectl rollout status deployment/postgres -n logguard --timeout=120s
-            sudo kubectl rollout status deployment/elasticsearch -n logguard --timeout=180s
-            sudo kubectl rollout status deployment/backend -n logguard --timeout=120s
-            sudo kubectl rollout status deployment/frontend -n logguard --timeout=120s
-            sudo kubectl rollout status deployment/anomaly-detection -n logguard --timeout=180s
+            rollout_or_debug postgres 180s
+            rollout_or_debug elasticsearch 300s
+            rollout_or_debug backend 300s
+            rollout_or_debug frontend 180s
+            rollout_or_debug anomaly-detection 300s
 
             # Show deployment status
             echo "=== Deployment Status ==="
