@@ -20,6 +20,7 @@ from app.models.project_member import (
 from app.services.project_service import ProjectService
 from app.services.project_member_service import ProjectMemberService
 from app.utils.database import get_db
+from app.utils.firebase_auth import get_current_user
 from app.utils.permissions import check_permission
 
 
@@ -489,7 +490,7 @@ async def get_project_log_type(
 async def add_project_member(
     request: ProjectMemberCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/members/add", "POST"))],
+    current_user: Annotated[dict, Depends(get_current_user)],
     member_service: Annotated[ProjectMemberService, Depends(lambda: ProjectMemberService())],
     project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
 ):
