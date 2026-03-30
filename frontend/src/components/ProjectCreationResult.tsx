@@ -10,6 +10,7 @@ interface ProjectCreationResultProps {
 
 const ProjectCreationResult: React.FC<ProjectCreationResultProps> = ({
   projectId,
+  projectName,
   apiKey,
   onClose,
 }) => {
@@ -29,6 +30,15 @@ const ProjectCreationResult: React.FC<ProjectCreationResultProps> = ({
     <div className="space-y-6">
 
       <div className="space-y-4">
+        <div>
+          <div className="block text-sm font-medium text-slate-300 mb-2">
+            Project Name
+          </div>
+          <div className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg">
+            <code aria-label="Project name" className="text-sm text-slate-300 font-mono break-all">{projectName}</code>
+          </div>
+        </div>
+
         <div>
           <div className="block text-sm font-medium text-slate-300 mb-2">
             Project ID

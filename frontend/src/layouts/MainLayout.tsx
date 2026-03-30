@@ -192,9 +192,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               © 2025 LogGuard. Powered by Ensemble AI Detection.
             </div>
             <div className="flex items-center gap-6 text-sm text-vt-muted">
-              <a href="#" className="hover:text-vt-primary transition-colors">Documentation</a>
-              <a href="#" className="hover:text-vt-primary transition-colors">API</a>
-              <a href="#" className="hover:text-vt-primary transition-colors">Support</a>
+              <button type="button" className="hover:text-vt-primary transition-colors">Documentation</button>
+              <button type="button" className="hover:text-vt-primary transition-colors">API</button>
+              <button type="button" className="hover:text-vt-primary transition-colors">Support</button>
             </div>
           </div>
         </div>

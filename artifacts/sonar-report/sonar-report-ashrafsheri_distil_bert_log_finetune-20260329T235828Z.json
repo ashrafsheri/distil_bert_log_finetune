@@ -1,6 +1,6 @@
 {
   "dashboard_url": "https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune",
-  "generated_at_utc": "2026-03-29T23:39:51.041149+00:00",
+  "generated_at_utc": "2026-03-29T23:58:32.618160+00:00",
   "hotspots": {
     "by_status": {
       "REVIEWED": 1,
@@ -1013,30 +1013,30 @@
   },
   "issue_counts": {
     "by_severity": {
-      "CRITICAL": 87,
-      "INFO": 2,
-      "MAJOR": 264,
-      "MINOR": 59
+      "CRITICAL": 83,
+      "INFO": 1,
+      "MAJOR": 186,
+      "MINOR": 53
     },
     "by_type": {
-      "CODE_SMELL": 412
+      "CODE_SMELL": 323
     },
     "top_rules": [
       [
-        "python:S8415",
-        96
-      ],
-      [
         "python:S3457",
-        56
+        50
       ],
       [
         "python:S1192",
-        41
+        35
+      ],
+      [
+        "python:S8415",
+        32
       ],
       [
         "typescript:S6853",
-        28
+        26
       ],
       [
         "python:S3776",
@@ -1044,7 +1044,7 @@
       ],
       [
         "shelldre:S7688",
-        14
+        11
       ],
       [
         "python:S6903",
@@ -1056,15 +1056,11 @@
       ],
       [
         "typescript:S7764",
-        8
+        7
       ],
       [
         "python:S7503",
-        8
-      ],
-      [
-        "python:S1481",
-        6
+        7
       ],
       [
         "python:S125",
@@ -1083,6 +1079,14 @@
         5
       ],
       [
+        "python:S1481",
+        4
+      ],
+      [
+        "typescript:S4325",
+        4
+      ],
+      [
         "python:S3358",
         4
       ],
@@ -1097,247 +1101,11 @@
       [
         "python:S1172",
         4
-      ],
-      [
-        "python:S1871",
-        4
       ]
     ],
-    "total": 412
+    "total": 323
   },
   "issues_by_file": {
-    "ashrafsheri_distil_bert_log_finetune:attack/insolationForest.py": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:attack/insolationForest.py",
-        "creationDate": "2025-11-10T19:00:20+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "016ed939496d496151ce4a78b8504ba8",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dg4cqSqORs_NMdg",
-        "line": 120,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 120,
-          "endOffset": 40,
-          "startLine": 120,
-          "startOffset": 10
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:attack/insolationForest.py",
-        "creationDate": "2025-11-10T19:00:20+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9d7c1b5a53a5c8eb0917fa1c53b2dd51",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dg4cqSqORs_NMdf",
-        "line": 103,
-        "message": "Replace the unused loop index \"future\" with \"_\".",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1481",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "unused"
-        ],
-        "textRange": {
-          "endLine": 103,
-          "endOffset": 18,
-          "startLine": 103,
-          "startOffset": 12
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:attack/transformer.py": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:attack/transformer.py",
-        "creationDate": "2025-11-10T19:00:20+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "016ed939496d496151ce4a78b8504ba8",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dhCcqSqORs_NMdp",
-        "line": 226,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 226,
-          "endOffset": 40,
-          "startLine": 226,
-          "startOffset": 10
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:attack/transformer.py",
-        "creationDate": "2025-11-10T19:00:20+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "7c000097ecf292d8ebed07c36aa9425e",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dhCcqSqORs_NMdq",
-        "line": 230,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 230,
-          "endOffset": 41,
-          "startLine": 230,
-          "startOffset": 10
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:attack/transformer.py",
-        "creationDate": "2025-11-10T19:00:20+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "e811c0c22150bd1b213a49cf674ba9ad",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dhCcqSqORs_NMdh",
-        "line": 169,
-        "message": "Remove the unused local variable \"e\".",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1481",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "unused"
-        ],
-        "textRange": {
-          "endLine": 169,
-          "endOffset": 52,
-          "startLine": 169,
-          "startOffset": 51
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:backend/Dockerfile": [
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/Dockerfile",
-        "creationDate": "2026-01-26T18:19:24+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "a792b2012e58c4e669abd68901bcdbb1",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv7iStSi0Wsg8R0O97J",
-        "line": 11,
-        "message": "Sort these package names alphanumerically.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "docker:S7018",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [],
-        "textRange": {
-          "endLine": 15,
-          "endOffset": 13,
-          "startLine": 11,
-          "startOffset": 22
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-26T18:19:24+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/log_controller.py": [
       {
         "cleanCodeAttribute": "DISTINCT",
@@ -1877,784 +1645,12 @@
         "updateDate": "2026-03-29T11:14:09+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py": [
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "8min",
-        "effort": "8min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 109,
-                  "endOffset": 80,
-                  "startLine": 109,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 136,
-                  "endOffset": 80,
-                  "startLine": 136,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 162,
-                  "endOffset": 80,
-                  "startLine": 162,
-                  "startOffset": 56
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgg",
-        "line": 102,
-        "message": "Define a constant instead of duplicating this literal \"Organization not found\" 4 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 102,
-          "endOffset": 80,
-          "startLine": 102,
-          "startOffset": 56
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "04e3390415a91838b5901eeb66a7e49f",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgl",
-        "line": 41,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 41,
-          "endOffset": 27,
-          "startLine": 41,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "78e9df8bbcffa54df72dd4faee8b7b58",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgp",
-        "line": 60,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 60,
-          "endOffset": 27,
-          "startLine": 60,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "78e9df8bbcffa54df72dd4faee8b7b58",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgt",
-        "line": 79,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 79,
-          "endOffset": 27,
-          "startLine": 79,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "b58ef6a2c6277ff001548fe68452e1bb",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgx",
-        "line": 97,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 97,
-          "endOffset": 31,
-          "startLine": 97,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgy",
-        "line": 102,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 102,
-          "endOffset": 31,
-          "startLine": 102,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBgz",
-        "line": 109,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 109,
-          "endOffset": 31,
-          "startLine": 109,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "97bc09b49c99cc8db7de0288367731f1",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBg0",
-        "line": 116,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 116,
-          "endOffset": 27,
-          "startLine": 116,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBg4",
-        "line": 136,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 136,
-          "endOffset": 31,
-          "startLine": 136,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "64a71ab5ef9c6be1110b22e3c1c33315",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBg5",
-        "line": 143,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 143,
-          "endOffset": 27,
-          "startLine": 143,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBg9",
-        "line": 162,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 162,
-          "endOffset": 31,
-          "startLine": 162,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d617cdd3d22aeaaaa38bc213041dde8d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZK_EKksgLqHwBg-",
-        "line": 169,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 169,
-          "endOffset": 27,
-          "startLine": 169,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py": [
       {
         "cleanCodeAttribute": "DISTINCT",
         "cleanCodeAttributeCategory": "ADAPTABLE",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "32min",
-        "effort": "32min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 167,
-                  "endOffset": 75,
-                  "startLine": 167,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 200,
-                  "endOffset": 75,
-                  "startLine": 200,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 218,
-                  "endOffset": 75,
-                  "startLine": 218,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 248,
-                  "endOffset": 75,
-                  "startLine": 248,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 265,
-                  "endOffset": 75,
-                  "startLine": 265,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 294,
-                  "endOffset": 75,
-                  "startLine": 294,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 311,
-                  "endOffset": 75,
-                  "startLine": 311,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 340,
-                  "endOffset": 75,
-                  "startLine": 340,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 357,
-                  "endOffset": 75,
-                  "startLine": 357,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 389,
-                  "endOffset": 75,
-                  "startLine": 389,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 435,
-                  "endOffset": 75,
-                  "startLine": 435,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 481,
-                  "endOffset": 75,
-                  "startLine": 481,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 530,
-                  "endOffset": 75,
-                  "startLine": 530,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 577,
-                  "endOffset": 75,
-                  "startLine": 577,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 622,
-                  "endOffset": 75,
-                  "startLine": 622,
-                  "startOffset": 56
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhA",
-        "line": 149,
-        "message": "Define a constant instead of duplicating this literal \"Project not found\" 16 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 149,
-          "endOffset": 75,
-          "startLine": 149,
-          "startOffset": 56
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
+        "creationDate": "2026-03-29T23:46:10+0000",
         "debt": "6min",
         "effort": "6min",
         "flows": [
@@ -2664,9 +1660,90 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
                 "msg": "Duplication",
                 "textRange": {
-                  "endLine": 400,
+                  "endLine": 165,
+                  "endOffset": 81,
+                  "startLine": 165,
+                  "startOffset": 52
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 193,
+                  "endOffset": 81,
+                  "startLine": 193,
+                  "startOffset": 52
+                }
+              }
+            ]
+          }
+        ],
+        "hash": "48165d0dee196c4e4693d0a6833f13d1",
+        "impacts": [
+          {
+            "severity": "HIGH",
+            "softwareQuality": "MAINTAINABILITY"
+          }
+        ],
+        "internalTags": [],
+        "issueStatus": "OPEN",
+        "key": "AZ07_l-7UQIsvQ7tySPk",
+        "line": 38,
+        "message": "Define a constant instead of duplicating this literal \"Failed to retrieve projects\" 3 times.",
+        "organization": "ashrafsheri",
+        "project": "ashrafsheri_distil_bert_log_finetune",
+        "projectName": "distil_bert_log_finetune",
+        "rule": "python:S1192",
+        "severity": "CRITICAL",
+        "status": "OPEN",
+        "tags": [
+          "design"
+        ],
+        "textRange": {
+          "endLine": 38,
+          "endOffset": 54,
+          "startLine": 38,
+          "startOffset": 25
+        },
+        "type": "CODE_SMELL",
+        "updateDate": "2026-03-29T23:46:10+0000"
+      },
+      {
+        "cleanCodeAttribute": "DISTINCT",
+        "cleanCodeAttributeCategory": "ADAPTABLE",
+        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "8min",
+        "effort": "8min",
+        "flows": [
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 51,
+                  "endOffset": 75,
+                  "startLine": 51,
+                  "startOffset": 25
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 230,
                   "endOffset": 106,
-                  "startLine": 400,
+                  "startLine": 230,
                   "startOffset": 56
                 }
               }
@@ -2678,16 +1755,16 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
                 "msg": "Duplication",
                 "textRange": {
-                  "endLine": 588,
+                  "endLine": 329,
                   "endOffset": 106,
-                  "startLine": 588,
+                  "startLine": 329,
                   "startOffset": 56
                 }
               }
             ]
           }
         ],
-        "hash": "f1d780c32673d246e3097589b4c161bb",
+        "hash": "04c29b1b4266e9d38f45552d09518cc1",
         "impacts": [
           {
             "severity": "HIGH",
@@ -2696,9 +1773,9 @@
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhB",
-        "line": 211,
-        "message": "Define a constant instead of duplicating this literal \"You don't have permission to access this project\" 3 times.",
+        "key": "AZ07_l-7UQIsvQ7tySPm",
+        "line": 41,
+        "message": "Define a constant instead of duplicating this literal \"You don't have permission to update this project\" 4 times.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
@@ -2709,23 +1786,52 @@
           "design"
         ],
         "textRange": {
-          "endLine": 211,
-          "endOffset": 106,
-          "startLine": 211,
-          "startOffset": 56
+          "endLine": 41,
+          "endOffset": 75,
+          "startLine": 41,
+          "startOffset": 25
         },
         "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       },
       {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
+        "cleanCodeAttribute": "DISTINCT",
+        "cleanCodeAttributeCategory": "ADAPTABLE",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "c71de92408f75af81d21204d3971fe6c",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "6min",
+        "effort": "6min",
+        "flows": [
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 74,
+                  "endOffset": 47,
+                  "startLine": 74,
+                  "startOffset": 25
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 526,
+                  "endOffset": 74,
+                  "startLine": 526,
+                  "startOffset": 52
+                }
+              }
+            ]
+          }
+        ],
+        "hash": "a8695ab03b4c198e25a501a574a8c568",
         "impacts": [
           {
             "severity": "HIGH",
@@ -2734,38 +1840,79 @@
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhF",
-        "line": 50,
-        "message": "Document this HTTPException with status code 400 in the \"responses\" parameter.",
+        "key": "AZ07_l-7UQIsvQ7tySPo",
+        "line": 71,
+        "message": "Define a constant instead of duplicating this literal \"Failed to add member\" 3 times.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
+        "rule": "python:S1192",
+        "severity": "CRITICAL",
         "status": "OPEN",
         "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
+          "design"
         ],
         "textRange": {
-          "endLine": 50,
-          "endOffset": 35,
-          "startLine": 50,
-          "startOffset": 22
+          "endLine": 71,
+          "endOffset": 47,
+          "startLine": 71,
+          "startOffset": 25
         },
         "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       },
       {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
+        "cleanCodeAttribute": "DISTINCT",
+        "cleanCodeAttributeCategory": "ADAPTABLE",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "eaabaaddce14c6f21880d1e9c63bb7b9",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "8min",
+        "effort": "8min",
+        "flows": [
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 83,
+                  "endOffset": 51,
+                  "startLine": 83,
+                  "startOffset": 25
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 567,
+                  "endOffset": 82,
+                  "startLine": 567,
+                  "startOffset": 56
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 616,
+                  "endOffset": 82,
+                  "startLine": 616,
+                  "startOffset": 56
+                }
+              }
+            ]
+          }
+        ],
+        "hash": "2985524bdf2a5d516b6ae00679fd3a82",
         "impacts": [
           {
             "severity": "HIGH",
@@ -2774,38 +1921,79 @@
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhG",
-        "line": 60,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
+        "key": "AZ07_l-7UQIsvQ7tySPn",
+        "line": 78,
+        "message": "Define a constant instead of duplicating this literal \"Project member not found\" 4 times.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
+        "rule": "python:S1192",
+        "severity": "CRITICAL",
         "status": "OPEN",
         "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
+          "design"
         ],
         "textRange": {
-          "endLine": 60,
-          "endOffset": 31,
-          "startLine": 60,
-          "startOffset": 18
+          "endLine": 78,
+          "endOffset": 51,
+          "startLine": 78,
+          "startOffset": 25
         },
         "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       },
       {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
+        "cleanCodeAttribute": "DISTINCT",
+        "cleanCodeAttributeCategory": "ADAPTABLE",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "050fab92f69def7b2d576dfa27ef7b09",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "8min",
+        "effort": "8min",
+        "flows": [
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 95,
+                  "endOffset": 63,
+                  "startLine": 95,
+                  "startOffset": 25
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 709,
+                  "endOffset": 90,
+                  "startLine": 709,
+                  "startOffset": 52
+                }
+              }
+            ]
+          },
+          {
+            "locations": [
+              {
+                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
+                "msg": "Duplication",
+                "textRange": {
+                  "endLine": 714,
+                  "endOffset": 90,
+                  "startLine": 714,
+                  "startOffset": 52
+                }
+              }
+            ]
+          }
+        ],
+        "hash": "c6f7295d8eae8f1304417fa10d2e1587",
         "impacts": [
           {
             "severity": "HIGH",
@@ -2814,1868 +2002,26 @@
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhH",
-        "line": 65,
-        "message": "Document this HTTPException with status code 400 in the \"responses\" parameter.",
+        "key": "AZ07_l-7UQIsvQ7tySPl",
+        "line": 92,
+        "message": "Define a constant instead of duplicating this literal \"Failed to retrieve available members\" 4 times.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
+        "rule": "python:S1192",
+        "severity": "CRITICAL",
         "status": "OPEN",
         "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
+          "design"
         ],
         "textRange": {
-          "endLine": 65,
-          "endOffset": 27,
-          "startLine": 65,
-          "startOffset": 14
+          "endLine": 92,
+          "endOffset": 63,
+          "startLine": 92,
+          "startOffset": 25
         },
         "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "44442866e4c3a840ebadfc0904e5acee",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhI",
-        "line": 70,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 70,
-          "endOffset": 27,
-          "startLine": 70,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1aeb3140a9b36cc8afbff15cb76f89bd",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhM",
-        "line": 88,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 88,
-          "endOffset": 31,
-          "startLine": 88,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "22bd35cadb9b4f5edfb0e26a5237f1e3",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhN",
-        "line": 96,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 96,
-          "endOffset": 27,
-          "startLine": 96,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "22bd35cadb9b4f5edfb0e26a5237f1e3",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhR",
-        "line": 124,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 124,
-          "endOffset": 27,
-          "startLine": 124,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhV",
-        "line": 149,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 149,
-          "endOffset": 31,
-          "startLine": 149,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1887728fa39902255abb914c7c9ac381",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhW",
-        "line": 161,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 161,
-          "endOffset": 31,
-          "startLine": 161,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhX",
-        "line": 167,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 167,
-          "endOffset": 31,
-          "startLine": 167,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "a03f03f6effc4d55d4a3be9928473085",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhY",
-        "line": 178,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 178,
-          "endOffset": 27,
-          "startLine": 178,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhc",
-        "line": 200,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 200,
-          "endOffset": 31,
-          "startLine": 200,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f1d780c32673d246e3097589b4c161bb",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhd",
-        "line": 211,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 211,
-          "endOffset": 31,
-          "startLine": 211,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhe",
-        "line": 218,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 218,
-          "endOffset": 31,
-          "startLine": 218,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "905db4b1bf3a318bc31672c311ab4618",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhf",
-        "line": 225,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 225,
-          "endOffset": 27,
-          "startLine": 225,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhj",
-        "line": 248,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 248,
-          "endOffset": 31,
-          "startLine": 248,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1887728fa39902255abb914c7c9ac381",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhk",
-        "line": 260,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 260,
-          "endOffset": 31,
-          "startLine": 260,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhl",
-        "line": 265,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 265,
-          "endOffset": 31,
-          "startLine": 265,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "613f9e9004d46a7a440c9525888d7e6c",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhm",
-        "line": 272,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 272,
-          "endOffset": 27,
-          "startLine": 272,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhq",
-        "line": 294,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 294,
-          "endOffset": 31,
-          "startLine": 294,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "8dd3fddd4a485047cb1cff33fb0d41c7",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhr",
-        "line": 306,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 306,
-          "endOffset": 31,
-          "startLine": 306,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhs",
-        "line": 311,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 311,
-          "endOffset": 31,
-          "startLine": 311,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "e09f2711561750803c780351fd7d31a2",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBht",
-        "line": 318,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 318,
-          "endOffset": 27,
-          "startLine": 318,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhx",
-        "line": 340,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 340,
-          "endOffset": 31,
-          "startLine": 340,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "c073543af253fb244e7eb64da23fed94",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhy",
-        "line": 352,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 352,
-          "endOffset": 31,
-          "startLine": 352,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBhz",
-        "line": 357,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 357,
-          "endOffset": 31,
-          "startLine": 357,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "ea03691f6b50fc57c8e16851e608418d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBh0",
-        "line": 367,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 367,
-          "endOffset": 27,
-          "startLine": 367,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBh4",
-        "line": 389,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 389,
-          "endOffset": 31,
-          "startLine": 389,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f1d780c32673d246e3097589b4c161bb",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBh5",
-        "line": 400,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 400,
-          "endOffset": 31,
-          "startLine": 400,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "40d0a52e84afd1eef55269617c70a341",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBh6",
-        "line": 410,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 410,
-          "endOffset": 27,
-          "startLine": 410,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBh_",
-        "line": 435,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 435,
-          "endOffset": 31,
-          "startLine": 435,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "b66d2f2927b24d95d82f56e234cc9a28",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiA",
-        "line": 447,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 447,
-          "endOffset": 31,
-          "startLine": 447,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "050fab92f69def7b2d576dfa27ef7b09",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiB",
-        "line": 452,
-        "message": "Document this HTTPException with status code 400 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 452,
-          "endOffset": 27,
-          "startLine": 452,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "5161a51a0b6dd55c23047e8083350785",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiC",
-        "line": 457,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 457,
-          "endOffset": 27,
-          "startLine": 457,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiH",
-        "line": 481,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 481,
-          "endOffset": 31,
-          "startLine": 481,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "5a1f2fddff4c7d7201ca38fc7a8f5eb3",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiI",
-        "line": 493,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 493,
-          "endOffset": 31,
-          "startLine": 493,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9d207d3e70146d615f2f482e56ffa4e7",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiJ",
-        "line": 498,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 498,
-          "endOffset": 31,
-          "startLine": 498,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "5587fe25e9a04ac75dc412f5fc210045",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiK",
-        "line": 505,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 505,
-          "endOffset": 27,
-          "startLine": 505,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiP",
-        "line": 530,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 530,
-          "endOffset": 31,
-          "startLine": 530,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "4cab3bde8f4e5d3494d7c82f5ce4cc11",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiQ",
-        "line": 542,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 542,
-          "endOffset": 31,
-          "startLine": 542,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9d207d3e70146d615f2f482e56ffa4e7",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiR",
-        "line": 547,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 547,
-          "endOffset": 31,
-          "startLine": 547,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "7a6d8afb23389c23d4ffacf0ef1af414",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiS",
-        "line": 554,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 554,
-          "endOffset": 27,
-          "startLine": 554,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiX",
-        "line": 577,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 577,
-          "endOffset": 31,
-          "startLine": 577,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f1d780c32673d246e3097589b4c161bb",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiY",
-        "line": 588,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 588,
-          "endOffset": 31,
-          "startLine": 588,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "738e7672a115b4c777ffe46423d5c237",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBiZ",
-        "line": 596,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 596,
-          "endOffset": 27,
-          "startLine": 596,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9cb425a8e55407dd9e4e958997be4054",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBie",
-        "line": 622,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 622,
-          "endOffset": 31,
-          "startLine": 622,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "069579fd7c0a7b608e19daec80dbdec5",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBif",
-        "line": 634,
-        "message": "Document this HTTPException with status code 403 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 634,
-          "endOffset": 31,
-          "startLine": 634,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "420f3ca28f8b96dd6a31c7417fd98e4f",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBig",
-        "line": 640,
-        "message": "Document this HTTPException with status code 400 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 640,
-          "endOffset": 27,
-          "startLine": 640,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "e01ca00573ba5541ee29c095c2807389",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZLhEKksgLqHwBih",
-        "line": 645,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 645,
-          "endOffset": 27,
-          "startLine": 645,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py": [
@@ -5053,301 +2399,6 @@
         },
         "type": "CODE_SMELL",
         "updateDate": "2026-03-29T11:18:01+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py": [
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py",
-        "creationDate": "2026-03-29T22:59:55+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "3e52aae62ae38c3cdbb196010ef2f17e",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ071Y7SUQIsvQ7txW2F",
-        "line": 57,
-        "message": "Document this HTTPException with status code 401 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 57,
-          "endOffset": 31,
-          "startLine": 57,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:14:52+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py",
-        "creationDate": "2026-03-29T22:59:55+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1d7998cdc0bdd360eadff158669febfb",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ071Y7SUQIsvQ7txW2G",
-        "line": 64,
-        "message": "Document this HTTPException with status code 400 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 64,
-          "endOffset": 31,
-          "startLine": 64,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:14:52+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py",
-        "creationDate": "2026-03-29T22:59:55+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "52f0fe5789c09307a44973edb519523d",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ071Y7SUQIsvQ7txW2H",
-        "line": 85,
-        "message": "Document this HTTPException with status code 404 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 85,
-          "endOffset": 31,
-          "startLine": 85,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:14:52+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py",
-        "creationDate": "2026-03-29T22:59:55+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1339457a1e844ac04bfd713c4e763cd2",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ071Y7SUQIsvQ7txW2I",
-        "line": 99,
-        "message": "Document this HTTPException with status code 500 in the \"responses\" parameter.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S8415",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "documentation",
-          "fastapi",
-          "openapi"
-        ],
-        "textRange": {
-          "endLine": 99,
-          "endOffset": 27,
-          "startLine": 99,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:14:52+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py": [
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py",
-        "creationDate": "2025-10-22T17:40:56+0000",
-        "debt": "0min",
-        "effort": "0min",
-        "flows": [],
-        "hash": "21e33c28b62283c2ffa0dd32b9fb5ad9",
-        "impacts": [
-          {
-            "severity": "INFO",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45deFcqSqORs_NMcl",
-        "line": 147,
-        "message": "Complete the task associated to this \"TODO\" comment.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1135",
-        "severity": "INFO",
-        "status": "OPEN",
-        "tags": [
-          "cwe"
-        ],
-        "textRange": {
-          "endLine": 147,
-          "endOffset": 54,
-          "startLine": 147,
-          "startOffset": 12
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py",
-        "creationDate": "2026-01-25T15:13:57+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py",
-                "msg": "This function is async.",
-                "textRange": {
-                  "endLine": 29,
-                  "endOffset": 9,
-                  "startLine": 29,
-                  "startOffset": 4
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "aa09ac1d438a0a3e70a7c6fb7eecc3a5",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv1uNOo2BakEJWmhoDu",
-        "line": 29,
-        "message": "Use asynchronous features in this function or remove the `async` keyword.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S7503",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "async"
-        ],
-        "textRange": {
-          "endLine": 29,
-          "endOffset": 21,
-          "startLine": 29,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T15:13:57+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py",
-        "creationDate": "2026-01-25T15:13:57+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "1d82ff9e4a2608870ef3210e1362fd12",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv1uNOp2BakEJWmhoDv",
-        "line": 57,
-        "message": "Remove this unnecessary `list()` call on an already iterable object.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S7504",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [],
-        "textRange": {
-          "endLine": 57,
-          "endOffset": 40,
-          "startLine": 57,
-          "startOffset": 36
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T15:13:57+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py": [
@@ -7976,46 +5027,6 @@
         "updateDate": "2026-03-29T11:14:09+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/services/project_member_service.py": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/project_member_service.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "d1227a530362abf3a17a4608c0f4985a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZJxEKksgLqHwBgC",
-        "line": 77,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 77,
-          "endOffset": 71,
-          "startLine": 77,
-          "startOffset": 29
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py": [
       {
         "cleanCodeAttribute": "FOCUSED",
@@ -8264,642 +5275,6 @@
         },
         "type": "CODE_SMELL",
         "updateDate": "2026-02-19T19:12:41+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py": [
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2025-11-02T12:31:50+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 200,
-                  "endOffset": 46,
-                  "startLine": 200,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 229,
-                  "endOffset": 47,
-                  "startLine": 229,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "fb8ac59a5d58adda6e0dd6edffdb36a4",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45deacqSqORs_NMcn",
-        "line": 157,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/users/uid\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 157,
-          "endOffset": 44,
-          "startLine": 157,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 211,
-                  "endOffset": 67,
-                  "startLine": 211,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 233,
-                  "endOffset": 68,
-                  "startLine": 233,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "db6331853f351b72bbae59dd25c6833c",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM2EKksgLqHwBik",
-        "line": 176,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/organizations/my-organizations\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 176,
-          "endOffset": 65,
-          "startLine": 176,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "10min",
-        "effort": "10min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 178,
-                  "endOffset": 57,
-                  "startLine": 178,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 179,
-                  "endOffset": 57,
-                  "startLine": 179,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 212,
-                  "endOffset": 59,
-                  "startLine": 212,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 234,
-                  "endOffset": 60,
-                  "startLine": 234,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "b4167b5ed8e27ec5d7a2b0830fe43f74",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM2EKksgLqHwBim",
-        "line": 177,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/organizations/{org_id}\" 5 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 177,
-          "endOffset": 57,
-          "startLine": 177,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 215,
-                  "endOffset": 57,
-                  "startLine": 215,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 235,
-                  "endOffset": 58,
-                  "startLine": 235,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "0eb4f5fcaac22afd9eaa769e339f6408",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM2EKksgLqHwBil",
-        "line": 184,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/projects/my-projects\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 184,
-          "endOffset": 55,
-          "startLine": 184,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "14min",
-        "effort": "14min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 186,
-                  "endOffset": 56,
-                  "startLine": 186,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 187,
-                  "endOffset": 56,
-                  "startLine": 187,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 216,
-                  "endOffset": 58,
-                  "startLine": 216,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 217,
-                  "endOffset": 58,
-                  "startLine": 217,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 218,
-                  "endOffset": 58,
-                  "startLine": 218,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 236,
-                  "endOffset": 59,
-                  "startLine": 236,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "6e27fad845b43d11f037aadfc680e0ab",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM1EKksgLqHwBii",
-        "line": 185,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/projects/{project_id}\" 7 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 185,
-          "endOffset": 56,
-          "startLine": 185,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "8min",
-        "effort": "8min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 190,
-                  "endOffset": 64,
-                  "startLine": 190,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 221,
-                  "endOffset": 66,
-                  "startLine": 221,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 238,
-                  "endOffset": 67,
-                  "startLine": 238,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "5e605cf03b10bcb81fab1eefab308dd4",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM2EKksgLqHwBin",
-        "line": 189,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/projects/{project_id}/members\" 4 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 189,
-          "endOffset": 64,
-          "startLine": 189,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2026-03-08T14:45:15+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 226,
-                  "endOffset": 76,
-                  "startLine": 226,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 242,
-                  "endOffset": 77,
-                  "startLine": 242,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "636bf6f7f39c9ce4710137623940a53b",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZM2EKksgLqHwBij",
-        "line": 195,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/projects/{project_id}/available-members\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 195,
-          "endOffset": 74,
-          "startLine": 195,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 246,
-                  "endOffset": 42,
-                  "startLine": 246,
-                  "startOffset": 27
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 247,
-                  "endOffset": 43,
-                  "startLine": 247,
-                  "startOffset": 28
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "55bce98944461c991ec2a30fd64a6a35",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45deacqSqORs_NMco",
-        "line": 245,
-        "message": "Define a constant instead of duplicating this literal \"/api/v1/fetch\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 245,
-          "endOffset": 40,
-          "startLine": 245,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py": [
@@ -9167,82 +5542,6 @@
         "updateDate": "2026-03-29T11:14:09+0000"
       },
       {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "a54071d4a9347cc66cdedc9a5db48bf6",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dekcqSqORs_NMcr",
-        "line": 194,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 194,
-          "endOffset": 56,
-          "startLine": 194,
-          "startOffset": 27
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "a54071d4a9347cc66cdedc9a5db48bf6",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dekcqSqORs_NMcq",
-        "line": 201,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 201,
-          "endOffset": 56,
-          "startLine": 201,
-          "startOffset": 27
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
         "cleanCodeAttribute": "CONVENTIONAL",
         "cleanCodeAttributeCategory": "CONSISTENT",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
@@ -9449,391 +5748,84 @@
         "updateDate": "2026-03-29T11:14:09+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:fluent-bit/install.sh": [
+    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx": [
       {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:fluent-bit/install.sh",
-        "creationDate": "2026-01-25T13:41:07+0000",
-        "debt": "2min",
-        "effort": "2min",
+        "cleanCodeAttribute": "CLEAR",
+        "cleanCodeAttributeCategory": "INTENTIONAL",
+        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "5min",
+        "effort": "5min",
         "flows": [],
-        "hash": "6193e3f9afcb14c87382f069bf6dc7ec",
+        "hash": "b9ef5ab1f2780c4243ef1938bb1a9753",
         "impacts": [
           {
             "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZv1Y9BOl42ofhkcmgbB",
+        "key": "AZ07_mFoUQIsvQ7tySPp",
         "line": 23,
-        "message": "Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.",
+        "message": "Remove this use of the \"void\" operator.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
-        "rule": "shelldre:S7688",
-        "severity": "MAJOR",
+        "rule": "typescript:S3735",
+        "severity": "CRITICAL",
         "status": "OPEN",
         "tags": [
-          "bash",
-          "best-practices",
-          "scripting",
-          "shell"
+          "confusing",
+          "type-dependent"
         ],
         "textRange": {
           "endLine": 23,
           "endOffset": 8,
           "startLine": 23,
-          "startOffset": 7
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T13:41:07+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:fluent-bit/install.sh",
-        "creationDate": "2026-01-25T13:41:07+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "d59b26308a75f64f1207896af0e5bacc",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv1Y9BOl42ofhkcmgbD",
-        "line": 102,
-        "message": "Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "shelldre:S7688",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "bash",
-          "best-practices",
-          "scripting",
-          "shell"
-        ],
-        "textRange": {
-          "endLine": 102,
-          "endOffset": 4,
-          "startLine": 102,
-          "startOffset": 3
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T13:41:07+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:fluent-bit/install.sh",
-        "creationDate": "2026-01-26T18:19:24+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "aca3a30a6412819342da00b3d0ed1a39",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv7iSzTi0Wsg8R0O97L",
-        "line": 105,
-        "message": "Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "shelldre:S7688",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "bash",
-          "best-practices",
-          "scripting",
-          "shell"
-        ],
-        "textRange": {
-          "endLine": 105,
-          "endOffset": 5,
-          "startLine": 105,
           "startOffset": 4
         },
         "type": "CODE_SMELL",
-        "updateDate": "2026-01-26T18:19:24+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/Dockerfile": [
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/Dockerfile",
-        "creationDate": "2025-10-22T17:40:56+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:frontend/Dockerfile",
-                "msg": "consecutive RUN instruction",
-                "textRange": {
-                  "endLine": 38,
-                  "endOffset": 3,
-                  "startLine": 38,
-                  "startOffset": 0
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "add6a677de7e2f8da8a6af2227c44161",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dc4cqSqORs_NMb1",
-        "line": 35,
-        "message": "Merge this RUN instruction with the consecutive ones.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "docker:S7031",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [],
-        "textRange": {
-          "endLine": 35,
-          "endOffset": 3,
-          "startLine": 35,
-          "startOffset": 0
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ApiKeyRegenerationResult.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ApiKeyRegenerationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f8acdb99b4fc7347649ad2546c661c83",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVPneEqY2cgqX-6-",
-        "line": 42,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 42,
-          "endOffset": 14,
-          "startLine": 42,
-          "startOffset": 9
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       },
       {
-        "cleanCodeAttribute": "LOGICAL",
+        "cleanCodeAttribute": "CLEAR",
         "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ApiKeyRegenerationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "2f55733f98f985e6d14155c2a44113a7",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVPneEqY2cgqX-6_",
-        "line": 49,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 49,
-          "endOffset": 14,
-          "startLine": 49,
-          "startOffset": 9
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Card.tsx": [
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Card.tsx",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "fce16bf11169237de9ecd12c8878ff2c",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dalcqSqORs_NMbe",
-        "line": 38,
-        "message": "`tabIndex` should only be declared on interactive elements.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6845",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 38,
-          "endOffset": 40,
-          "startLine": 38,
-          "startOffset": 6
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Card.tsx",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d90c26198ff23a5c54f81269ceed5c01",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dalcqSqORs_NMbd",
-        "line": 29,
-        "message": "Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6848",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 39,
-          "endOffset": 5,
-          "startLine": 29,
-          "startOffset": 4
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx": [
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
         "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx",
-        "creationDate": "2025-10-22T17:40:56+0000",
-        "debt": "2min",
-        "effort": "2min",
+        "creationDate": "2026-03-29T23:46:10+0000",
+        "debt": "5min",
+        "effort": "5min",
         "flows": [],
-        "hash": "0d9897920fe2c97dab91b9ee535e56b3",
+        "hash": "67d177d09839a216997157f99a99c9e6",
         "impacts": [
           {
-            "severity": "LOW",
+            "severity": "HIGH",
             "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
-        "key": "AZr45daOcqSqORs_NMbQ",
-        "line": 39,
-        "message": "Prefer `globalThis` over `window`.",
+        "key": "AZ07_mFoUQIsvQ7tySPq",
+        "line": 24,
+        "message": "Remove this use of the \"void\" operator.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
         "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7764",
-        "severity": "MINOR",
+        "rule": "typescript:S3735",
+        "severity": "CRITICAL",
         "status": "OPEN",
         "tags": [
-          "es2020",
-          "portability"
+          "confusing",
+          "type-dependent"
         ],
         "textRange": {
-          "endLine": 39,
-          "endOffset": 35,
-          "startLine": 39,
-          "startOffset": 29
+          "endLine": 24,
+          "endOffset": 8,
+          "startLine": 24,
+          "startOffset": 4
         },
         "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
+        "updateDate": "2026-03-29T23:46:10+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx": [
@@ -10268,46 +6260,6 @@
     ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx": [
       {
-        "cleanCodeAttribute": "EFFICIENT",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "cc5c50980493ff2750bc73b7390da153",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVP4eEqY2cgqX-7A",
-        "line": 31,
-        "message": "Move this component definition out of the parent component and pass data as props.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6478",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "jsx",
-          "performance",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 31,
-          "endOffset": 92,
-          "startLine": 31,
-          "startOffset": 90
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
-      {
         "cleanCodeAttribute": "LOGICAL",
         "cleanCodeAttributeCategory": "INTENTIONAL",
         "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
@@ -10325,7 +6277,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVP4eEqY2cgqX-7B",
-        "line": 57,
+        "line": 64,
         "message": "A form label must be associated with a control.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -10338,9 +6290,9 @@
           "react"
         ],
         "textRange": {
-          "endLine": 57,
+          "endLine": 64,
           "endOffset": 16,
-          "startLine": 57,
+          "startLine": 64,
           "startOffset": 11
         },
         "type": "CODE_SMELL",
@@ -10354,7 +6306,7 @@
         "debt": "5min",
         "effort": "5min",
         "flows": [],
-        "hash": "aab670f57e91ba6ad728854f88981cb2",
+        "hash": "2adf56d345ceef79fa259a93c69e0bf4",
         "impacts": [
           {
             "severity": "MEDIUM",
@@ -10364,7 +6316,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVP4eEqY2cgqX-7C",
-        "line": 67,
+        "line": 74,
         "message": "A form label must be associated with a control.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -10377,9 +6329,9 @@
           "react"
         ],
         "textRange": {
-          "endLine": 67,
+          "endLine": 74,
           "endOffset": 16,
-          "startLine": 67,
+          "startLine": 74,
           "startOffset": 11
         },
         "type": "CODE_SMELL",
@@ -10403,7 +6355,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVP4eEqY2cgqX-7D",
-        "line": 77,
+        "line": 84,
         "message": "A form label must be associated with a control.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -10416,9 +6368,9 @@
           "react"
         ],
         "textRange": {
-          "endLine": 77,
+          "endLine": 84,
           "endOffset": 16,
-          "startLine": 77,
+          "startLine": 84,
           "startOffset": 11
         },
         "type": "CODE_SMELL",
@@ -10442,7 +6394,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVP4eEqY2cgqX-7E",
-        "line": 87,
+        "line": 94,
         "message": "A form label must be associated with a control.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -10455,9 +6407,9 @@
           "react"
         ],
         "textRange": {
-          "endLine": 87,
+          "endLine": 94,
           "endOffset": 16,
-          "startLine": 87,
+          "startLine": 94,
           "startOffset": 11
         },
         "type": "CODE_SMELL",
@@ -10908,12 +6860,12 @@
         "hash": "2b2063d18d3a79bacc485377a5f8f76c",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -10951,12 +6903,12 @@
         "hash": "d7fe3f9c4a13b495f1af6e8be5e0760e",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -10994,12 +6946,12 @@
         "hash": "b2e45f7b550b0358c6a0a708cba34ef8",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11037,12 +6989,12 @@
         "hash": "28c1c065de407c23949a76e08e58e355",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11080,12 +7032,12 @@
         "hash": "9236620dc6f73f07599d7e6749447baf",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11123,12 +7075,12 @@
         "hash": "f6dab9ee218888a3f9ac20836279d21a",
         "impacts": [
           {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11168,12 +7120,12 @@
         "hash": "33e818fcabfa9081d2e96992e92508a4",
         "impacts": [
           {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "HIGH",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11210,12 +7162,12 @@
         "hash": "0040dbace1ed90c7462e494a96cd4801",
         "impacts": [
           {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "HIGH",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -11252,12 +7204,12 @@
         "hash": "780a8d38d2a4d560170940502c7acc59",
         "impacts": [
           {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
             "severity": "MEDIUM",
             "softwareQuality": "RELIABILITY"
+          },
+          {
+            "severity": "HIGH",
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -12421,6 +8373,45 @@
         },
         "type": "CODE_SMELL",
         "updateDate": "2025-12-07T17:39:27+0000"
+      },
+      {
+        "cleanCodeAttribute": "CLEAR",
+        "cleanCodeAttributeCategory": "INTENTIONAL",
+        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/DashboardPage.tsx",
+        "creationDate": "2026-03-29T22:59:55+0000",
+        "debt": "1min",
+        "effort": "1min",
+        "flows": [],
+        "hash": "19e9463306e6de7b385e174db1cac7a1",
+        "impacts": [
+          {
+            "severity": "LOW",
+            "softwareQuality": "MAINTAINABILITY"
+          }
+        ],
+        "internalTags": [],
+        "issueStatus": "OPEN",
+        "key": "AZ071ZDAUQIsvQ7txW2R",
+        "line": 403,
+        "message": "This assertion is unnecessary since it does not change the type of the expression.",
+        "organization": "ashrafsheri",
+        "project": "ashrafsheri_distil_bert_log_finetune",
+        "projectName": "distil_bert_log_finetune",
+        "rule": "typescript:S4325",
+        "severity": "MINOR",
+        "status": "OPEN",
+        "tags": [
+          "redundant",
+          "type-dependent"
+        ],
+        "textRange": {
+          "endLine": 403,
+          "endOffset": 69,
+          "startLine": 403,
+          "startOffset": 56
+        },
+        "type": "CODE_SMELL",
+        "updateDate": "2026-03-29T23:46:10+0000"
       },
       {
         "cleanCodeAttribute": "CLEAR",
@@ -18794,11 +14785,11 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -18872,11 +14863,11 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -18950,11 +14941,11 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -23878,11 +19869,11 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           }
         ],
         "internalTags": [],
@@ -26540,11 +22531,11 @@
   "metrics": {
     "alert_status": "ERROR",
     "bugs": 0,
-    "code_smells": 412,
+    "code_smells": 323,
     "coverage": 0.0,
-    "duplicated_lines_density": 0.7,
+    "duplicated_lines_density": 0.6,
     "maintainability_rating": "A",
-    "ncloc": 21804,
+    "ncloc": 23337,
     "reliability_rating": "A",
     "security_hotspots": 154,
     "security_rating": "A",
@@ -26586,7 +22577,7 @@
         "status": "ERROR"
       },
       {
-        "actualValue": "2.9",
+        "actualValue": "1.1",
         "comparator": "GT",
         "errorThreshold": "3",
         "metricKey": "new_duplicated_lines_density",

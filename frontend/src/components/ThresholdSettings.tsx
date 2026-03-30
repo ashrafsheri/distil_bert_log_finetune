@@ -14,6 +14,12 @@ export interface ThresholdValues {
 }
 
 const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
+  const ensembleThresholdId = 'ensemble-threshold';
+  const transformerThresholdId = 'transformer-threshold';
+  const isolationForestThresholdId = 'isolation-forest-threshold';
+  const ruleBasedWeightId = 'rule-based-weight';
+  const isoForestWeightId = 'iso-forest-weight';
+  const transformerWeightId = 'transformer-weight';
   const [isOpen, setIsOpen] = useState(false);
   const [thresholds, setThresholds] = useState<ThresholdValues>({
     ensemble: 0.5,
@@ -105,16 +111,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
             {/* Ensemble Threshold */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-medium text-vt-muted">Ensemble Threshold</label>
+                <label htmlFor={ensembleThresholdId} className="text-sm font-medium text-vt-muted">Ensemble Threshold</label>
                 <span className="text-sm font-mono text-vt-light">{tempThresholds.ensemble.toFixed(2)}</span>
               </div>
               <input
+                id={ensembleThresholdId}
                 type="range"
                 min="0"
                 max="1"
                 step="0.01"
                 value={tempThresholds.ensemble}
-                onChange={(e) => handleSliderChange('ensemble', parseFloat(e.target.value))}
+                onChange={(e) => handleSliderChange('ensemble', Number.parseFloat(e.target.value))}
                 className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
               />
               <p className="text-xs text-vt-muted mt-1">Final score threshold for anomaly detection</p>
@@ -123,16 +130,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
             {/* Transformer Threshold */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-medium text-vt-muted">Transformer NLL Threshold</label>
+                <label htmlFor={transformerThresholdId} className="text-sm font-medium text-vt-muted">Transformer NLL Threshold</label>
                 <span className="text-sm font-mono text-vt-light">{tempThresholds.transformer.toFixed(2)}</span>
               </div>
               <input
+                id={transformerThresholdId}
                 type="range"
                 min="0"
                 max="15"
                 step="0.1"
                 value={tempThresholds.transformer}
-                onChange={(e) => handleSliderChange('transformer', parseFloat(e.target.value))}
+                onChange={(e) => handleSliderChange('transformer', Number.parseFloat(e.target.value))}
                 className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
               />
               <p className="text-xs text-vt-muted mt-1">Negative log-likelihood threshold for transformer model</p>
@@ -141,16 +149,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
             {/* Isolation Forest Threshold */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-medium text-vt-muted">Isolation Forest Threshold</label>
+                <label htmlFor={isolationForestThresholdId} className="text-sm font-medium text-vt-muted">Isolation Forest Threshold</label>
                 <span className="text-sm font-mono text-vt-light">{tempThresholds.isolationForest.toFixed(2)}</span>
               </div>
               <input
+                id={isolationForestThresholdId}
                 type="range"
                 min="0"
                 max="5"
                 step="0.1"
                 value={tempThresholds.isolationForest}
-                onChange={(e) => handleSliderChange('isolationForest', parseFloat(e.target.value))}
+                onChange={(e) => handleSliderChange('isolationForest', Number.parseFloat(e.target.value))}
                 className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
               />
               <p className="text-xs text-vt-muted mt-1">Anomaly score threshold for isolation forest</p>
@@ -162,16 +171,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
               {/* Rule-Based Weight */}
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-medium text-vt-muted">Rule-Based Weight</label>
+                  <label htmlFor={ruleBasedWeightId} className="text-sm font-medium text-vt-muted">Rule-Based Weight</label>
                   <span className="text-sm font-mono text-vt-light">{tempThresholds.ruleBasedWeight.toFixed(2)}</span>
                 </div>
                 <input
+                  id={ruleBasedWeightId}
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={tempThresholds.ruleBasedWeight}
-                  onChange={(e) => handleSliderChange('ruleBasedWeight', parseFloat(e.target.value))}
+                  onChange={(e) => handleSliderChange('ruleBasedWeight', Number.parseFloat(e.target.value))}
                   className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
                 />
               </div>
@@ -179,16 +189,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
               {/* Isolation Forest Weight */}
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-medium text-vt-muted">Isolation Forest Weight</label>
+                  <label htmlFor={isoForestWeightId} className="text-sm font-medium text-vt-muted">Isolation Forest Weight</label>
                   <span className="text-sm font-mono text-vt-light">{tempThresholds.isoForestWeight.toFixed(2)}</span>
                 </div>
                 <input
+                  id={isoForestWeightId}
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={tempThresholds.isoForestWeight}
-                  onChange={(e) => handleSliderChange('isoForestWeight', parseFloat(e.target.value))}
+                  onChange={(e) => handleSliderChange('isoForestWeight', Number.parseFloat(e.target.value))}
                   className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
                 />
               </div>
@@ -196,16 +207,17 @@ const ThresholdSettings: React.FC<ThresholdSettingsProps> = ({ onUpdate }) => {
               {/* Transformer Weight */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-medium text-vt-muted">Transformer Weight</label>
+                  <label htmlFor={transformerWeightId} className="text-sm font-medium text-vt-muted">Transformer Weight</label>
                   <span className="text-sm font-mono text-vt-light">{tempThresholds.transformerWeight.toFixed(2)}</span>
                 </div>
                 <input
+                  id={transformerWeightId}
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
                   value={tempThresholds.transformerWeight}
-                  onChange={(e) => handleSliderChange('transformerWeight', parseFloat(e.target.value))}
+                  onChange={(e) => handleSliderChange('transformerWeight', Number.parseFloat(e.target.value))}
                   className="w-full h-2 bg-vt-muted/20 rounded-lg appearance-none cursor-pointer slider"
                 />
               </div>

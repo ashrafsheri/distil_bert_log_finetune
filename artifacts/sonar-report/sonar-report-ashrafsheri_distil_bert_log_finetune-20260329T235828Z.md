@@ -1,6 +1,6 @@
 # Sonar Report: `ashrafsheri_distil_bert_log_finetune`
 
-- Generated: `2026-03-29T23:39:51.041149+00:00`
+- Generated: `2026-03-29T23:58:32.618160+00:00`
 - Dashboard: https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune
 
 ## Metrics
@@ -11,11 +11,11 @@
 - Maintainability Rating: `A`
 - Bugs: `0`
 - Vulnerabilities: `0`
-- Code Smells: `412`
+- Code Smells: `323`
 - Security Hotspots: `154`
 - Coverage: `0.0%`
-- Duplicated Lines Density: `0.7%`
-- Lines of Code: `21804`
+- Duplicated Lines Density: `0.6%`
+- Lines of Code: `23337`
 
 ## Quality Gate Conditions
 
@@ -23,37 +23,37 @@
 - `new_security_rating`: status=`OK`, actual=`1`, threshold=`1`
 - `new_maintainability_rating`: status=`OK`, actual=`1`, threshold=`1`
 - `new_coverage`: status=`ERROR`, actual=`0.0`, threshold=`80`
-- `new_duplicated_lines_density`: status=`OK`, actual=`2.9`, threshold=`3`
+- `new_duplicated_lines_density`: status=`OK`, actual=`1.1`, threshold=`3`
 - `new_security_hotspots_reviewed`: status=`ERROR`, actual=`0.0`, threshold=`100`
 
 ## Issue Summary
 
-- Total issues in selected statuses: `412`
-- By severity: `{"CRITICAL": 87, "INFO": 2, "MAJOR": 264, "MINOR": 59}`
-- By type: `{"CODE_SMELL": 412}`
+- Total issues in selected statuses: `323`
+- By severity: `{"CRITICAL": 83, "INFO": 1, "MAJOR": 186, "MINOR": 53}`
+- By type: `{"CODE_SMELL": 323}`
 
 ### Top Rules
 
-- `python:S8415`: `96`
-- `python:S3457`: `56`
-- `python:S1192`: `41`
-- `typescript:S6853`: `28`
+- `python:S3457`: `50`
+- `python:S1192`: `35`
+- `python:S8415`: `32`
+- `typescript:S6853`: `26`
 - `python:S3776`: `24`
-- `shelldre:S7688`: `14`
+- `shelldre:S7688`: `11`
 - `python:S6903`: `8`
 - `python:S5754`: `8`
-- `typescript:S7764`: `8`
-- `python:S7503`: `8`
-- `python:S1481`: `6`
+- `typescript:S7764`: `7`
+- `python:S7503`: `7`
 - `python:S125`: `6`
 - `shelldre:S7682`: `6`
 - `typescript:S7773`: `6`
 - `shelldre:S7679`: `5`
+- `python:S1481`: `4`
+- `typescript:S4325`: `4`
 - `python:S3358`: `4`
 - `typescript:S7735`: `4`
 - `python:S6983`: `4`
 - `python:S1172`: `4`
-- `python:S1871`: `4`
 
 ## Security Hotspots
 
@@ -62,87 +62,23 @@
 
 ## Issues By File
 
-### `ashrafsheri_distil_bert_log_finetune:attack/insolationForest.py`
-
-- [MAJOR] `python:S3457` (line `120`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-- [MINOR] `python:S1481` (line `103`, type `CODE_SMELL`): Replace the unused loop index "future" with "_".
-
-### `ashrafsheri_distil_bert_log_finetune:attack/transformer.py`
-
-- [MAJOR] `python:S3457` (line `226`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-- [MAJOR] `python:S3457` (line `230`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-- [MINOR] `python:S1481` (line `169`, type `CODE_SMELL`): Remove the unused local variable "e".
-
-### `ashrafsheri_distil_bert_log_finetune:backend/Dockerfile`
-
-- [MINOR] `docker:S7018` (line `11`, type `CODE_SMELL`): Sort these package names alphanumerically.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/log_controller.py`
 
 - [CRITICAL] `python:S1192` (line `78`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Project not found" 3 times.
 - [CRITICAL] `python:S3776` (line `376`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.
 - [CRITICAL] `python:S3776` (line `528`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.
 
-### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/organization_controller.py`
-
-- [CRITICAL] `python:S1192` (line `102`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Organization not found" 4 times.
-- [MAJOR] `python:S8415` (line `41`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `60`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `79`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `97`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `102`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `109`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `116`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `136`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `143`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `162`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `169`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py`
 
-- [CRITICAL] `python:S1192` (line `149`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Project not found" 16 times.
-- [CRITICAL] `python:S1192` (line `211`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "You don't have permission to access this project" 3 times.
-- [MAJOR] `python:S8415` (line `50`, type `CODE_SMELL`): Document this HTTPException with status code 400 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `60`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `65`, type `CODE_SMELL`): Document this HTTPException with status code 400 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `70`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `88`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `96`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `124`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `149`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `161`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `167`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `178`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `200`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `211`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `218`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `225`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `248`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `260`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `265`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `272`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `294`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `306`, type `CODE_SMELL`): Document this HTTPException with status code 403 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `311`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `318`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-- ... `26` more issue(s)
+- [CRITICAL] `python:S1192` (line `38`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to retrieve projects" 3 times.
+- [CRITICAL] `python:S1192` (line `41`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "You don't have permission to update this project" 4 times.
+- [CRITICAL] `python:S1192` (line `71`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to add member" 3 times.
+- [CRITICAL] `python:S1192` (line `78`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Project member not found" 4 times.
+- [CRITICAL] `python:S1192` (line `92`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to retrieve available members" 4 times.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py`
 
 - [CRITICAL] `python:S3776` (line `21`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 37 to the 15 allowed.
-
-### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/webhook_controller.py`
-
-- [MAJOR] `python:S8415` (line `57`, type `CODE_SMELL`): Document this HTTPException with status code 401 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `64`, type `CODE_SMELL`): Document this HTTPException with status code 400 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `85`, type `CODE_SMELL`): Document this HTTPException with status code 404 in the "responses" parameter.
-- [MAJOR] `python:S8415` (line `99`, type `CODE_SMELL`): Document this HTTPException with status code 500 in the "responses" parameter.
-
-### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/websocket_controller.py`
-
-- [INFO] `python:S1135` (line `147`, type `CODE_SMELL`): Complete the task associated to this "TODO" comment.
-- [MINOR] `python:S7503` (line `29`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
-- [MINOR] `python:S7504` (line `57`, type `CODE_SMELL`): Remove this unnecessary `list()` call on an already iterable object.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py`
 
@@ -188,32 +124,15 @@
 - [MAJOR] `python:S112` (line `82`, type `CODE_SMELL`): Replace this generic exception class with a more specific one.
 - [MAJOR] `python:S112` (line `85`, type `CODE_SMELL`): Replace this generic exception class with a more specific one.
 
-### `ashrafsheri_distil_bert_log_finetune:backend/app/services/project_member_service.py`
-
-- [MAJOR] `python:S3457` (line `77`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py`
 
 - [CRITICAL] `python:S3776` (line `262`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.
 - [CRITICAL] `python:S5754` (line `328`, type `CODE_SMELL`): Specify an exception class to catch or reraise the exception
 - [CRITICAL] `python:S6903` (line `370`, type `CODE_SMELL`): Don't use `datetime.datetime.utcnow` to create this datetime object.
 
-### `ashrafsheri_distil_bert_log_finetune:backend/app/utils/database.py`
-
-- [CRITICAL] `python:S1192` (line `157`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/users/uid" 3 times.
-- [CRITICAL] `python:S1192` (line `176`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/organizations/my-organizations" 3 times.
-- [CRITICAL] `python:S1192` (line `177`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/organizations/{org_id}" 5 times.
-- [CRITICAL] `python:S1192` (line `184`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/projects/my-projects" 3 times.
-- [CRITICAL] `python:S1192` (line `185`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/projects/{project_id}" 7 times.
-- [CRITICAL] `python:S1192` (line `189`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/projects/{project_id}/members" 4 times.
-- [CRITICAL] `python:S1192` (line `195`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/projects/{project_id}/available-members" 3 times.
-- [CRITICAL] `python:S1192` (line `245`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "/api/v1/fetch" 3 times.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py`
 
 - [CRITICAL] `python:S3776` (line `144`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.
-- [MAJOR] `python:S3457` (line `194`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-- [MAJOR] `python:S3457` (line `201`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
 - [MINOR] `python:S7503` (line `87`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/migrations/001_add_model_tracking_to_orgs.sql`
@@ -225,29 +144,10 @@
 - [MAJOR] `plsql:SelectStarCheck` (line `10`, type `CODE_SMELL`): SELECT * should not be used.
 - [MAJOR] `plsql:SelectStarCheck` (line `13`, type `CODE_SMELL`): SELECT * should not be used.
 
-### `ashrafsheri_distil_bert_log_finetune:fluent-bit/install.sh`
-
-- [MAJOR] `shelldre:S7688` (line `23`, type `CODE_SMELL`): Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.
-- [MAJOR] `shelldre:S7688` (line `102`, type `CODE_SMELL`): Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.
-- [MAJOR] `shelldre:S7688` (line `105`, type `CODE_SMELL`): Use '[[' instead of '[' for conditional tests. The '[[' construct is safer and more feature-rich.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/Dockerfile`
-
-- [MINOR] `docker:S7031` (line `35`, type `CODE_SMELL`): Merge this RUN instruction with the consecutive ones.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ApiKeyRegenerationResult.tsx`
-
-- [MAJOR] `typescript:S6853` (line `42`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `49`, type `CODE_SMELL`): A form label must be associated with a control.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/Card.tsx`
-
-- [MAJOR] `typescript:S6845` (line `38`, type `CODE_SMELL`): `tabIndex` should only be declared on interactive elements.
-- [MAJOR] `typescript:S6848` (line `29`, type `CODE_SMELL`): Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element.
-
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx`
 
-- [MINOR] `typescript:S7764` (line `39`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
+- [CRITICAL] `typescript:S3735` (line `23`, type `CODE_SMELL`): Remove this use of the "void" operator.
+- [CRITICAL] `typescript:S3735` (line `24`, type `CODE_SMELL`): Remove this use of the "void" operator.
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx`
 
@@ -257,11 +157,10 @@
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx`
 
-- [MAJOR] `typescript:S6478` (line `31`, type `CODE_SMELL`): Move this component definition out of the parent component and pass data as props.
-- [MAJOR] `typescript:S6853` (line `57`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `67`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `77`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `87`, type `CODE_SMELL`): A form label must be associated with a control.
+- [MAJOR] `typescript:S6853` (line `64`, type `CODE_SMELL`): A form label must be associated with a control.
+- [MAJOR] `typescript:S6853` (line `74`, type `CODE_SMELL`): A form label must be associated with a control.
+- [MAJOR] `typescript:S6853` (line `84`, type `CODE_SMELL`): A form label must be associated with a control.
+- [MAJOR] `typescript:S6853` (line `94`, type `CODE_SMELL`): A form label must be associated with a control.
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx`
 
@@ -335,6 +234,7 @@
 - [MAJOR] `typescript:S3358` (line `765`, type `CODE_SMELL`): Extract this nested ternary operation into an independent statement.
 - [MAJOR] `typescript:S6660` (line `294`, type `CODE_SMELL`): 'If' statement should not be the only statement in 'else' block
 - [MAJOR] `typescript:S7762` (line `273`, type `CODE_SMELL`): Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.
+- [MINOR] `typescript:S4325` (line `403`, type `CODE_SMELL`): This assertion is unnecessary since it does not change the type of the expression.
 - [MINOR] `typescript:S7735` (line `606`, type `CODE_SMELL`): Unexpected negated condition.
 - [MINOR] `typescript:S7764` (line `266`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
 - [MINOR] `typescript:S7764` (line `274`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
