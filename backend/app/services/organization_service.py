@@ -13,6 +13,7 @@ from sqlalchemy import select, func
 from app.models.organization import OrganizationCreate, OrganizationResponse, OrganizationSummary, OrganizationUpdate
 from app.models.organization_db import OrganizationDB
 from app.models.project_db import ProjectDB
+from app.models.project import generate_api_key
 from app.models.user_db import UserDB, RoleEnum
 import logging
 
@@ -52,6 +53,9 @@ class OrganizationService:
         
         # Generate unique org ID
         org_id = f"org-{uuid.uuid4().hex[:8]}"
+        
+        # Generate unique API key
+        api_key = generate_api_key()
 
         # Generate a random password for the manager
         alphabet = string.ascii_letters + string.digits + "!@#$%^&*()"
@@ -88,6 +92,7 @@ class OrganizationService:
         org_db = OrganizationDB(
             id=org_id,
             name=org_data.name,
+            api_key=api_key,
             created_by=creator_uid
         )
         db.add(org_db)
