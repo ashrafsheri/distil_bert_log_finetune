@@ -63,7 +63,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
           establishWebSocketConnection(data.websocket_id);
         }
       } else {
-        throw new Error('Invalid data format received');
+        throw new TypeError('Invalid data format received');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch logs');
@@ -135,7 +135,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
             const message = JSON.parse(event.data);
             
             // Handle wrapped WebSocket message format
-            if (message && message.type === 'log_update' && message.data) {
+            if (message?.type === 'log_update' && message.data) {
               const newLog = message.data;
               
               // Update logs array

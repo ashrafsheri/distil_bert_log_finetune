@@ -61,9 +61,9 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-300 mb-2">Organization ID</label>
+          <div className="block text-sm font-medium text-slate-300 mb-2">Organization ID</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
+            <code aria-label="Organization ID" className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {orgId}
             </code>
             <CopyButton copiedField={copiedField} fieldName="orgId" onCopy={copyToClipboard} text={orgId} />
@@ -71,9 +71,9 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
         </div>
 
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-300 mb-2">Organization Name</label>
+          <div className="block text-sm font-medium text-slate-300 mb-2">Organization Name</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
+            <code aria-label="Organization name" className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {orgName}
             </code>
             <CopyButton copiedField={copiedField} fieldName="orgName" onCopy={copyToClipboard} text={orgName} />
@@ -81,9 +81,9 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
         </div>
 
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-300 mb-2">Manager Email</label>
+          <div className="block text-sm font-medium text-slate-300 mb-2">Manager Email</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
+            <code aria-label="Manager email" className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {managerEmail}
             </code>
             <CopyButton copiedField={copiedField} fieldName="managerEmail" onCopy={copyToClipboard} text={managerEmail} />
@@ -91,9 +91,9 @@ const OrgCreationResult: React.FC<OrgCreationResultProps> = ({
         </div>
 
         <div className="bg-slate-700/30 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-300 mb-2">Manager Password</label>
+          <div className="block text-sm font-medium text-slate-300 mb-2">Manager Password</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
+            <code aria-label="Manager password" className="flex-1 bg-slate-800 px-3 py-2 rounded text-slate-200 font-mono text-sm break-all">
               {managerPassword}
             </code>
             <CopyButton copiedField={copiedField} fieldName="managerPassword" onCopy={copyToClipboard} text={managerPassword} />

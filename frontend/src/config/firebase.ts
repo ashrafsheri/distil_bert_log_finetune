@@ -13,30 +13,38 @@ const firebaseConfig = {
 };
 
 // Validate that Firebase config has required values
-const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.authDomain;
+const isConfigValid = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.authDomain);
 
-// Initialize Firebase
-let app: ReturnType<typeof initializeApp> | null = null;
-let auth: ReturnType<typeof getAuth> | null = null;
-// Separate auth instance for user creation (admin operations)
-let adminAuth: ReturnType<typeof getAuth> | null = null;
-let adminApp: ReturnType<typeof initializeApp> | null = null;
-
-try {
-  if (isConfigValid) {
-    // Main app for user login
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    
-    // Admin app for creating users without switching sessions
-    adminApp = initializeApp(firebaseConfig, 'ADMIN_APP');
-    adminAuth = getAuth(adminApp);
+const firebaseInstances = (() => {
+  if (!isConfigValid) {
+    return {
+      app: null,
+      auth: null,
+      adminApp: null,
+      adminAuth: null,
+    };
   }
-} catch (error) {
-  // Firebase initialization error - silently fail
-}
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const adminApp = initializeApp(firebaseConfig, 'ADMIN_APP');
+    const adminAuth = getAuth(adminApp);
+
+    return { app, auth, adminApp, adminAuth };
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    return {
+      app: null,
+      auth: null,
+      adminApp: null,
+      adminAuth: null,
+    };
+  }
+})();
 
 // Initialize Firebase Authentication and get a reference to the service
 // Note: auth may be null if initialization failed
-export { auth, adminAuth };
-export default app;
+export const auth = firebaseInstances.auth;
+export const adminAuth = firebaseInstances.adminAuth;
+export default firebaseInstances.app;

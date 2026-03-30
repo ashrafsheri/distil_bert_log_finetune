@@ -13,6 +13,8 @@ interface CreateOrgFormData {
 }
 
 const AdminDashboardPage: React.FC = () => {
+  const organizationNameInputId = 'organization-name';
+  const managerEmailInputId = 'manager-email';
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState<OrgSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,24 +67,24 @@ const AdminDashboardPage: React.FC = () => {
       setShowCreateForm(false);
       fetchOrgs(); // Refresh the list
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create organization');
+      globalThis.alert(err instanceof Error ? err.message : 'Failed to create organization');
     } finally {
       setCreateLoading(false);
     }
   };
 
   const handleDeleteOrg = async (orgId: string) => {
-    if (!confirm(`Are you sure you want to delete organization "${orgId}"? This action cannot be undone.`)) {
+    if (!globalThis.confirm(`Are you sure you want to delete organization "${orgId}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
       setActionLoading(orgId);
       await adminService.deleteOrg(orgId);
-      alert('Organization deleted successfully');
+      globalThis.alert('Organization deleted successfully');
       fetchOrgs(); // Refresh the list
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete organization');
+      globalThis.alert(err instanceof Error ? err.message : 'Failed to delete organization');
     } finally {
       setActionLoading(null);
     }
@@ -118,10 +120,11 @@ const AdminDashboardPage: React.FC = () => {
             <h2 className="text-2xl font-semibold text-white mb-6">Create New Organization</h2>
             <form onSubmit={handleCreateOrg} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <label htmlFor={organizationNameInputId} className="block text-sm font-medium text-slate-300 mb-3">
                   Organization Name
                 </label>
                 <input
+                  id={organizationNameInputId}
                   type="text"
                   value={createFormData.name}
                   onChange={(e) => setCreateFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -131,10 +134,11 @@ const AdminDashboardPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <label htmlFor={managerEmailInputId} className="block text-sm font-medium text-slate-300 mb-3">
                   Manager Email
                 </label>
                 <input
+                  id={managerEmailInputId}
                   type="email"
                   value={createFormData.email}
                   onChange={(e) => setCreateFormData(prev => ({ ...prev, email: e.target.value }))}

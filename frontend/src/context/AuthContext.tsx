@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { User } from 'firebase/auth';
-import { authService } from '../services/authService';
-import { LoginCredentials, SignupCredentials } from '../services/authService';
+import { authService, LoginCredentials, SignupCredentials } from '../services/authService';
 import { userService, User as BackendUser } from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -45,11 +44,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userInfoData = await userService.getCurrentUser();
         setUserInfo(userInfoData);
       } catch (error) {
+        console.error('Failed to fetch current user info:', error);
         // If fetching user info fails, logout the user
         try {
           await authService.logout();
-        } catch {
-          // Error during logout - silently fail
+        } catch (logoutError) {
+          console.error('Failed to logout after user info fetch error:', logoutError);
         }
         setUserInfo(null);
         setCurrentUser(null);
@@ -80,7 +80,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearTimeout(timeoutId);
         unsubscribe();
       };
-    } catch {
+    } catch (error) {
+      console.error('Failed to subscribe to auth state changes:', error);
       if (mounted) {
         setLoading(false);
       }
@@ -97,11 +98,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // State will update automatically via onAuthStateChange
       return userInfoData; // Return the user info so caller can use it
     } catch (error) {
+      console.error('Failed to fetch user info after login:', error);
       // If fetching user info fails, logout and throw error
       try {
         await authService.logout();
-      } catch {
-        // Error during logout - silently fail
+      } catch (logoutError) {
+        console.error('Failed to logout after login user-info fetch error:', logoutError);
       }
       setUserInfo(null);
       setCurrentUser(null);
@@ -121,14 +123,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // State will update automatically via onAuthStateChange
   };
 
-  const value: AuthContextType = {
+  const value = useMemo<AuthContextType>(() => ({
     currentUser,
     userInfo,
     loading,
     login,
     createUser,
     logout,
-  };
+  }), [currentUser, userInfo, loading]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -142,4 +144,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-

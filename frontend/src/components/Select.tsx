@@ -34,8 +34,8 @@ const Select = <T extends string | number = string>({
       <select
         id={id}
         name={name}
-        value={value as string | number}
-        onChange={(e) => onChange((e.target.value as unknown) as T)}
+        value={value}
+        onChange={(e) => onChange(e.target.value as T | '')}
         disabled={disabled}
         className={`w-full ${sizeClasses} bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent transition-all appearance-none cursor-pointer ${className}`}
         style={{ colorScheme: 'dark' }}
@@ -49,7 +49,7 @@ const Select = <T extends string | number = string>({
         {options.map((opt) => (
           <option
             key={String(opt.value)}
-            value={opt.value as string | number}
+            value={opt.value}
             style={{ backgroundColor: '#1a1a1a', color: '#e5e5e5' }}
           >
             {opt.label}
@@ -66,5 +66,4 @@ const Select = <T extends string | number = string>({
 };
 
 export default Select;
-
 
