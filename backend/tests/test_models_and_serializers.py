@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost/test_db",
+)
 
 from app.models.project import generate_api_key
 from app.serializers.log_serializer import LogSerializer
