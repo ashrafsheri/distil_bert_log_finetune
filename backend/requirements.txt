@@ -33,6 +33,7 @@ structlog==23.2.0
 # Development dependencies
 pytest==7.4.3
 pytest-asyncio==0.21.1
+pytest-cov==5.0.0
 httpx==0.25.2
 
 # Firebase Admin SDK for JWT verification

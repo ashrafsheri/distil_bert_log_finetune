@@ -48,14 +48,14 @@
 <body>
   <h1>Sonar Report</h1>
   <p class="meta"><strong>Project:</strong> <code>ashrafsheri_distil_bert_log_finetune</code></p>
-  <p class="meta"><strong>Generated:</strong> <code>2026-03-29T23:58:32.618160+00:00</code></p>
+  <p class="meta"><strong>Generated:</strong> <code>2026-03-30T00:40:05.711213+00:00</code></p>
   <p class="meta"><strong>Dashboard:</strong> <a href="https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune">https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune</a></p>
 
   <section class="grid">
     <div class="card"><h3>Quality Gate</h3><p><strong>ERROR</strong></p></div>
     <div class="card"><h3>Bugs</h3><p><strong>0</strong></p></div>
     <div class="card"><h3>Vulnerabilities</h3><p><strong>0</strong></p></div>
-    <div class="card"><h3>Code Smells</h3><p><strong>323</strong></p></div>
+    <div class="card"><h3>Code Smells</h3><p><strong>255</strong></p></div>
     <div class="card"><h3>Coverage</h3><p><strong>0.0%</strong></p></div>
     <div class="card"><h3>Security Hotspots</h3><p><strong>154</strong></p></div>
   </section>
@@ -66,8 +66,8 @@
       <li>Reliability: <strong>A</strong></li>
       <li>Security: <strong>A</strong></li>
       <li>Maintainability: <strong>A</strong></li>
-      <li>Duplicated Lines Density: <strong>0.6%</strong></li>
-      <li>Lines of Code: <strong>23337</strong></li>
+      <li>Duplicated Lines Density: <strong>0.7%</strong></li>
+      <li>Lines of Code: <strong>22533</strong></li>
     </ul>
   </section>
 
@@ -81,40 +81,40 @@
 <tr><td>new_security_rating</td><td>OK</td><td>1</td><td>1</td></tr>
 <tr><td>new_maintainability_rating</td><td>OK</td><td>1</td><td>1</td></tr>
 <tr><td>new_coverage</td><td>ERROR</td><td>0.0</td><td>80</td></tr>
-<tr><td>new_duplicated_lines_density</td><td>OK</td><td>1.1</td><td>3</td></tr>
+<tr><td>new_duplicated_lines_density</td><td>OK</td><td>2.7</td><td>3</td></tr>
 <tr><td>new_security_hotspots_reviewed</td><td>ERROR</td><td>0.0</td><td>100</td></tr></tbody>
     </table>
   </section>
 
   <section class="card">
     <h2>Issue Summary</h2>
-    <p><strong>Total issues:</strong> 323</p>
-    <p><strong>By severity:</strong> <code>{&quot;CRITICAL&quot;: 83, &quot;INFO&quot;: 1, &quot;MAJOR&quot;: 186, &quot;MINOR&quot;: 53}</code></p>
-    <p><strong>By type:</strong> <code>{&quot;CODE_SMELL&quot;: 323}</code></p>
+    <p><strong>Total issues:</strong> 255</p>
+    <p><strong>By severity:</strong> <code>{&quot;CRITICAL&quot;: 67, &quot;INFO&quot;: 1, &quot;MAJOR&quot;: 152, &quot;MINOR&quot;: 35}</code></p>
+    <p><strong>By type:</strong> <code>{&quot;CODE_SMELL&quot;: 255}</code></p>
     <table>
       <thead>
         <tr><th>Rule</th><th>Count</th></tr>
       </thead>
-      <tbody><tr><td>python:S3457</td><td>50</td></tr>
-<tr><td>python:S1192</td><td>35</td></tr>
+      <tbody><tr><td>python:S3457</td><td>49</td></tr>
 <tr><td>python:S8415</td><td>32</td></tr>
-<tr><td>typescript:S6853</td><td>26</td></tr>
-<tr><td>python:S3776</td><td>24</td></tr>
+<tr><td>python:S1192</td><td>29</td></tr>
+<tr><td>python:S3776</td><td>23</td></tr>
 <tr><td>shelldre:S7688</td><td>11</td></tr>
-<tr><td>python:S6903</td><td>8</td></tr>
-<tr><td>python:S5754</td><td>8</td></tr>
-<tr><td>typescript:S7764</td><td>7</td></tr>
+<tr><td>python:S5754</td><td>7</td></tr>
 <tr><td>python:S7503</td><td>7</td></tr>
 <tr><td>python:S125</td><td>6</td></tr>
 <tr><td>shelldre:S7682</td><td>6</td></tr>
-<tr><td>typescript:S7773</td><td>6</td></tr>
+<tr><td>python:S6903</td><td>5</td></tr>
 <tr><td>shelldre:S7679</td><td>5</td></tr>
+<tr><td>typescript:S7764</td><td>5</td></tr>
 <tr><td>python:S1481</td><td>4</td></tr>
-<tr><td>typescript:S4325</td><td>4</td></tr>
 <tr><td>python:S3358</td><td>4</td></tr>
 <tr><td>typescript:S7735</td><td>4</td></tr>
 <tr><td>python:S6983</td><td>4</td></tr>
-<tr><td>python:S1172</td><td>4</td></tr></tbody>
+<tr><td>python:S1172</td><td>4</td></tr>
+<tr><td>python:S1871</td><td>4</td></tr>
+<tr><td>plsql:SelectStarCheck</td><td>3</td></tr>
+<tr><td>kubernetes:S6897</td><td>3</td></tr></tbody>
     </table>
   </section>
 
@@ -140,19 +140,6 @@
             </section>
             
             <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>38</td><td>Define a constant instead of duplicating this literal &quot;Failed to retrieve projects&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>41</td><td>Define a constant instead of duplicating this literal &quot;You don&#x27;t have permission to update this project&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>71</td><td>Define a constant instead of duplicating this literal &quot;Failed to add member&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>78</td><td>Define a constant instead of duplicating this literal &quot;Project member not found&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>92</td><td>Define a constant instead of duplicating this literal &quot;Failed to retrieve available members&quot; 4 times.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
               <h3>ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py</h3>
               <table>
                 <thead>
@@ -172,7 +159,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>164</td><td>Define a constant instead of duplicating this literal &quot;org_id.keyword&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>209</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>78</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>115</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3358</td><td>257</td><td>Extract this nested conditional expression into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>108</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>74</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>94</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>145</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>209</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>282</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>210</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3358</td><td>258</td><td>Extract this nested conditional expression into an independent statement.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>75</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>95</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>146</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>210</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>283</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
                 </tbody>
               </table>
               
@@ -205,26 +192,13 @@
             </section>
             
             <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/organization_service.py</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S112</td><td>82</td><td>Replace this generic exception class with a more specific one.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S112</td><td>85</td><td>Replace this generic exception class with a more specific one.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
               <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py</h3>
               <table>
                 <thead>
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>262</td><td>Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>328</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>370</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>262</td><td>Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.</td></tr>
                 </tbody>
               </table>
               
@@ -237,7 +211,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>144</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>87</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>86</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
                 </tbody>
               </table>
               
@@ -270,19 +244,6 @@
             </section>
             
             <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3735</td><td>23</td><td>Remove this use of the &quot;void&quot; operator.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3735</td><td>24</td><td>Remove this use of the &quot;void&quot; operator.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
               <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx</h3>
               <table>
                 <thead>
@@ -296,130 +257,13 @@
             </section>
             
             <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>64</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>74</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>84</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>94</td><td>A form label must be associated with a control.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>33</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>42</td><td>A form label must be associated with a control.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S6767</td><td>6</td><td>&#x27;projectName&#x27; PropType is defined but prop is never used</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/Select.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S4325</td><td>37</td><td>This assertion is unnecessary since it does not change the type of the expression.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S4325</td><td>52</td><td>This assertion is unnecessary since it does not change the type of the expression.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>108</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>126</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>144</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>165</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>182</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>199</td><td>A form label must be associated with a control.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>117</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>135</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>153</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>174</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>191</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7773</td><td>208</td><td>Prefer `Number.parseFloat` over `parseFloat`.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S6861</td><td>19</td><td>Exporting mutable &#x27;let&#x27; binding, use &#x27;const&#x27; instead.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S6861</td><td>20</td><td>Exporting mutable &#x27;let&#x27; binding, use &#x27;const&#x27; instead.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S6861</td><td>22</td><td>Exporting mutable &#x27;let&#x27; binding, use &#x27;const&#x27; instead.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S2486</td><td>35</td><td>Handle this exception or don&#x27;t catch it at all.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6481</td><td>124</td><td>The &#x27;value&#x27; object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S2486</td><td>47</td><td>Handle this exception or don&#x27;t catch it at all.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S2486</td><td>99</td><td>Handle this exception or don&#x27;t catch it at all.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S3863</td><td>3</td><td>&#x27;../services/authService&#x27; imported multiple times.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S3863</td><td>4</td><td>&#x27;../services/authService&#x27; imported multiple times.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/context/ThemeContext.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6481</td><td>41</td><td>The &#x27;value&#x27; object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/hooks/useLogs.ts</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6582</td><td>138</td><td>Prefer using an optional chain expression instead, as it&#x27;s more concise and easier to read.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7786</td><td>66</td><td>`new Error()` is too unspecific for a type check. Use `new TypeError()` instead.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
-              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx</h3>
-              <table>
-                <thead>
-                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6844</td><td>195</td><td>The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6844</td><td>196</td><td>The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6844</td><td>197</td><td>The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.</td></tr>
-                </tbody>
-              </table>
-              
-            </section>
-            
-            <section class="card">
               <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx</h3>
               <table>
                 <thead>
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>121</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>134</td><td>A form label must be associated with a control.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>214</td><td>Unexpected negated condition.</td></tr>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>218</td><td>Unexpected negated condition.</td></tr>
                 </tbody>
               </table>
               
@@ -432,7 +276,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3776</td><td>13</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>6</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>149</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>157</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>724</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>765</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6660</td><td>294</td><td>&#x27;If&#x27; statement should not be the only statement in &#x27;else&#x27; block</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>273</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S4325</td><td>403</td><td>This assertion is unnecessary since it does not change the type of the expression.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>606</td><td>Unexpected negated condition.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>266</td><td>Prefer `globalThis` over `window`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>274</td><td>Prefer `globalThis` over `window`.</td></tr>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3776</td><td>13</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>6</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>149</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>157</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>724</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>765</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6660</td><td>294</td><td>&#x27;If&#x27; statement should not be the only statement in &#x27;else&#x27; block</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>273</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>606</td><td>Unexpected negated condition.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>266</td><td>Prefer `globalThis` over `window`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>274</td><td>Prefer `globalThis` over `window`.</td></tr>
                 </tbody>
               </table>
               
@@ -458,7 +302,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>254</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>269</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>288</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>300</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>481</td><td>A form label must be associated with a control.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>398</td><td>Unexpected negated condition.</td></tr>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>407</td><td>Unexpected negated condition.</td></tr>
                 </tbody>
               </table>
               
@@ -471,7 +315,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>157</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>183</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>217</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>229</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>245</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>257</td><td>A form label must be associated with a control.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>121</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>112</td><td>Prefer `globalThis` over `window`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>122</td><td>Prefer `globalThis` over `window`.</td></tr>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>126</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr>
                 </tbody>
               </table>
               
@@ -588,7 +432,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>24</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>23</td><td>Specify a storage request for this container.</td></tr>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>26</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>25</td><td>Specify a storage request for this container.</td></tr>
                 </tbody>
               </table>
               
@@ -601,7 +445,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>35</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>34</td><td>Specify a storage request for this container.</td></tr>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>37</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>36</td><td>Specify a storage request for this container.</td></tr>
                 </tbody>
               </table>
               
@@ -614,7 +458,7 @@
                   <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>24</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>23</td><td>Specify a storage request for this container.</td></tr>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>26</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>25</td><td>Specify a storage request for this container.</td></tr>
                 </tbody>
               </table>
               

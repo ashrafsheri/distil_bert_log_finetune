@@ -1,6 +1,6 @@
 {
   "dashboard_url": "https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune",
-  "generated_at_utc": "2026-03-29T23:58:32.618160+00:00",
+  "generated_at_utc": "2026-03-30T00:40:05.711213+00:00",
   "hotspots": {
     "by_status": {
       "REVIEWED": 1,
@@ -1013,49 +1013,37 @@
   },
   "issue_counts": {
     "by_severity": {
-      "CRITICAL": 83,
+      "CRITICAL": 67,
       "INFO": 1,
-      "MAJOR": 186,
-      "MINOR": 53
+      "MAJOR": 152,
+      "MINOR": 35
     },
     "by_type": {
-      "CODE_SMELL": 323
+      "CODE_SMELL": 255
     },
     "top_rules": [
       [
         "python:S3457",
-        50
-      ],
-      [
-        "python:S1192",
-        35
+        49
       ],
       [
         "python:S8415",
         32
       ],
       [
-        "typescript:S6853",
-        26
+        "python:S1192",
+        29
       ],
       [
         "python:S3776",
-        24
+        23
       ],
       [
         "shelldre:S7688",
         11
       ],
       [
-        "python:S6903",
-        8
-      ],
-      [
         "python:S5754",
-        8
-      ],
-      [
-        "typescript:S7764",
         7
       ],
       [
@@ -1071,19 +1059,19 @@
         6
       ],
       [
-        "typescript:S7773",
-        6
+        "python:S6903",
+        5
       ],
       [
         "shelldre:S7679",
         5
       ],
       [
-        "python:S1481",
-        4
+        "typescript:S7764",
+        5
       ],
       [
-        "typescript:S4325",
+        "python:S1481",
         4
       ],
       [
@@ -1101,9 +1089,21 @@
       [
         "python:S1172",
         4
+      ],
+      [
+        "python:S1871",
+        4
+      ],
+      [
+        "plsql:SelectStarCheck",
+        3
+      ],
+      [
+        "kubernetes:S6897",
+        3
       ]
     ],
-    "total": 323
+    "total": 255
   },
   "issues_by_file": {
     "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/log_controller.py": [
@@ -1645,385 +1645,6 @@
         "updateDate": "2026-03-29T11:14:09+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py": [
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 165,
-                  "endOffset": 81,
-                  "startLine": 165,
-                  "startOffset": 52
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 193,
-                  "endOffset": 81,
-                  "startLine": 193,
-                  "startOffset": 52
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "48165d0dee196c4e4693d0a6833f13d1",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_l-7UQIsvQ7tySPk",
-        "line": 38,
-        "message": "Define a constant instead of duplicating this literal \"Failed to retrieve projects\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 38,
-          "endOffset": 54,
-          "startLine": 38,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "8min",
-        "effort": "8min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 51,
-                  "endOffset": 75,
-                  "startLine": 51,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 230,
-                  "endOffset": 106,
-                  "startLine": 230,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 329,
-                  "endOffset": 106,
-                  "startLine": 329,
-                  "startOffset": 56
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "04c29b1b4266e9d38f45552d09518cc1",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_l-7UQIsvQ7tySPm",
-        "line": 41,
-        "message": "Define a constant instead of duplicating this literal \"You don't have permission to update this project\" 4 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 41,
-          "endOffset": 75,
-          "startLine": 41,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 74,
-                  "endOffset": 47,
-                  "startLine": 74,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 526,
-                  "endOffset": 74,
-                  "startLine": 526,
-                  "startOffset": 52
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "a8695ab03b4c198e25a501a574a8c568",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_l-7UQIsvQ7tySPo",
-        "line": 71,
-        "message": "Define a constant instead of duplicating this literal \"Failed to add member\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 71,
-          "endOffset": 47,
-          "startLine": 71,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "8min",
-        "effort": "8min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 83,
-                  "endOffset": 51,
-                  "startLine": 83,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 567,
-                  "endOffset": 82,
-                  "startLine": 567,
-                  "startOffset": 56
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 616,
-                  "endOffset": 82,
-                  "startLine": 616,
-                  "startOffset": 56
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "2985524bdf2a5d516b6ae00679fd3a82",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_l-7UQIsvQ7tySPn",
-        "line": 78,
-        "message": "Define a constant instead of duplicating this literal \"Project member not found\" 4 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 78,
-          "endOffset": 51,
-          "startLine": 78,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "8min",
-        "effort": "8min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 95,
-                  "endOffset": 63,
-                  "startLine": 95,
-                  "startOffset": 25
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 709,
-                  "endOffset": 90,
-                  "startLine": 709,
-                  "startOffset": 52
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 714,
-                  "endOffset": 90,
-                  "startLine": 714,
-                  "startOffset": 52
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "c6f7295d8eae8f1304417fa10d2e1587",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_l-7UQIsvQ7tySPl",
-        "line": 92,
-        "message": "Define a constant instead of duplicating this literal \"Failed to retrieve available members\" 4 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 92,
-          "endOffset": 63,
-          "startLine": 92,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py": [
       {
         "cleanCodeAttribute": "FOCUSED",
@@ -2403,73 +2024,6 @@
     ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py": [
       {
-        "cleanCodeAttribute": "DISTINCT",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-        "creationDate": "2026-01-25T15:13:57+0000",
-        "debt": "6min",
-        "effort": "6min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 234,
-                  "endOffset": 66,
-                  "startLine": 234,
-                  "startOffset": 50
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-                "msg": "Duplication",
-                "textRange": {
-                  "endLine": 304,
-                  "endOffset": 54,
-                  "startLine": 304,
-                  "startOffset": 38
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "17ca7eaae3e77ee85e51dc8e8e6d5cb3",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv1uNL12BakEJWmhoDt",
-        "line": 164,
-        "message": "Define a constant instead of duplicating this literal \"org_id.keyword\" 3 times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S1192",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "design"
-        ],
-        "textRange": {
-          "endLine": 164,
-          "endOffset": 62,
-          "startLine": 164,
-          "startOffset": 46
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T15:13:57+0000"
-      },
-      {
         "cleanCodeAttribute": "FOCUSED",
         "cleanCodeAttributeCategory": "ADAPTABLE",
         "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
@@ -2483,9 +2037,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 229,
+                  "endLine": 230,
                   "endOffset": 10,
-                  "startLine": 229,
+                  "startLine": 230,
                   "startOffset": 8
                 }
               }
@@ -2497,9 +2051,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 236,
+                  "endLine": 237,
                   "endOffset": 14,
-                  "startLine": 236,
+                  "startLine": 237,
                   "startOffset": 12
                 }
               }
@@ -2511,9 +2065,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 238,
+                  "endLine": 239,
                   "endOffset": 14,
-                  "startLine": 238,
+                  "startLine": 239,
                   "startOffset": 12
                 }
               }
@@ -2525,9 +2079,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 240,
+                  "endLine": 241,
                   "endOffset": 14,
-                  "startLine": 240,
+                  "startLine": 241,
                   "startOffset": 12
                 }
               }
@@ -2539,9 +2093,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 242,
+                  "endLine": 243,
                   "endOffset": 14,
-                  "startLine": 242,
+                  "startLine": 243,
                   "startOffset": 12
                 }
               }
@@ -2553,9 +2107,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 246,
+                  "endLine": 247,
                   "endOffset": 14,
-                  "startLine": 246,
+                  "startLine": 247,
                   "startOffset": 12
                 }
               }
@@ -2567,9 +2121,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 246,
+                  "endLine": 247,
                   "endOffset": 31,
-                  "startLine": 246,
+                  "startLine": 247,
                   "startOffset": 29
                 }
               }
@@ -2581,9 +2135,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+2 (incl 1 for nesting)",
                 "textRange": {
-                  "endLine": 248,
+                  "endLine": 249,
                   "endOffset": 18,
-                  "startLine": 248,
+                  "startLine": 249,
                   "startOffset": 16
                 }
               }
@@ -2595,9 +2149,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+2 (incl 1 for nesting)",
                 "textRange": {
-                  "endLine": 250,
+                  "endLine": 251,
                   "endOffset": 18,
-                  "startLine": 250,
+                  "startLine": 251,
                   "startOffset": 16
                 }
               }
@@ -2609,9 +2163,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 257,
+                  "endLine": 258,
                   "endOffset": 50,
-                  "startLine": 257,
+                  "startLine": 258,
                   "startOffset": 48
                 }
               }
@@ -2623,9 +2177,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 257,
+                  "endLine": 258,
                   "endOffset": 91,
-                  "startLine": 257,
+                  "startLine": 258,
                   "startOffset": 89
                 }
               }
@@ -2637,9 +2191,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+2 (incl 1 for nesting)",
                 "textRange": {
-                  "endLine": 257,
+                  "endLine": 258,
                   "endOffset": 133,
-                  "startLine": 257,
+                  "startLine": 258,
                   "startOffset": 131
                 }
               }
@@ -2651,9 +2205,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 269,
+                  "endLine": 270,
                   "endOffset": 15,
-                  "startLine": 269,
+                  "startLine": 270,
                   "startOffset": 12
                 }
               }
@@ -2665,9 +2219,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 273,
+                  "endLine": 274,
                   "endOffset": 42,
-                  "startLine": 273,
+                  "startLine": 274,
                   "startOffset": 40
                 }
               }
@@ -2679,9 +2233,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "+1",
                 "textRange": {
-                  "endLine": 277,
+                  "endLine": 278,
                   "endOffset": 14,
-                  "startLine": 277,
+                  "startLine": 278,
                   "startOffset": 8
                 }
               }
@@ -2698,7 +2252,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcM",
-        "line": 209,
+        "line": 210,
         "message": "Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -2710,96 +2264,10 @@
           "brain-overload"
         ],
         "textRange": {
-          "endLine": 209,
+          "endLine": 210,
           "endOffset": 25,
-          "startLine": 209,
+          "startLine": 210,
           "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-        "creationDate": "2025-10-23T00:21:31+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "fe13703dd98292a035d877913be5bea5",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45ddRcqSqORs_NMcE",
-        "line": 78,
-        "message": "Don't use `datetime.datetime.utcnow` to create this datetime object.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S6903",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "datetime",
-          "pitfall"
-        ],
-        "textRange": {
-          "endLine": 78,
-          "endOffset": 54,
-          "startLine": 78,
-          "startOffset": 37
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-        "creationDate": "2025-10-23T00:21:31+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "fe13703dd98292a035d877913be5bea5",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45ddRcqSqORs_NMcG",
-        "line": 115,
-        "message": "Don't use `datetime.datetime.utcnow` to create this datetime object.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S6903",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "datetime",
-          "pitfall"
-        ],
-        "textRange": {
-          "endLine": 115,
-          "endOffset": 58,
-          "startLine": 115,
-          "startOffset": 41
         },
         "type": "CODE_SMELL",
         "updateDate": "2025-12-07T12:59:14+0000"
@@ -2818,9 +2286,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "Parent conditional expression.",
                 "textRange": {
-                  "endLine": 257,
+                  "endLine": 258,
                   "endOffset": 91,
-                  "startLine": 257,
+                  "startLine": 258,
                   "startOffset": 89
                 }
               }
@@ -2837,7 +2305,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcN",
-        "line": 257,
+        "line": 258,
         "message": "Extract this nested conditional expression into an independent statement.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -2849,51 +2317,13 @@
           "confusing"
         ],
         "textRange": {
-          "endLine": 257,
+          "endLine": 258,
           "endOffset": 158,
-          "startLine": 257,
+          "startLine": 258,
           "startOffset": 111
         },
         "type": "CODE_SMELL",
         "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
-        "creationDate": "2026-02-09T13:50:03+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "ecbe04c1a39f2d8d7ed773b775a2d94f",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZxCq7l1nr4bQM9MgF2g",
-        "line": 108,
-        "message": "Add replacement fields or use a normal string instead of an f-string.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3457",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "confusing"
-        ],
-        "textRange": {
-          "endLine": 108,
-          "endOffset": 65,
-          "startLine": 108,
-          "startOffset": 25
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-09T13:50:26+0000"
       },
       {
         "cleanCodeAttribute": "CONVENTIONAL",
@@ -2909,9 +2339,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 74,
+                  "endLine": 75,
                   "endOffset": 9,
-                  "startLine": 74,
+                  "startLine": 75,
                   "startOffset": 4
                 }
               }
@@ -2932,7 +2362,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcD",
-        "line": 74,
+        "line": 75,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -2944,9 +2374,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 74,
+          "endLine": 75,
           "endOffset": 23,
-          "startLine": 74,
+          "startLine": 75,
           "startOffset": 14
         },
         "type": "CODE_SMELL",
@@ -2966,9 +2396,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 94,
+                  "endLine": 95,
                   "endOffset": 9,
-                  "startLine": 94,
+                  "startLine": 95,
                   "startOffset": 4
                 }
               }
@@ -2989,7 +2419,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcF",
-        "line": 94,
+        "line": 95,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -3001,9 +2431,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 94,
+          "endLine": 95,
           "endOffset": 30,
-          "startLine": 94,
+          "startLine": 95,
           "startOffset": 14
         },
         "type": "CODE_SMELL",
@@ -3023,9 +2453,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 145,
+                  "endLine": 146,
                   "endOffset": 9,
-                  "startLine": 145,
+                  "startLine": 146,
                   "startOffset": 4
                 }
               }
@@ -3046,7 +2476,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcH",
-        "line": 145,
+        "line": 146,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -3058,9 +2488,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 145,
+          "endLine": 146,
           "endOffset": 22,
-          "startLine": 145,
+          "startLine": 146,
           "startOffset": 14
         },
         "type": "CODE_SMELL",
@@ -3080,9 +2510,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 209,
+                  "endLine": 210,
                   "endOffset": 9,
-                  "startLine": 209,
+                  "startLine": 210,
                   "startOffset": 4
                 }
               }
@@ -3103,7 +2533,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45ddRcqSqORs_NMcL",
-        "line": 209,
+        "line": 210,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -3115,9 +2545,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 209,
+          "endLine": 210,
           "endOffset": 25,
-          "startLine": 209,
+          "startLine": 210,
           "startOffset": 14
         },
         "type": "CODE_SMELL",
@@ -3137,9 +2567,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 282,
+                  "endLine": 283,
                   "endOffset": 9,
-                  "startLine": 282,
+                  "startLine": 283,
                   "startOffset": 4
                 }
               }
@@ -3160,7 +2590,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVSTeEqY2cgqX-7I",
-        "line": 282,
+        "line": 283,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -3172,9 +2602,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 282,
+          "endLine": 283,
           "endOffset": 31,
-          "startLine": 282,
+          "startLine": 283,
           "startOffset": 14
         },
         "type": "CODE_SMELL",
@@ -4947,86 +4377,6 @@
         "updateDate": "2025-12-07T12:59:14+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:backend/app/services/organization_service.py": [
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/organization_service.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "20min",
-        "effort": "20min",
-        "flows": [],
-        "hash": "bd42bb78bb9a3dec4da56bcd421a4748",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZH_EKksgLqHwBgA",
-        "line": 82,
-        "message": "Replace this generic exception class with a more specific one.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S112",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "cwe",
-          "error-handling"
-        ],
-        "textRange": {
-          "endLine": 82,
-          "endOffset": 93,
-          "startLine": 82,
-          "startOffset": 22
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/organization_service.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "20min",
-        "effort": "20min",
-        "flows": [],
-        "hash": "4934332ec68a8f2742d27bd51adac1a1",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZH_EKksgLqHwBgB",
-        "line": 85,
-        "message": "Replace this generic exception class with a more specific one.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S112",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "cwe",
-          "error-handling"
-        ],
-        "textRange": {
-          "endLine": 85,
-          "endOffset": 83,
-          "startLine": 85,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py": [
       {
         "cleanCodeAttribute": "FOCUSED",
@@ -5192,355 +4542,9 @@
         },
         "type": "CODE_SMELL",
         "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "COMPLETE",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "3e264f5fbab10735799511f21ca70842",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3Umefq9-teoLlEJTG",
-        "line": 328,
-        "message": "Specify an exception class to catch or reraise the exception",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S5754",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "bad-practice",
-          "error-handling",
-          "suspicious"
-        ],
-        "textRange": {
-          "endLine": 328,
-          "endOffset": 18,
-          "startLine": 328,
-          "startOffset": 12
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "3a4c0f3ac024201a18b142b4b3cdfceb",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3Umefq9-teoLlEJTH",
-        "line": 370,
-        "message": "Don't use `datetime.datetime.utcnow` to create this datetime object.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S6903",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "datetime",
-          "pitfall"
-        ],
-        "textRange": {
-          "endLine": 370,
-          "endOffset": 50,
-          "startLine": 370,
-          "startOffset": 33
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py": [
-      {
-        "cleanCodeAttribute": "FOCUSED",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "7min",
-        "effort": "7min",
-        "flows": [
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 173,
-                  "endOffset": 6,
-                  "startLine": 173,
-                  "startOffset": 4
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 193,
-                  "endOffset": 10,
-                  "startLine": 193,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 200,
-                  "endOffset": 10,
-                  "startLine": 200,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 207,
-                  "endOffset": 11,
-                  "startLine": 207,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 210,
-                  "endOffset": 10,
-                  "startLine": 210,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 218,
-                  "endOffset": 10,
-                  "startLine": 218,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 225,
-                  "endOffset": 10,
-                  "startLine": 225,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 236,
-                  "endOffset": 67,
-                  "startLine": 236,
-                  "startOffset": 65
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 237,
-                  "endOffset": 67,
-                  "startLine": 237,
-                  "startOffset": 65
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 240,
-                  "endOffset": 10,
-                  "startLine": 240,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 240,
-                  "endOffset": 29,
-                  "startLine": 240,
-                  "startOffset": 26
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+2 (incl 1 for nesting)",
-                "textRange": {
-                  "endLine": 247,
-                  "endOffset": 14,
-                  "startLine": 247,
-                  "startOffset": 12
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 249,
-                  "endOffset": 16,
-                  "startLine": 249,
-                  "startOffset": 12
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 251,
-                  "endOffset": 12,
-                  "startLine": 251,
-                  "startOffset": 8
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 255,
-                  "endOffset": 10,
-                  "startLine": 255,
-                  "startOffset": 4
-                }
-              }
-            ]
-          },
-          {
-            "locations": [
-              {
-                "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
-                "msg": "+1",
-                "textRange": {
-                  "endLine": 257,
-                  "endOffset": 10,
-                  "startLine": 257,
-                  "startOffset": 4
-                }
-              }
-            ]
-          }
-        ],
-        "hash": "ce36317c2298deb073705bb6b8eb6bea",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZNYEKksgLqHwBio",
-        "line": 144,
-        "message": "Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "python:S3776",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "brain-overload"
-        ],
-        "textRange": {
-          "endLine": 144,
-          "endOffset": 26,
-          "startLine": 144,
-          "startOffset": 10
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
       {
         "cleanCodeAttribute": "CONVENTIONAL",
         "cleanCodeAttributeCategory": "CONSISTENT",
@@ -5555,9 +4559,9 @@
                 "component": "ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py",
                 "msg": "This function is async.",
                 "textRange": {
-                  "endLine": 87,
+                  "endLine": 86,
                   "endOffset": 5,
-                  "startLine": 87,
+                  "startLine": 86,
                   "startOffset": 0
                 }
               }
@@ -5578,7 +4582,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZr45dekcqSqORs_NMcp",
-        "line": 87,
+        "line": 86,
         "message": "Use asynchronous features in this function or remove the `async` keyword.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -5590,9 +4594,9 @@
           "async"
         ],
         "textRange": {
-          "endLine": 87,
+          "endLine": 86,
           "endOffset": 31,
-          "startLine": 87,
+          "startLine": 86,
           "startOffset": 10
         },
         "type": "CODE_SMELL",
@@ -5746,86 +4750,6 @@
         },
         "type": "CODE_SMELL",
         "updateDate": "2026-03-29T11:14:09+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx": [
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "b9ef5ab1f2780c4243ef1938bb1a9753",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_mFoUQIsvQ7tySPp",
-        "line": 23,
-        "message": "Remove this use of the \"void\" operator.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S3735",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "confusing",
-          "type-dependent"
-        ],
-        "textRange": {
-          "endLine": 23,
-          "endOffset": 8,
-          "startLine": 23,
-          "startOffset": 4
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx",
-        "creationDate": "2026-03-29T23:46:10+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "67d177d09839a216997157f99a99c9e6",
-        "impacts": [
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ07_mFoUQIsvQ7tySPq",
-        "line": 24,
-        "message": "Remove this use of the \"void\" operator.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S3735",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "confusing",
-          "type-dependent"
-        ],
-        "textRange": {
-          "endLine": 24,
-          "endOffset": 8,
-          "startLine": 24,
-          "startOffset": 4
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx": [
@@ -6258,1552 +5182,7 @@
         "updateDate": "2025-12-07T12:59:14+0000"
       }
     ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f8acdb99b4fc7347649ad2546c661c83",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVP4eEqY2cgqX-7B",
-        "line": 64,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 64,
-          "endOffset": 16,
-          "startLine": 64,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "2adf56d345ceef79fa259a93c69e0bf4",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVP4eEqY2cgqX-7C",
-        "line": 74,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 74,
-          "endOffset": 16,
-          "startLine": 74,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "fd4b8edfb43fe575e5dc822c98450d42",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVP4eEqY2cgqX-7D",
-        "line": 84,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 84,
-          "endOffset": 16,
-          "startLine": 84,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "04260f4167e51893ac93682a5a327772",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVP4eEqY2cgqX-7E",
-        "line": 94,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 94,
-          "endOffset": 16,
-          "startLine": 94,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZVQEKksgLqHwBi6",
-        "line": 33,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 33,
-          "endOffset": 16,
-          "startLine": 33,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZVQEKksgLqHwBi7",
-        "line": 42,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 42,
-          "endOffset": 16,
-          "startLine": 42,
-          "startOffset": 11
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "8a6db9b33dcd488e1bc5869020c0718e",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZVQEKksgLqHwBi5",
-        "line": 6,
-        "message": "'projectName' PropType is defined but prop is never used",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6767",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "react"
-        ],
-        "textRange": {
-          "endLine": 6,
-          "endOffset": 13,
-          "startLine": 6,
-          "startOffset": 2
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Select.tsx": [
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Select.tsx",
-        "creationDate": "2025-11-04T09:11:52+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "30b0b36b652d2da3fee969a8932575b9",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dbqcqSqORs_NMbl",
-        "line": 37,
-        "message": "This assertion is unnecessary since it does not change the type of the expression.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S4325",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "redundant",
-          "type-dependent"
-        ],
-        "textRange": {
-          "endLine": 37,
-          "endOffset": 39,
-          "startLine": 37,
-          "startOffset": 15
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/Select.tsx",
-        "creationDate": "2025-11-04T09:11:52+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "8ff324d11310dd90609b5c24eac54426",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dbqcqSqORs_NMbm",
-        "line": 52,
-        "message": "This assertion is unnecessary since it does not change the type of the expression.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S4325",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "redundant",
-          "type-dependent"
-        ],
-        "textRange": {
-          "endLine": 52,
-          "endOffset": 47,
-          "startLine": 52,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "f090cb0f2b41fdc65d750072d0eed244",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbR",
-        "line": 108,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 108,
-          "endOffset": 22,
-          "startLine": 108,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "7137911ff1aeb78b535b3d01d8df95dc",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbT",
-        "line": 126,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 126,
-          "endOffset": 22,
-          "startLine": 126,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "612916b8a69ad80074ded0408b93b6dc",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbV",
-        "line": 144,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 144,
-          "endOffset": 22,
-          "startLine": 144,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "cb3f517652a5054f745c4fdb073c3b94",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbX",
-        "line": 165,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 165,
-          "endOffset": 24,
-          "startLine": 165,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "9dddb676270d312cd8e792edbb1c5831",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbZ",
-        "line": 182,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 182,
-          "endOffset": 24,
-          "startLine": 182,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "2bcc4beb4fef8d37847841901ead2a6d",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbb",
-        "line": 199,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 199,
-          "endOffset": 24,
-          "startLine": 199,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "2b2063d18d3a79bacc485377a5f8f76c",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbS",
-        "line": 117,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 117,
-          "endOffset": 74,
-          "startLine": 117,
-          "startOffset": 64
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "d7fe3f9c4a13b495f1af6e8be5e0760e",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbU",
-        "line": 135,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 135,
-          "endOffset": 77,
-          "startLine": 135,
-          "startOffset": 67
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "b2e45f7b550b0358c6a0a708cba34ef8",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbW",
-        "line": 153,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 153,
-          "endOffset": 81,
-          "startLine": 153,
-          "startOffset": 71
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "28c1c065de407c23949a76e08e58e355",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbY",
-        "line": 174,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 174,
-          "endOffset": 83,
-          "startLine": 174,
-          "startOffset": 73
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "9236620dc6f73f07599d7e6749447baf",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMba",
-        "line": 191,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 191,
-          "endOffset": 83,
-          "startLine": 191,
-          "startOffset": 73
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx",
-        "creationDate": "2025-10-24T23:13:00+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "f6dab9ee218888a3f9ac20836279d21a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daacqSqORs_NMbc",
-        "line": 208,
-        "message": "Prefer `Number.parseFloat` over `parseFloat`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7773",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 208,
-          "endOffset": 85,
-          "startLine": 208,
-          "startOffset": 75
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts": [
-      {
-        "cleanCodeAttribute": "MODULAR",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "33e818fcabfa9081d2e96992e92508a4",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dctcqSqORs_NMbx",
-        "line": 19,
-        "message": "Exporting mutable 'let' binding, use 'const' instead.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6861",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "architecture"
-        ],
-        "textRange": {
-          "endLine": 19,
-          "endOffset": 56,
-          "startLine": 19,
-          "startOffset": 0
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "MODULAR",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "0040dbace1ed90c7462e494a96cd4801",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dctcqSqORs_NMby",
-        "line": 20,
-        "message": "Exporting mutable 'let' binding, use 'const' instead.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6861",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "architecture"
-        ],
-        "textRange": {
-          "endLine": 20,
-          "endOffset": 51,
-          "startLine": 20,
-          "startOffset": 0
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "MODULAR",
-        "cleanCodeAttributeCategory": "ADAPTABLE",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "780a8d38d2a4d560170940502c7acc59",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          },
-          {
-            "severity": "HIGH",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dctcqSqORs_NMbz",
-        "line": 22,
-        "message": "Exporting mutable 'let' binding, use 'const' instead.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6861",
-        "severity": "CRITICAL",
-        "status": "OPEN",
-        "tags": [
-          "architecture"
-        ],
-        "textRange": {
-          "endLine": 22,
-          "endOffset": 56,
-          "startLine": 22,
-          "startOffset": 0
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts",
-        "creationDate": "2025-12-06T10:54:28+0000",
-        "debt": "1h",
-        "effort": "1h",
-        "flows": [],
-        "hash": "161b8313784081f5965c2da97df48970",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dctcqSqORs_NMb0",
-        "line": 35,
-        "message": "Handle this exception or don't catch it at all.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S2486",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "cwe",
-          "error-handling",
-          "suspicious"
-        ],
-        "textRange": {
-          "endLine": 37,
-          "endOffset": 1,
-          "startLine": 35,
-          "startOffset": 2
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx": [
-      {
-        "cleanCodeAttribute": "EFFICIENT",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx",
-        "creationDate": "2025-11-02T12:31:50+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "2304868570c67940fd71e60d0a425bea",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dZ8cqSqORs_NMbO",
-        "line": 124,
-        "message": "The 'value' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6481",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "jsx",
-          "performance",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 131,
-          "endOffset": 3,
-          "startLine": 124,
-          "startOffset": 33
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx",
-        "creationDate": "2025-12-06T10:54:28+0000",
-        "debt": "1h",
-        "effort": "1h",
-        "flows": [],
-        "hash": "161b8313784081f5965c2da97df48970",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dZ8cqSqORs_NMbM",
-        "line": 47,
-        "message": "Handle this exception or don't catch it at all.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S2486",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "cwe",
-          "error-handling",
-          "suspicious"
-        ],
-        "textRange": {
-          "endLine": 56,
-          "endOffset": 7,
-          "startLine": 47,
-          "startOffset": 8
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx",
-        "creationDate": "2025-12-06T10:54:28+0000",
-        "debt": "1h",
-        "effort": "1h",
-        "flows": [],
-        "hash": "161b8313784081f5965c2da97df48970",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dZ8cqSqORs_NMbN",
-        "line": 99,
-        "message": "Handle this exception or don't catch it at all.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S2486",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "cwe",
-          "error-handling",
-          "suspicious"
-        ],
-        "textRange": {
-          "endLine": 109,
-          "endOffset": 5,
-          "startLine": 99,
-          "startOffset": 6
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "6361a2635f59766c985f90dc502a9b67",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dZ8cqSqORs_NMbK",
-        "line": 3,
-        "message": "'../services/authService' imported multiple times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S3863",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 3,
-          "endOffset": 53,
-          "startLine": 3,
-          "startOffset": 28
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx",
-        "creationDate": "2025-11-02T11:00:42+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "2e84b88b9d6583ebd6a8756c89e4e2d7",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dZ8cqSqORs_NMbL",
-        "line": 4,
-        "message": "'../services/authService' imported multiple times.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S3863",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "es2015"
-        ],
-        "textRange": {
-          "endLine": 4,
-          "endOffset": 77,
-          "startLine": 4,
-          "startOffset": 52
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/context/ThemeContext.tsx": [
-      {
-        "cleanCodeAttribute": "EFFICIENT",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/context/ThemeContext.tsx",
-        "creationDate": "2025-10-22T17:40:56+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "3a8eade104ac98e42ec271d974914185",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45daFcqSqORs_NMbP",
-        "line": 41,
-        "message": "The 'value' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6481",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "jsx",
-          "performance",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 44,
-          "endOffset": 3,
-          "startLine": 41,
-          "startOffset": 16
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/hooks/useLogs.ts": [
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/hooks/useLogs.ts",
-        "creationDate": "2025-10-23T09:59:19+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d65289139b037a0a3189fc6d847699df",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dcccqSqORs_NMbt",
-        "line": 138,
-        "message": "Prefer using an optional chain expression instead, as it's more concise and easier to read.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6582",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [],
-        "textRange": {
-          "endLine": 138,
-          "endOffset": 56,
-          "startLine": 138,
-          "startOffset": 16
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/hooks/useLogs.ts",
-        "creationDate": "2025-10-23T09:59:19+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "4731212da081ad74b3fafa48fdb1ea05",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dcccqSqORs_NMbs",
-        "line": 66,
-        "message": "`new Error()` is too unspecific for a type check. Use `new TypeError()` instead.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7786",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "convention",
-          "error-handling",
-          "type-checking"
-        ],
-        "textRange": {
-          "endLine": 66,
-          "endOffset": 23,
-          "startLine": 66,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
-    "ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx": [
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx",
-        "creationDate": "2025-10-25T12:30:46+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "6262c1f087f926c0e044c78dcb2139c3",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dclcqSqORs_NMbu",
-        "line": 195,
-        "message": "The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6844",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 195,
-          "endOffset": 78,
-          "startLine": 195,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx",
-        "creationDate": "2025-10-25T12:30:46+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "2c07a95bd97c0860503f9f3c1ba6d981",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dclcqSqORs_NMbv",
-        "line": 196,
-        "message": "The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6844",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 196,
-          "endOffset": 78,
-          "startLine": 196,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx",
-        "creationDate": "2025-10-25T12:30:46+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "0a53173ebafb83e7c7665f978c3278ae",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
-          },
-          {
-            "severity": "LOW",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZr45dclcqSqORs_NMbw",
-        "line": 197,
-        "message": "The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6844",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 197,
-          "endOffset": 78,
-          "startLine": 197,
-          "startOffset": 14
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2025-12-07T12:59:14+0000"
-      }
-    ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVNxeEqY2cgqX-67",
-        "line": 121,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 121,
-          "endOffset": 22,
-          "startLine": 121,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx",
-        "creationDate": "2026-01-25T10:44:13+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZv0xVNxeEqY2cgqX-68",
-        "line": 134,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 134,
-          "endOffset": 22,
-          "startLine": 134,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-01-25T10:47:44+0000"
-      },
       {
         "cleanCodeAttribute": "CLEAR",
         "cleanCodeAttributeCategory": "INTENTIONAL",
@@ -7822,7 +5201,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZv0xVNxeEqY2cgqX-69",
-        "line": 214,
+        "line": 218,
         "message": "Unexpected negated condition.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -7834,9 +5213,9 @@
           "readability"
         ],
         "textRange": {
-          "endLine": 214,
+          "endLine": 218,
           "endOffset": 68,
-          "startLine": 214,
+          "startLine": 218,
           "startOffset": 48
         },
         "type": "CODE_SMELL",
@@ -8378,45 +5757,6 @@
         "cleanCodeAttribute": "CLEAR",
         "cleanCodeAttributeCategory": "INTENTIONAL",
         "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/DashboardPage.tsx",
-        "creationDate": "2026-03-29T22:59:55+0000",
-        "debt": "1min",
-        "effort": "1min",
-        "flows": [],
-        "hash": "19e9463306e6de7b385e174db1cac7a1",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ071ZDAUQIsvQ7txW2R",
-        "line": 403,
-        "message": "This assertion is unnecessary since it does not change the type of the expression.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S4325",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "redundant",
-          "type-dependent"
-        ],
-        "textRange": {
-          "endLine": 403,
-          "endOffset": 69,
-          "startLine": 403,
-          "startOffset": 56
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T23:46:10+0000"
-      },
-      {
-        "cleanCodeAttribute": "CLEAR",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/DashboardPage.tsx",
         "creationDate": "2025-12-07T17:39:27+0000",
         "debt": "2min",
         "effort": "2min",
@@ -8611,201 +5951,6 @@
     ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx": [
       {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZQWEKksgLqHwBiy",
-        "line": 254,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 254,
-          "endOffset": 22,
-          "startLine": 254,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZQWEKksgLqHwBiz",
-        "line": 269,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 269,
-          "endOffset": 24,
-          "startLine": 269,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZQWEKksgLqHwBi0",
-        "line": 288,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 288,
-          "endOffset": 24,
-          "startLine": 288,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZQWEKksgLqHwBi1",
-        "line": 300,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 300,
-          "endOffset": 22,
-          "startLine": 300,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZQWEKksgLqHwBi3",
-        "line": 481,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 481,
-          "endOffset": 22,
-          "startLine": 481,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
         "cleanCodeAttribute": "CLEAR",
         "cleanCodeAttributeCategory": "INTENTIONAL",
         "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx",
@@ -8823,7 +5968,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZ05UZQWEKksgLqHwBi2",
-        "line": 398,
+        "line": 407,
         "message": "Unexpected negated condition.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -8835,9 +5980,9 @@
           "readability"
         ],
         "textRange": {
-          "endLine": 398,
+          "endLine": 407,
           "endOffset": 82,
-          "startLine": 398,
+          "startLine": 407,
           "startOffset": 56
         },
         "type": "CODE_SMELL",
@@ -8845,240 +5990,6 @@
       }
     ],
     "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx": [
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-24T06:03:23+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZ05UZSoEKksgLqHwBi4",
-        "line": 157,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 157,
-          "endOffset": 22,
-          "startLine": 157,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-03-29T11:14:09+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "d37af980291868ad3df1888a10ddd04a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSv",
-        "line": 183,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 183,
-          "endOffset": 22,
-          "startLine": 183,
-          "startOffset": 17
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSw",
-        "line": 217,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 217,
-          "endOffset": 24,
-          "startLine": 217,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSx",
-        "line": 229,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 229,
-          "endOffset": 24,
-          "startLine": 229,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSy",
-        "line": 245,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 245,
-          "endOffset": 24,
-          "startLine": 245,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "LOGICAL",
-        "cleanCodeAttributeCategory": "INTENTIONAL",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "5min",
-        "effort": "5min",
-        "flows": [],
-        "hash": "148bf6dd889097d336c94bf0e20f634a",
-        "impacts": [
-          {
-            "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSz",
-        "line": 257,
-        "message": "A form label must be associated with a control.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S6853",
-        "severity": "MAJOR",
-        "status": "OPEN",
-        "tags": [
-          "accessibility",
-          "react"
-        ],
-        "textRange": {
-          "endLine": 257,
-          "endOffset": 24,
-          "startLine": 257,
-          "startOffset": 19
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
       {
         "cleanCodeAttribute": "EFFICIENT",
         "cleanCodeAttributeCategory": "INTENTIONAL",
@@ -9097,7 +6008,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx3UmZ0q9-teoLlEJSt",
-        "line": 121,
+        "line": 126,
         "message": "Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -9111,87 +6022,9 @@
           "modernize"
         ],
         "textRange": {
-          "endLine": 121,
+          "endLine": 126,
           "endOffset": 37,
-          "startLine": 121,
-          "startOffset": 6
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "379260ed21d7c695396b48feb4ae3890",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSr",
-        "line": 112,
-        "message": "Prefer `globalThis` over `window`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7764",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "es2020",
-          "portability"
-        ],
-        "textRange": {
-          "endLine": 112,
-          "endOffset": 24,
-          "startLine": 112,
-          "startOffset": 18
-        },
-        "type": "CODE_SMELL",
-        "updateDate": "2026-02-19T19:12:41+0000"
-      },
-      {
-        "cleanCodeAttribute": "CONVENTIONAL",
-        "cleanCodeAttributeCategory": "CONSISTENT",
-        "component": "ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx",
-        "creationDate": "2026-02-19T19:00:38+0000",
-        "debt": "2min",
-        "effort": "2min",
-        "flows": [],
-        "hash": "5088585fec5760288554f8e34804fea9",
-        "impacts": [
-          {
-            "severity": "LOW",
-            "softwareQuality": "MAINTAINABILITY"
-          }
-        ],
-        "internalTags": [],
-        "issueStatus": "OPEN",
-        "key": "AZx3UmZ0q9-teoLlEJSu",
-        "line": 122,
-        "message": "Prefer `globalThis` over `window`.",
-        "organization": "ashrafsheri",
-        "project": "ashrafsheri_distil_bert_log_finetune",
-        "projectName": "distil_bert_log_finetune",
-        "rule": "typescript:S7764",
-        "severity": "MINOR",
-        "status": "OPEN",
-        "tags": [
-          "es2020",
-          "portability"
-        ],
-        "textRange": {
-          "endLine": 122,
-          "endOffset": 12,
-          "startLine": 122,
+          "startLine": 126,
           "startOffset": 6
         },
         "type": "CODE_SMELL",
@@ -14755,7 +11588,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f5AjYdHP2YvBtqCE",
-        "line": 24,
+        "line": 26,
         "message": "Use a specific version tag for the image instead of \"latest\".",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14765,9 +11598,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 24,
+          "endLine": 26,
           "endOffset": 55,
-          "startLine": 24,
+          "startLine": 26,
           "startOffset": 17
         },
         "type": "CODE_SMELL",
@@ -14785,17 +11618,17 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           }
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f5AjYdHP2YvBtqCC",
-        "line": 23,
+        "line": 25,
         "message": "Specify a storage request for this container.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14805,9 +11638,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 23,
+          "endLine": 25,
           "endOffset": 14,
-          "startLine": 23,
+          "startLine": 25,
           "startOffset": 10
         },
         "type": "CODE_SMELL",
@@ -14833,7 +11666,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f5AMYdHP2YvBtqCA",
-        "line": 35,
+        "line": 37,
         "message": "Use a specific version tag for the image instead of \"latest\".",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14843,9 +11676,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 35,
+          "endLine": 37,
           "endOffset": 45,
-          "startLine": 35,
+          "startLine": 37,
           "startOffset": 17
         },
         "type": "CODE_SMELL",
@@ -14863,17 +11696,17 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           }
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f5AMYdHP2YvBtqB-",
-        "line": 34,
+        "line": 36,
         "message": "Specify a storage request for this container.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14883,9 +11716,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 34,
+          "endLine": 36,
           "endOffset": 14,
-          "startLine": 34,
+          "startLine": 36,
           "startOffset": 10
         },
         "type": "CODE_SMELL",
@@ -14911,7 +11744,7 @@
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f4_tYdHP2YvBtqB6",
-        "line": 24,
+        "line": 26,
         "message": "Use a specific version tag for the image instead of \"latest\".",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14921,9 +11754,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 24,
+          "endLine": 26,
           "endOffset": 46,
-          "startLine": 24,
+          "startLine": 26,
           "startOffset": 17
         },
         "type": "CODE_SMELL",
@@ -14941,17 +11774,17 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           }
         ],
         "internalTags": [],
         "issueStatus": "OPEN",
         "key": "AZx4f4_tYdHP2YvBtqB4",
-        "line": 23,
+        "line": 25,
         "message": "Specify a storage request for this container.",
         "organization": "ashrafsheri",
         "project": "ashrafsheri_distil_bert_log_finetune",
@@ -14961,9 +11794,9 @@
         "status": "OPEN",
         "tags": [],
         "textRange": {
-          "endLine": 23,
+          "endLine": 25,
           "endOffset": 14,
-          "startLine": 23,
+          "startLine": 25,
           "startOffset": 10
         },
         "type": "CODE_SMELL",
@@ -19869,11 +16702,11 @@
         "impacts": [
           {
             "severity": "MEDIUM",
-            "softwareQuality": "RELIABILITY"
+            "softwareQuality": "MAINTAINABILITY"
           },
           {
             "severity": "MEDIUM",
-            "softwareQuality": "MAINTAINABILITY"
+            "softwareQuality": "RELIABILITY"
           }
         ],
         "internalTags": [],
@@ -22531,11 +19364,11 @@
   "metrics": {
     "alert_status": "ERROR",
     "bugs": 0,
-    "code_smells": 323,
+    "code_smells": 255,
     "coverage": 0.0,
-    "duplicated_lines_density": 0.6,
+    "duplicated_lines_density": 0.7,
     "maintainability_rating": "A",
-    "ncloc": 23337,
+    "ncloc": 22533,
     "reliability_rating": "A",
     "security_hotspots": 154,
     "security_rating": "A",
@@ -22577,7 +19410,7 @@
         "status": "ERROR"
       },
       {
-        "actualValue": "1.1",
+        "actualValue": "2.7",
         "comparator": "GT",
         "errorThreshold": "3",
         "metricKey": "new_duplicated_lines_density",

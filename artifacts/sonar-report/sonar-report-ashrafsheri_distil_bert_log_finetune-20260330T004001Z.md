@@ -1,6 +1,6 @@
 # Sonar Report: `ashrafsheri_distil_bert_log_finetune`
 
-- Generated: `2026-03-29T23:58:32.618160+00:00`
+- Generated: `2026-03-30T00:40:05.711213+00:00`
 - Dashboard: https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune
 
 ## Metrics
@@ -11,11 +11,11 @@
 - Maintainability Rating: `A`
 - Bugs: `0`
 - Vulnerabilities: `0`
-- Code Smells: `323`
+- Code Smells: `255`
 - Security Hotspots: `154`
 - Coverage: `0.0%`
-- Duplicated Lines Density: `0.6%`
-- Lines of Code: `23337`
+- Duplicated Lines Density: `0.7%`
+- Lines of Code: `22533`
 
 ## Quality Gate Conditions
 
@@ -23,37 +23,37 @@
 - `new_security_rating`: status=`OK`, actual=`1`, threshold=`1`
 - `new_maintainability_rating`: status=`OK`, actual=`1`, threshold=`1`
 - `new_coverage`: status=`ERROR`, actual=`0.0`, threshold=`80`
-- `new_duplicated_lines_density`: status=`OK`, actual=`1.1`, threshold=`3`
+- `new_duplicated_lines_density`: status=`OK`, actual=`2.7`, threshold=`3`
 - `new_security_hotspots_reviewed`: status=`ERROR`, actual=`0.0`, threshold=`100`
 
 ## Issue Summary
 
-- Total issues in selected statuses: `323`
-- By severity: `{"CRITICAL": 83, "INFO": 1, "MAJOR": 186, "MINOR": 53}`
-- By type: `{"CODE_SMELL": 323}`
+- Total issues in selected statuses: `255`
+- By severity: `{"CRITICAL": 67, "INFO": 1, "MAJOR": 152, "MINOR": 35}`
+- By type: `{"CODE_SMELL": 255}`
 
 ### Top Rules
 
-- `python:S3457`: `50`
-- `python:S1192`: `35`
+- `python:S3457`: `49`
 - `python:S8415`: `32`
-- `typescript:S6853`: `26`
-- `python:S3776`: `24`
+- `python:S1192`: `29`
+- `python:S3776`: `23`
 - `shelldre:S7688`: `11`
-- `python:S6903`: `8`
-- `python:S5754`: `8`
-- `typescript:S7764`: `7`
+- `python:S5754`: `7`
 - `python:S7503`: `7`
 - `python:S125`: `6`
 - `shelldre:S7682`: `6`
-- `typescript:S7773`: `6`
+- `python:S6903`: `5`
 - `shelldre:S7679`: `5`
+- `typescript:S7764`: `5`
 - `python:S1481`: `4`
-- `typescript:S4325`: `4`
 - `python:S3358`: `4`
 - `typescript:S7735`: `4`
 - `python:S6983`: `4`
 - `python:S1172`: `4`
+- `python:S1871`: `4`
+- `plsql:SelectStarCheck`: `3`
+- `kubernetes:S6897`: `3`
 
 ## Security Hotspots
 
@@ -68,31 +68,19 @@
 - [CRITICAL] `python:S3776` (line `376`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.
 - [CRITICAL] `python:S3776` (line `528`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.
 
-### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/project_controller.py`
-
-- [CRITICAL] `python:S1192` (line `38`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to retrieve projects" 3 times.
-- [CRITICAL] `python:S1192` (line `41`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "You don't have permission to update this project" 4 times.
-- [CRITICAL] `python:S1192` (line `71`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to add member" 3 times.
-- [CRITICAL] `python:S1192` (line `78`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Project member not found" 4 times.
-- [CRITICAL] `python:S1192` (line `92`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "Failed to retrieve available members" 4 times.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py`
 
 - [CRITICAL] `python:S3776` (line `21`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 37 to the 15 allowed.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py`
 
-- [CRITICAL] `python:S1192` (line `164`, type `CODE_SMELL`): Define a constant instead of duplicating this literal "org_id.keyword" 3 times.
-- [CRITICAL] `python:S3776` (line `209`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.
-- [CRITICAL] `python:S6903` (line `78`, type `CODE_SMELL`): Don't use `datetime.datetime.utcnow` to create this datetime object.
-- [CRITICAL] `python:S6903` (line `115`, type `CODE_SMELL`): Don't use `datetime.datetime.utcnow` to create this datetime object.
-- [MAJOR] `python:S3358` (line `257`, type `CODE_SMELL`): Extract this nested conditional expression into an independent statement.
-- [MAJOR] `python:S3457` (line `108`, type `CODE_SMELL`): Add replacement fields or use a normal string instead of an f-string.
-- [MINOR] `python:S7503` (line `74`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
-- [MINOR] `python:S7503` (line `94`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
-- [MINOR] `python:S7503` (line `145`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
-- [MINOR] `python:S7503` (line `209`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
-- [MINOR] `python:S7503` (line `282`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [CRITICAL] `python:S3776` (line `210`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.
+- [MAJOR] `python:S3358` (line `258`, type `CODE_SMELL`): Extract this nested conditional expression into an independent statement.
+- [MINOR] `python:S7503` (line `75`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [MINOR] `python:S7503` (line `95`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [MINOR] `python:S7503` (line `146`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [MINOR] `python:S7503` (line `210`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [MINOR] `python:S7503` (line `283`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/services/log_parser_service.py`
 
@@ -119,21 +107,13 @@
 - [MINOR] `python:S1481` (line `164`, type `CODE_SMELL`): Remove the unused local variable "old_status".
 - [MINOR] `python:S7503` (line `40`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
 
-### `ashrafsheri_distil_bert_log_finetune:backend/app/services/organization_service.py`
-
-- [MAJOR] `python:S112` (line `82`, type `CODE_SMELL`): Replace this generic exception class with a more specific one.
-- [MAJOR] `python:S112` (line `85`, type `CODE_SMELL`): Replace this generic exception class with a more specific one.
-
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py`
 
 - [CRITICAL] `python:S3776` (line `262`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.
-- [CRITICAL] `python:S5754` (line `328`, type `CODE_SMELL`): Specify an exception class to catch or reraise the exception
-- [CRITICAL] `python:S6903` (line `370`, type `CODE_SMELL`): Don't use `datetime.datetime.utcnow` to create this datetime object.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py`
 
-- [CRITICAL] `python:S3776` (line `144`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.
-- [MINOR] `python:S7503` (line `87`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
+- [MINOR] `python:S7503` (line `86`, type `CODE_SMELL`): Use asynchronous features in this function or remove the `async` keyword.
 
 ### `ashrafsheri_distil_bert_log_finetune:backend/migrations/001_add_model_tracking_to_orgs.sql`
 
@@ -144,85 +124,15 @@
 - [MAJOR] `plsql:SelectStarCheck` (line `10`, type `CODE_SMELL`): SELECT * should not be used.
 - [MAJOR] `plsql:SelectStarCheck` (line `13`, type `CODE_SMELL`): SELECT * should not be used.
 
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ErrorBoundary.tsx`
-
-- [CRITICAL] `typescript:S3735` (line `23`, type `CODE_SMELL`): Remove this use of the "void" operator.
-- [CRITICAL] `typescript:S3735` (line `24`, type `CODE_SMELL`): Remove this use of the "void" operator.
-
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx`
 
 - [CRITICAL] `typescript:S3776` (line `355`, type `CODE_SMELL`): Refactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed.
 - [MAJOR] `typescript:S6479` (line `371`, type `CODE_SMELL`): Do not use Array index in keys
 - [MAJOR] `typescript:S6479` (line `557`, type `CODE_SMELL`): Do not use Array index in keys
 
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/OrgCreationResult.tsx`
-
-- [MAJOR] `typescript:S6853` (line `64`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `74`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `84`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `94`, type `CODE_SMELL`): A form label must be associated with a control.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ProjectCreationResult.tsx`
-
-- [MAJOR] `typescript:S6853` (line `33`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `42`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MINOR] `typescript:S6767` (line `6`, type `CODE_SMELL`): 'projectName' PropType is defined but prop is never used
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/Select.tsx`
-
-- [MINOR] `typescript:S4325` (line `37`, type `CODE_SMELL`): This assertion is unnecessary since it does not change the type of the expression.
-- [MINOR] `typescript:S4325` (line `52`, type `CODE_SMELL`): This assertion is unnecessary since it does not change the type of the expression.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/components/ThresholdSettings.tsx`
-
-- [MAJOR] `typescript:S6853` (line `108`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `126`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `144`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `165`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `182`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `199`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MINOR] `typescript:S7773` (line `117`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-- [MINOR] `typescript:S7773` (line `135`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-- [MINOR] `typescript:S7773` (line `153`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-- [MINOR] `typescript:S7773` (line `174`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-- [MINOR] `typescript:S7773` (line `191`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-- [MINOR] `typescript:S7773` (line `208`, type `CODE_SMELL`): Prefer `Number.parseFloat` over `parseFloat`.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/config/firebase.ts`
-
-- [CRITICAL] `typescript:S6861` (line `19`, type `CODE_SMELL`): Exporting mutable 'let' binding, use 'const' instead.
-- [CRITICAL] `typescript:S6861` (line `20`, type `CODE_SMELL`): Exporting mutable 'let' binding, use 'const' instead.
-- [CRITICAL] `typescript:S6861` (line `22`, type `CODE_SMELL`): Exporting mutable 'let' binding, use 'const' instead.
-- [MINOR] `typescript:S2486` (line `35`, type `CODE_SMELL`): Handle this exception or don't catch it at all.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/context/AuthContext.tsx`
-
-- [MAJOR] `typescript:S6481` (line `124`, type `CODE_SMELL`): The 'value' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.
-- [MINOR] `typescript:S2486` (line `47`, type `CODE_SMELL`): Handle this exception or don't catch it at all.
-- [MINOR] `typescript:S2486` (line `99`, type `CODE_SMELL`): Handle this exception or don't catch it at all.
-- [MINOR] `typescript:S3863` (line `3`, type `CODE_SMELL`): '../services/authService' imported multiple times.
-- [MINOR] `typescript:S3863` (line `4`, type `CODE_SMELL`): '../services/authService' imported multiple times.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/context/ThemeContext.tsx`
-
-- [MAJOR] `typescript:S6481` (line `41`, type `CODE_SMELL`): The 'value' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/hooks/useLogs.ts`
-
-- [MAJOR] `typescript:S6582` (line `138`, type `CODE_SMELL`): Prefer using an optional chain expression instead, as it's more concise and easier to read.
-- [MINOR] `typescript:S7786` (line `66`, type `CODE_SMELL`): `new Error()` is too unspecific for a type check. Use `new TypeError()` instead.
-
-### `ashrafsheri_distil_bert_log_finetune:frontend/src/layouts/MainLayout.tsx`
-
-- [MAJOR] `typescript:S6844` (line `195`, type `CODE_SMELL`): The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.
-- [MAJOR] `typescript:S6844` (line `196`, type `CODE_SMELL`): The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.
-- [MAJOR] `typescript:S6844` (line `197`, type `CODE_SMELL`): The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles.
-
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx`
 
-- [MAJOR] `typescript:S6853` (line `121`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `134`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MINOR] `typescript:S7735` (line `214`, type `CODE_SMELL`): Unexpected negated condition.
+- [MINOR] `typescript:S7735` (line `218`, type `CODE_SMELL`): Unexpected negated condition.
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/pages/DashboardPage.tsx`
 
@@ -234,7 +144,6 @@
 - [MAJOR] `typescript:S3358` (line `765`, type `CODE_SMELL`): Extract this nested ternary operation into an independent statement.
 - [MAJOR] `typescript:S6660` (line `294`, type `CODE_SMELL`): 'If' statement should not be the only statement in 'else' block
 - [MAJOR] `typescript:S7762` (line `273`, type `CODE_SMELL`): Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.
-- [MINOR] `typescript:S4325` (line `403`, type `CODE_SMELL`): This assertion is unnecessary since it does not change the type of the expression.
 - [MINOR] `typescript:S7735` (line `606`, type `CODE_SMELL`): Unexpected negated condition.
 - [MINOR] `typescript:S7764` (line `266`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
 - [MINOR] `typescript:S7764` (line `274`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
@@ -246,24 +155,11 @@
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx`
 
-- [MAJOR] `typescript:S6853` (line `254`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `269`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `288`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `300`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `481`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MINOR] `typescript:S7735` (line `398`, type `CODE_SMELL`): Unexpected negated condition.
+- [MINOR] `typescript:S7735` (line `407`, type `CODE_SMELL`): Unexpected negated condition.
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx`
 
-- [MAJOR] `typescript:S6853` (line `157`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `183`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `217`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `229`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `245`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S6853` (line `257`, type `CODE_SMELL`): A form label must be associated with a control.
-- [MAJOR] `typescript:S7762` (line `121`, type `CODE_SMELL`): Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.
-- [MINOR] `typescript:S7764` (line `112`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
-- [MINOR] `typescript:S7764` (line `122`, type `CODE_SMELL`): Prefer `globalThis` over `window`.
+- [MAJOR] `typescript:S7762` (line `126`, type `CODE_SMELL`): Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.
 
 ### `ashrafsheri_distil_bert_log_finetune:frontend/src/pages/UsersPage.tsx`
 
@@ -346,18 +242,18 @@
 
 ### `ashrafsheri_distil_bert_log_finetune:k8s/anomaly-detection-deployment.yaml`
 
-- [MAJOR] `kubernetes:S6596` (line `24`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
-- [MAJOR] `kubernetes:S6897` (line `23`, type `CODE_SMELL`): Specify a storage request for this container.
+- [MAJOR] `kubernetes:S6596` (line `26`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
+- [MAJOR] `kubernetes:S6897` (line `25`, type `CODE_SMELL`): Specify a storage request for this container.
 
 ### `ashrafsheri_distil_bert_log_finetune:k8s/backend-deployment.yaml`
 
-- [MAJOR] `kubernetes:S6596` (line `35`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
-- [MAJOR] `kubernetes:S6897` (line `34`, type `CODE_SMELL`): Specify a storage request for this container.
+- [MAJOR] `kubernetes:S6596` (line `37`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
+- [MAJOR] `kubernetes:S6897` (line `36`, type `CODE_SMELL`): Specify a storage request for this container.
 
 ### `ashrafsheri_distil_bert_log_finetune:k8s/frontend-deployment.yaml`
 
-- [MAJOR] `kubernetes:S6596` (line `24`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
-- [MAJOR] `kubernetes:S6897` (line `23`, type `CODE_SMELL`): Specify a storage request for this container.
+- [MAJOR] `kubernetes:S6596` (line `26`, type `CODE_SMELL`): Use a specific version tag for the image instead of "latest".
+- [MAJOR] `kubernetes:S6897` (line `25`, type `CODE_SMELL`): Specify a storage request for this container.
 
 ### `ashrafsheri_distil_bert_log_finetune:migrations/002_project_roles_update.sql`
 
