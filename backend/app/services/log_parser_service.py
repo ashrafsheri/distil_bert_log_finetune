@@ -25,6 +25,90 @@ class LogParserService:
         """
         # Only regex for timestamp parsing
         self.timestamp_pattern = re.compile(r'\[([^\]]+)\]')
+
+    @staticmethod
+    def _find_request_bounds(log_line: str) -> tuple[int, int]:
+        request_start = log_line.find('\"')
+        if request_start == -1:
+            return -1, -1
+
+        request_end = log_line.find('\"', request_start + 1)
+        return request_start, request_end
+
+    @staticmethod
+    def _extract_request_parts(log_line: str, prefix: str) -> tuple[str, str, str, str] | None:
+        request_start, request_end = LogParserService._find_request_bounds(log_line)
+        if request_start == -1:
+            logger.warning("No request start found in %s: %s...", prefix, log_line[:100])
+            return None
+        if request_end == -1:
+            logger.warning("No request end found in %s: %s...", prefix, log_line[:100])
+            return None
+
+        request_line = log_line[request_start + 1:request_end]
+        request_parts = request_line.split()
+        if len(request_parts) < 2:
+            logger.warning("Invalid request format in %s: %s", prefix, request_line)
+            return None
+
+        method = request_parts[0]
+        path = request_parts[1]
+        protocol = request_parts[2] if len(request_parts) > 2 else "HTTP/1.1"
+        return method, path, protocol, log_line[request_end + 1:].strip()
+
+    def _extract_common_metadata(self, log_line: str, prefix: str) -> tuple[str, str, list[str]] | None:
+        timestamp_match = self.timestamp_pattern.search(log_line)
+        if not timestamp_match:
+            logger.warning("No timestamp found in %s: %s...", prefix, log_line[:100])
+            return None
+
+        parts = log_line.split()
+        if len(parts) < 8:
+            logger.warning("Not enough parts in %s line: %s parts", prefix, len(parts))
+            return None
+
+        return parts[0], timestamp_match.group(1), parts
+
+    @staticmethod
+    def _parse_combined_fields(remaining: str) -> tuple[str, str]:
+        referer_start = remaining.find('"')
+        referer_end = remaining.find('"', referer_start + 1)
+        referer = remaining[referer_start + 1:referer_end] if referer_start != -1 and referer_end != -1 else ""
+
+        user_agent_start = remaining.find('"', referer_end + 1)
+        user_agent_end = remaining.find('"', user_agent_start + 1)
+        user_agent = (
+            remaining[user_agent_start + 1:user_agent_end]
+            if user_agent_start != -1 and user_agent_end != -1
+            else ""
+        )
+        return referer, user_agent
+
+    @staticmethod
+    def _build_parsed_log(
+        ip_address: str,
+        timestamp: str,
+        method: str,
+        path: str,
+        protocol: str,
+        status_code: int,
+        size: int,
+        raw_log: str,
+        referer: str = "",
+        user_agent: str = "",
+    ) -> Dict:
+        return {
+            "ip_address": ip_address,
+            "timestamp": timestamp,
+            "method": method,
+            "path": path,
+            "protocol": protocol,
+            "status_code": status_code,
+            "size": size,
+            "referer": referer,
+            "user_agent": user_agent,
+            "raw_log": raw_log
+        }
     
     def parse_apache_log(self, log_line: str) -> Optional[Dict]:
         """
@@ -41,58 +125,17 @@ class LogParserService:
             # Clean the log line
             log_line = log_line.strip()
             logger.debug(f"Cleaned log line: {log_line[:200]}...")
-            # Extract timestamp using regex (only part that needs regex)
-            timestamp_match = self.timestamp_pattern.search(log_line)
-            if not timestamp_match:
-                logger.warning(f"No timestamp found in log: {log_line[:100]}...")
+
+            metadata = self._extract_common_metadata(log_line, "log")
+            if metadata is None:
                 return None
-            
-            timestamp_str = timestamp_match.group(1)
-            
-            # Split the log line by spaces
-            parts = log_line.split()
-            
-            if len(parts) < 8:
-                logger.warning(f"Not enough parts in log line: {len(parts)} parts")
+
+            ip_address, timestamp_str, parts = metadata
+            request_data = self._extract_request_parts(log_line, "log")
+            if request_data is None:
                 return None
-            
-            # Extract basic fields
-            ip_address = parts[0]
-            
-            # Find the request part (starts with " and ends with ")
-            request_start = log_line.find('\"')
-            if request_start == -1:
-                logger.warning(f"No request start found in log: {log_line[:100]}...")
-                return None
-            
-            # Find the end of the request (next " after the start)
-            request_end = log_line.find('\"', request_start + 1)
-            if request_end == -1:
-                logger.warning(f"No request end found in log: {log_line[:100]}...")
-                return None
-            
-            request_line = log_line[request_start + 1:request_end]
-            request_parts = request_line.split()
-            logger.debug(f"Request parts: {request_parts}")
-            if len(request_parts) < 2:
-                logger.warning(f"Invalid request format: {request_line}")
-                return None
-            
-            method = request_parts[0]
-            
-            # Handle path and protocol
-            if len(request_parts) == 2:
-                # No protocol specified
-                path = request_parts[1]
-                protocol = "HTTP/1.1"  # Default
-            else:
-                # Protocol specified
-                path = request_parts[1]
-                protocol = request_parts[2]
-            
-            # Find the position after the request quote to get remaining parts
-            after_request = request_end + 1
-            remaining = log_line[after_request:].strip()
+
+            method, path, protocol, remaining = request_data
             remaining_parts = remaining.split()
             
             # Check if it's combined log format by looking for quoted fields
@@ -116,16 +159,8 @@ class LogParserService:
             if is_combined:
                 # Combined log format - extract referer and user agent
                 try:
-                    # Find referer (first quoted string after request)
-                    referer_start = remaining.find('"')
-                    referer_end = remaining.find('"', referer_start + 1)
-                    referer = remaining[referer_start + 1:referer_end] if referer_start != -1 and referer_end != -1 else ""
-                    
-                    # Find user agent (second quoted string)
-                    user_agent_start = remaining.find('"', referer_end + 1)
-                    user_agent_end = remaining.find('"', user_agent_start + 1)
-                    user_agent = remaining[user_agent_start + 1:user_agent_end] if user_agent_start != -1 and user_agent_end != -1 else ""
-                except Exception:
+                    referer, user_agent = self._parse_combined_fields(remaining)
+                except (TypeError, ValueError):
                     referer = ""
                     user_agent = ""
                 logger.debug(
@@ -138,30 +173,29 @@ class LogParserService:
                     referer,
                     user_agent
                 )
-                return {
-                    "ip_address": ip_address,
-                    "timestamp": self._parse_timestamp(timestamp_str),
-                    "method": method,
-                    "path": path,
-                    "protocol": protocol,
-                    "status_code": status_code,
-                    "size": size,
-                    "referer": referer,
-                    "user_agent": user_agent,
-                    "raw_log": log_line
-                }
-            else:
-                # Common log format
-                return {
-                    "ip_address": ip_address,
-                    "timestamp": self._parse_timestamp(timestamp_str),
-                    "method": method,
-                    "path": path,
-                    "protocol": protocol,
-                    "status_code": status_code,
-                    "size": size,
-                    "raw_log": log_line
-                }
+                return self._build_parsed_log(
+                    ip_address,
+                    self._parse_timestamp(timestamp_str),
+                    method,
+                    path,
+                    protocol,
+                    status_code,
+                    size,
+                    log_line,
+                    referer,
+                    user_agent,
+                )
+
+            return self._build_parsed_log(
+                ip_address,
+                self._parse_timestamp(timestamp_str),
+                method,
+                path,
+                protocol,
+                status_code,
+                size,
+                log_line,
+            )
             
         except Exception as e:
             logger.error(f"Error parsing log line: {e}")
@@ -181,54 +215,17 @@ class LogParserService:
         try:
             logger.debug(f"Parsing nginx log line: {log_line[:200]}...")
             log_line = log_line.strip()
-            
-            # Nginx combined log format:
-            # $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-            # Example: 192.168.1.1 - - [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.example.com/start.html" "Mozilla/4.08 [en] (Win98; I ;Nav)"
-            
-            # Extract timestamp using regex
-            timestamp_match = self.timestamp_pattern.search(log_line)
-            if not timestamp_match:
-                logger.warning(f"No timestamp found in nginx log: {log_line[:100]}...")
+
+            metadata = self._extract_common_metadata(log_line, "nginx log")
+            if metadata is None:
                 return None
-            
-            timestamp_str = timestamp_match.group(1)
-            
-            # Split the log line by spaces
-            parts = log_line.split()
-            
-            if len(parts) < 8:
-                logger.warning(f"Not enough parts in nginx log line: {len(parts)} parts")
+
+            ip_address, timestamp_str, _parts = metadata
+            request_data = self._extract_request_parts(log_line, "nginx log")
+            if request_data is None:
                 return None
-            
-            # Extract IP address
-            ip_address = parts[0]
-            
-            # Find the request part (starts with " and ends with ")
-            request_start = log_line.find('\"')
-            if request_start == -1:
-                logger.warning(f"No request start found in nginx log: {log_line[:100]}...")
-                return None
-            
-            request_end = log_line.find('\"', request_start + 1)
-            if request_end == -1:
-                logger.warning(f"No request end found in nginx log: {log_line[:100]}...")
-                return None
-            
-            request_line = log_line[request_start + 1:request_end]
-            request_parts = request_line.split()
-            
-            if len(request_parts) < 2:
-                logger.warning(f"Invalid request format in nginx log: {request_line}")
-                return None
-            
-            method = request_parts[0]
-            path = request_parts[1]
-            protocol = request_parts[2] if len(request_parts) > 2 else "HTTP/1.1"
-            
-            # Get remaining parts after the request
-            after_request = request_end + 1
-            remaining = log_line[after_request:].strip()
+
+            method, path, protocol, remaining = request_data
             remaining_parts = remaining.split()
             
             # Extract status code and size
@@ -245,15 +242,7 @@ class LogParserService:
             
             if len(remaining_parts) > 2:
                 try:
-                    # Find referer (first quoted string after status and size)
-                    referer_start = remaining.find('\"')
-                    referer_end = remaining.find('\"', referer_start + 1)
-                    referer = remaining[referer_start + 1:referer_end] if referer_start != -1 and referer_end != -1 else ""
-                    
-                    # Find user agent (second quoted string)
-                    user_agent_start = remaining.find('\"', referer_end + 1)
-                    user_agent_end = remaining.find('\"', user_agent_start + 1)
-                    user_agent = remaining[user_agent_start + 1:user_agent_end] if user_agent_start != -1 and user_agent_end != -1 else ""
+                    referer, user_agent = self._parse_combined_fields(remaining)
                 except Exception as e:
                     logger.debug(f"Could not extract referer/user_agent from nginx log: {e}")
             
@@ -266,18 +255,18 @@ class LogParserService:
                 size
             )
             
-            return {
-                "ip_address": ip_address,
-                "timestamp": self._parse_timestamp(timestamp_str),
-                "method": method,
-                "path": path,
-                "protocol": protocol,
-                "status_code": status_code,
-                "size": size,
-                "referer": referer,
-                "user_agent": user_agent,
-                "raw_log": log_line
-            }
+            return self._build_parsed_log(
+                ip_address,
+                self._parse_timestamp(timestamp_str),
+                method,
+                path,
+                protocol,
+                status_code,
+                size,
+                log_line,
+                referer,
+                user_agent,
+            )
             
         except Exception as e:
             logger.error(f"Error parsing nginx log line: {e}")

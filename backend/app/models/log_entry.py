@@ -67,6 +67,8 @@ class LogEntryResponse(BaseModel):
     websocket_id: str
     total_count: int
     infected_count: int
+    safe_count: int
+    threat_rate: float
 
 
 class WebSocketMessage(BaseModel):

@@ -15,6 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 ORG_ID_KEYWORD = "org_id.keyword"
+INFECTED_COUNT_AGG = "infected_count"
 
 class ElasticsearchService:
     """
@@ -71,6 +72,15 @@ class ElasticsearchService:
                 logger.info(f"Created Elasticsearch index: {self.index_name}")
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error creating Elasticsearch index: {e}")
+
+    @staticmethod
+    def _extract_total_hits(response: Dict) -> int:
+        total_info = response["hits"]["total"]
+        return total_info["value"] if isinstance(total_info, dict) else total_info
+
+    @staticmethod
+    def _extract_infected_count(response: Dict) -> int:
+        return response.get("aggregations", {}).get(INFECTED_COUNT_AGG, {}).get("doc_count", 0)
 
 
     async def store_log(self, log_data: Dict) -> bool:
@@ -159,7 +169,7 @@ class ElasticsearchService:
         """
         if self.client is None:
             logger.warning("Elasticsearch not available, returning empty logs")
-            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+            return {"logs": [], "total": 0, "infected_count": 0, "offset": offset, "limit": limit}
             
         try:
             must_clauses = []
@@ -170,6 +180,13 @@ class ElasticsearchService:
                 "query": {
                     "bool": {
                         "must": must_clauses
+                    }
+                },
+                "aggs": {
+                    INFECTED_COUNT_AGG: {
+                        "filter": {
+                            "term": {"infected": True}
+                        }
                     }
                 },
                 "sort": [{"created_at": {"order": "desc"}}],
@@ -190,24 +207,21 @@ class ElasticsearchService:
                 logs.append(log_data)
             
             # Get accurate total count
-            total_info = response["hits"]["total"]
-            if isinstance(total_info, dict):
-                total = total_info["value"]
-                logger.info(f"Total logs from ES: {total} (relation: {total_info.get('relation', 'eq')})")
-            else:
-                total = total_info
-                logger.info(f"Total logs from ES: {total}")
+            total = self._extract_total_hits(response)
+            infected_count = self._extract_infected_count(response)
+            logger.info("Total logs from ES: %s, infected logs: %s", total, infected_count)
             
             return {
                 "logs": logs,
                 "total": total,
+                "infected_count": infected_count,
                 "offset": offset,
                 "limit": limit
             }
             
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error retrieving logs from Elasticsearch: {e}")
-            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+            return {"logs": [], "total": 0, "infected_count": 0, "offset": offset, "limit": limit}
     
 
     async def search_logs(
@@ -232,7 +246,7 @@ class ElasticsearchService:
         """
         if self.client is None:
             logger.warning("Elasticsearch not available, returning empty logs for search")
-            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+            return {"logs": [], "total": 0, "infected_count": 0, "offset": offset, "limit": limit}
 
         try:
             must_clauses: List[Dict] = [{"term": {ORG_ID_KEYWORD: org_id}}]
@@ -265,6 +279,13 @@ class ElasticsearchService:
                         "must": query_filters
                     }
                 },
+                "aggs": {
+                    INFECTED_COUNT_AGG: {
+                        "filter": {
+                            "term": {"infected": True}
+                        }
+                    }
+                },
                 "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
                 "size": limit,
@@ -281,14 +302,20 @@ class ElasticsearchService:
             for hit in response["hits"]["hits"]:
                 logs.append(hit["_source"])
 
-            total_info = response["hits"]["total"]
-            total = total_info["value"] if isinstance(total_info, dict) else total_info
+            total = self._extract_total_hits(response)
+            infected_count = self._extract_infected_count(response)
 
-            return {"logs": logs, "total": total, "offset": offset, "limit": limit}
+            return {
+                "logs": logs,
+                "total": total,
+                "infected_count": infected_count,
+                "offset": offset,
+                "limit": limit,
+            }
 
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error searching logs in Elasticsearch: {e}")
-            return {"logs": [], "total": 0, "offset": offset, "limit": limit}
+            return {"logs": [], "total": 0, "infected_count": 0, "offset": offset, "limit": limit}
 
 
     async def update_logs_by_ip(self, ip_address: str, infected: bool, org_id: str) -> Dict:

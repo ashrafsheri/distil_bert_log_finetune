@@ -100,6 +100,71 @@ class LogService:
 
         return output.getvalue()
 
+    @staticmethod
+    def _is_structured_nginx_log(record: Dict[str, Any]) -> bool:
+        return all(key in record for key in ['remote', 'method', 'path', 'code'])
+
+    @staticmethod
+    def _extract_known_log_field(record: Dict[str, Any], common_fields: List[str]) -> str | None:
+        for field_name in common_fields:
+            if field_name in record:
+                return record[field_name]
+        return None
+
+    @staticmethod
+    def _extract_nested_log_content(record: Dict[str, Any], common_fields: List[str]) -> str | None:
+        nested_record = record.get('record')
+        if not isinstance(nested_record, dict):
+            return None
+
+        if LogService._is_structured_nginx_log(nested_record):
+            return LogService._convert_nginx_to_combined(nested_record)
+
+        return LogService._extract_known_log_field(nested_record, common_fields)
+
+    @staticmethod
+    def _extract_fallback_string(record: Dict[str, Any]) -> str | None:
+        for key, value in record.items():
+            if (
+                isinstance(value, str)
+                and len(value) > 10
+                and key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source']
+            ):
+                return value
+        return None
+
+    @staticmethod
+    def _extract_log_content(record: Any, common_fields: List[str]) -> str | None:
+        if isinstance(record, str):
+            return record
+
+        if not isinstance(record, dict):
+            return None
+
+        if LogService._is_structured_nginx_log(record):
+            return LogService._convert_nginx_to_combined(record)
+
+        direct_content = LogService._extract_known_log_field(record, common_fields)
+        if direct_content is not None:
+            return direct_content
+
+        nested_content = LogService._extract_nested_log_content(record, common_fields)
+        if nested_content is not None:
+            return nested_content
+
+        fallback_content = LogService._extract_fallback_string(record)
+        if fallback_content is not None:
+            return fallback_content
+
+        non_meta_keys = [
+            key for key in record.keys()
+            if key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source', 'tag']
+        ]
+        if non_meta_keys:
+            return json.dumps(record)
+
+        return None
+
     
     async def export_logs_to_csv(self, logs: List[dict]) -> str:
         """
@@ -265,74 +330,27 @@ class LogService:
             List of raw log strings in Apache Combined Log Format
         """
         raw_logs = []
-        
+        common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
+
         logger.debug(f"[extract_raw_logs] Processing {len(records) if hasattr(records, '__len__') else 'unknown'} records")
-        
+
         for i, record in enumerate(records):
-            log_content = None
-            
             if i == 0:  # Debug first record
                 logger.debug(f"[extract_raw_logs] First record type: {type(record)}")
                 logger.debug(f"[extract_raw_logs] First record content: {record}")
-            
-            if isinstance(record, dict):
-                # Check if this is a structured nginx log (has 'remote', 'method', 'path', 'code')
-                if all(k in record for k in ['remote', 'method', 'path', 'code']):
-                    # Convert structured nginx log to Apache Combined Log Format
-                    log_content = LogService._convert_nginx_to_combined(record)
-                    if i == 0:
-                        logger.debug("[extract_raw_logs] Converted nginx structured log to Combined format")
-                else:
-                    # Try multiple common field names used by Fluent Bit
-                    common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
-                    for field_name in common_fields:
-                        if field_name in record:
-                            log_content = record[field_name]
-                            if i == 0:
-                                logger.debug(f"[extract_raw_logs] Found content in field '{field_name}'")
-                            break
-                    
-                    # If no direct field found, check if it's a nested structure
-                    if log_content is None and 'record' in record:
-                        nested_record = record['record']
-                        if isinstance(nested_record, dict):
-                            # Check nested record for nginx format
-                            if all(k in nested_record for k in ['remote', 'method', 'path', 'code']):
-                                log_content = LogService._convert_nginx_to_combined(nested_record)
-                                if i == 0:
-                                    logger.debug("[extract_raw_logs] Converted nested nginx structured log")
-                            else:
-                                for field_name in common_fields:
-                                    if field_name in nested_record:
-                                        log_content = nested_record[field_name]
-                                        if i == 0:
-                                            logger.debug(f"[extract_raw_logs] Found content in nested 'record.{field_name}'")
-                                        break
-                    
-                    # Try to find any string value that looks like a log line
-                    if log_content is None:
-                        for key, value in record.items():
-                            if isinstance(value, str) and len(value) > 10 and key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source']:
-                                log_content = value
-                                if i == 0:
-                                    logger.debug(f"[extract_raw_logs] Using string value from field '{key}' as log content")
-                                break
-                    
-                    # Last resort: convert entire record to string if it has no recognized log field
-                    if log_content is None and len(record) > 0:
-                        # Skip if it only has timestamp-like fields
-                        non_meta_keys = [k for k in record.keys() if k not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source', 'tag']]
-                        if non_meta_keys:
-                            log_content = json.dumps(record)
-                            if i == 0:
-                                logger.debug("[extract_raw_logs] Converting entire record to JSON string")
-                    
-            elif isinstance(record, str):
-                # Direct string log
-                log_content = record
-                if i == 0:
+
+            log_content = LogService._extract_log_content(record, common_fields)
+
+            if i == 0:
+                if isinstance(record, str):
                     logger.debug("[extract_raw_logs] Record is direct string")
-            
+                elif isinstance(record, dict) and LogService._is_structured_nginx_log(record):
+                    logger.debug("[extract_raw_logs] Converted nginx structured log to Combined format")
+                elif isinstance(record, dict) and log_content in record.values():
+                    logger.debug("[extract_raw_logs] Found content in top-level record field")
+                elif isinstance(record, dict) and isinstance(record.get("record"), dict) and log_content is not None:
+                    logger.debug("[extract_raw_logs] Extracted content from nested record")
+
             if log_content and isinstance(log_content, str) and log_content.strip():
                 raw_logs.append(log_content.strip())
             elif i == 0:

@@ -3,6 +3,7 @@ User Controller
 Handles user-related API endpoints
 """
 
+import logging
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,140 @@ from app.utils.firebase_auth import get_current_user
 from app.utils.permissions import check_permission
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _ensure_admin_creation_allowed(user_role: str, target_role: str) -> None:
+    if target_role == "admin" and user_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can create admin users"
+        )
+
+
+async def _validate_organization(
+    organization_id: str,
+    db: AsyncSession,
+):
+    from sqlalchemy import select
+    from app.models.organization_db import OrganizationDB
+
+    result = await db.execute(
+        select(OrganizationDB).where(OrganizationDB.id == organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Organization {organization_id} not found"
+        )
+    return org
+
+
+async def _resolve_user_org_id(
+    user_data: UserCreateWithPassword,
+    current_user: dict,
+    db: AsyncSession,
+) -> str:
+    user_role = current_user["role"]
+
+    if user_role == "manager":
+        if user_data.organization_id and user_data.organization_id != current_user["org_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only create users in your own organization"
+            )
+        return current_user["org_id"]
+
+    if user_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to create users"
+        )
+
+    if user_data.role == "admin":
+        return "-1"
+
+    if not user_data.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="organization_id is required when creating non-admin users"
+        )
+
+    await _validate_organization(user_data.organization_id, db)
+    return user_data.organization_id
+
+
+def _create_firebase_user(user_data: UserCreateWithPassword):
+    from firebase_admin import auth
+
+    try:
+        return auth.create_user(
+            email=user_data.email,
+            password=user_data.password,
+            email_verified=True
+        )
+    except auth.EmailAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with email '{user_data.email}' already exists in Firebase"
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create Firebase user: {str(exc)}"
+        ) from exc
+
+
+def _rollback_firebase_user(firebase_uid: str | None) -> None:
+    if not firebase_uid:
+        return
+
+    from firebase_admin import auth
+
+    try:
+        auth.delete_user(firebase_uid)
+    except Exception as rollback_error:
+        logger.error("Failed to rollback Firebase user %s: %s", firebase_uid, rollback_error)
+
+
+async def _get_org_name(org_id: str | None, db: AsyncSession) -> str | None:
+    if not org_id or org_id == "-1":
+        return None
+
+    organization = await _validate_organization(org_id, db)
+    return organization.name
+
+
+async def _create_database_user(
+    user_data: UserCreateWithPassword,
+    firebase_uid: str,
+    org_id_to_use: str,
+    db: AsyncSession,
+):
+    user_service = get_user_service(db)
+    return await user_service.create_user(
+        UserCreate(
+            email=user_data.email,
+            uid=firebase_uid,
+            role=user_data.role,
+            org_id=org_id_to_use
+        )
+    )
+
+
+async def _build_user_response(user, db: AsyncSession) -> UserResponse:
+    org_name = await _get_org_name(user.org_id, db)
+    return UserResponse(
+        email=user.email,
+        uid=user.uid,
+        role=user.role,
+        org_id=user.org_id,
+        enabled=user.enabled,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        org_name=org_name
+    )
 
 
 @router.post("/create", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -38,157 +173,39 @@ async def create_user(
     Raises:
         HTTPException: If user creation fails, user already exists, or unauthorized
     """
-    # Check if trying to create admin user - only admins can do this
-    if user_data.role == "admin":
-        if current_user["role"] != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can create admin users"
-            )
-    
-    # HORIZONTAL PRIVILEGE SEPARATION:
-    # Managers can only create users in their own organization
-    if current_user["role"] == "manager":
-        # If organization_id is provided, ensure it matches manager's org
-        if user_data.organization_id and user_data.organization_id != current_user["org_id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only create users in your own organization"
-            )
-        # Enforce manager's organization
-        org_id_to_use = current_user["org_id"]
-    elif current_user["role"] == "admin":
-        # VERTICAL PRIVILEGE SEPARATION:
-        # Admins can create users in any organization
-        if user_data.role == "admin":
-            org_id_to_use = "-1"  # Admins are not tied to a specific org
-        else:
-            # For non-admin users, organization_id is required
-            if not user_data.organization_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="organization_id is required when creating non-admin users"
-                )
-            # Verify organization exists
-            from sqlalchemy import select
-            from app.models.organization_db import OrganizationDB
-            result = await db.execute(
-                select(OrganizationDB).where(OrganizationDB.id == user_data.organization_id)
-            )
-            org = result.scalar_one_or_none()
-            if not org:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Organization {user_data.organization_id} not found"
-                )
-            org_id_to_use = user_data.organization_id
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to create users"
-        )
-    
-    from firebase_admin import auth
+    _ensure_admin_creation_allowed(current_user["role"], user_data.role)
+    org_id_to_use = await _resolve_user_org_id(user_data, current_user, db)
+
     from app.utils.firebase_auth import get_firebase_app
-    
+
     firebase_uid = None
     try:
-        # Initialize Firebase Admin SDK
         get_firebase_app()
-        
-        # Create Firebase user
+        firebase_uid = _create_firebase_user(user_data).uid
+
         try:
-            firebase_user = auth.create_user(
-                email=user_data.email,
-                password=user_data.password,
-                email_verified=True  # Email verification can be done separately
-            )
-            firebase_uid = firebase_user.uid
-        except auth.EmailAlreadyExistsError:
+            user = await _create_database_user(user_data, firebase_uid, org_id_to_use, db)
+            return await _build_user_response(user, db)
+        except ValueError as exc:
+            _rollback_firebase_user(firebase_uid)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"User with email '{user_data.email}' already exists in Firebase"
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to create Firebase user: {str(e)}"
-            )
-        
-        # Create user in database
-        try:
-            user_service = get_user_service(db)
-            user = await user_service.create_user(UserCreate(
-                email=user_data.email,
-                uid=firebase_uid,
-                role=user_data.role,
-                org_id=org_id_to_use
-            ))
-            
-            # Get organization name if user belongs to one
-            org_name = None
-            if user.org_id and user.org_id != "-1":
-                from sqlalchemy import select
-                from app.models.organization_db import OrganizationDB
-                result = await db.execute(
-                    select(OrganizationDB).where(OrganizationDB.id == user.org_id)
-                )
-                org = result.scalar_one_or_none()
-                if org:
-                    org_name = org.name
-            
-            return UserResponse(
-                email=user.email,
-                uid=user.uid,
-                role=user.role,
-                org_id=user.org_id,
-                enabled=user.enabled,
-                created_at=user.created_at,
-                updated_at=user.updated_at,
-                org_name=org_name
-            )
-        except ValueError as e:
-            # If database creation fails, rollback Firebase user
-            try:
-                auth.delete_user(firebase_uid)
-            except Exception as rollback_error:
-                # Log but don't fail on rollback
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to rollback Firebase user {firebase_uid}: {rollback_error}")
-            
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
-        except Exception as e:
-            # If database creation fails, rollback Firebase user
-            try:
-                auth.delete_user(firebase_uid)
-            except Exception as rollback_error:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to rollback Firebase user {firebase_uid}: {rollback_error}")
-            
+                detail=str(exc)
+            ) from exc
+        except Exception as exc:
+            _rollback_firebase_user(firebase_uid)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to create user in database: {str(e)}"
-            )
-            
+                detail=f"Failed to create user in database: {str(exc)}"
+            ) from exc
     except HTTPException:
         raise
-    except Exception as e:
-        # Cleanup Firebase user if it was created but something else failed
-        if firebase_uid:
-            try:
-                auth.delete_user(firebase_uid)
-            except Exception:
-                pass  # Ignore cleanup errors
-        
+    except Exception as exc:
+        _rollback_firebase_user(firebase_uid)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create user: {str(e)}"
-        )
+            detail=f"Failed to create user: {str(exc)}"
+        ) from exc
 
 @router.get("/", response_model=List[UserResponse])
 async def get_all_users(

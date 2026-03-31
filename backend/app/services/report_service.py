@@ -259,6 +259,70 @@ class ReportService:
         logger.info(f"Generated {len(dummy_logs)} dummy logs ({sum(1 for l in dummy_logs if l['infected'])} malicious)")
         return dummy_logs
 
+    @staticmethod
+    def _build_ip_details() -> defaultdict:
+        return defaultdict(lambda: {
+            'count': 0,
+            'rule_based': 0,
+            'isolation_forest': 0,
+            'transformer': 0,
+            'ensemble_scores': [],
+            'attack_types': set(),
+            'logs': []
+        })
+
+    @staticmethod
+    def _update_ip_details(ip_details: defaultdict, ip: str, log: Dict[str, Any]) -> None:
+        ip_details[ip]['count'] += 1
+        ip_details[ip]['logs'].append(log)
+
+        anomaly_details = log.get('anomaly_details', {})
+
+        rule_based = anomaly_details.get('rule_based', {})
+        if rule_based.get('is_attack', False):
+            ip_details[ip]['rule_based'] += 1
+            ip_details[ip]['attack_types'].update(rule_based.get('attack_types', []))
+
+        iso_forest = anomaly_details.get('isolation_forest', {})
+        if iso_forest.get('is_anomaly', 0) == 1:
+            ip_details[ip]['isolation_forest'] += 1
+
+        transformer = anomaly_details.get('transformer', {})
+        if transformer.get('is_anomaly', 0) == 1:
+            ip_details[ip]['transformer'] += 1
+
+        ensemble_score = anomaly_details.get('ensemble', {}).get('score', 0.0)
+        if ensemble_score > 0:
+            ip_details[ip]['ensemble_scores'].append(ensemble_score)
+
+    @staticmethod
+    def _build_malicious_ip_summary(malicious_logs: List[Dict[str, Any]]) -> tuple[set[str], defaultdict]:
+        malicious_ips: set[str] = set()
+        ip_details = ReportService._build_ip_details()
+
+        for log in malicious_logs:
+            ip = log.get('ip_address')
+            if not ip:
+                continue
+            malicious_ips.add(ip)
+            ReportService._update_ip_details(ip_details, ip, log)
+
+        return malicious_ips, ip_details
+
+    @staticmethod
+    def _build_timeline(malicious_logs: List[Dict[str, Any]]) -> list[tuple[str, int]]:
+        timeline = defaultdict(int)
+        for log in malicious_logs:
+            timestamp = log.get('timestamp', '')
+            try:
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                hour_key = dt.strftime('%Y-%m-%d %H:00')
+                timeline[hour_key] += 1
+            except (TypeError, ValueError):
+                continue
+
+        return sorted(timeline.items())
+
     def _calculate_statistics(
         self,
         logs: List[Dict[str, Any]],
@@ -270,66 +334,8 @@ class ReportService:
         total_logs = len(logs)
         malicious_logs = [log for log in logs if log.get('infected', False)]
         malicious_count = len(malicious_logs)
-
-        # Get unique malicious IPs
-        malicious_ips = set()
-        ip_details = defaultdict(lambda: {
-            'count': 0,
-            'rule_based': 0,
-            'isolation_forest': 0,
-            'transformer': 0,
-            'ensemble_scores': [],
-            'attack_types': set(),
-            'logs': []
-        })
-
-        # Process malicious logs
-        for log in malicious_logs:
-            ip = log.get('ip_address')
-            if ip:
-                malicious_ips.add(ip)
-                ip_details[ip]['count'] += 1
-                ip_details[ip]['logs'].append(log)
-
-                # Extract anomaly details
-                anomaly_details = log.get('anomaly_details', {})
-
-                # Rule-based detection
-                rule_based = anomaly_details.get('rule_based', {})
-                if rule_based.get('is_attack', False):
-                    ip_details[ip]['rule_based'] += 1
-                    attack_types = rule_based.get('attack_types', [])
-                    ip_details[ip]['attack_types'].update(attack_types)
-
-                # Isolation Forest
-                iso_forest = anomaly_details.get('isolation_forest', {})
-                if iso_forest.get('is_anomaly', 0) == 1:
-                    ip_details[ip]['isolation_forest'] += 1
-
-                # Transformer
-                transformer = anomaly_details.get('transformer', {})
-                if transformer.get('is_anomaly', 0) == 1:
-                    ip_details[ip]['transformer'] += 1
-
-                # Ensemble score
-                ensemble = anomaly_details.get('ensemble', {})
-                ensemble_score = ensemble.get('score', 0.0)
-                if ensemble_score > 0:
-                    ip_details[ip]['ensemble_scores'].append(ensemble_score)
-
-        # Timeline data - group by hour
-        timeline = defaultdict(int)
-        for log in malicious_logs:
-            timestamp = log.get('timestamp', '')
-            try:
-                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-                hour_key = dt.strftime('%Y-%m-%d %H:00')
-                timeline[hour_key] += 1
-            except (TypeError, ValueError):
-                pass
-
-        # Sort timeline
-        sorted_timeline = sorted(timeline.items())
+        malicious_ips, ip_details = self._build_malicious_ip_summary(malicious_logs)
+        sorted_timeline = self._build_timeline(malicious_logs)
 
         # Email alerts count (estimate based on batches of alerts)
         # Assuming 1 alert per 10 malicious logs or per unique malicious IP

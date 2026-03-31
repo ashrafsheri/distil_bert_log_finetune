@@ -82,7 +82,30 @@ def test_build_log_response_counts_infected_entries() -> None:
 
     assert response.total_count == 2
     assert response.infected_count == 1
+    assert response.safe_count == 1
+    assert response.threat_rate == 50.0
     assert response.websocket_id
+
+
+def test_build_log_response_uses_aggregate_infected_count() -> None:
+    response = LogSerializer.build_log_response(
+        [
+            {
+                "timestamp": "2026-03-31T10:00:00Z",
+                "ip_address": "127.0.0.1",
+                "api_accessed": "/api/v1/logs",
+                "status_code": 200,
+                "infected": True,
+            }
+        ],
+        total_count=12,
+        infected_count=5,
+    )
+
+    assert response.total_count == 12
+    assert response.infected_count == 5
+    assert response.safe_count == 7
+    assert response.threat_rate == 41.7
 
 
 def test_serialize_fluent_bit_response_uses_defaults() -> None:

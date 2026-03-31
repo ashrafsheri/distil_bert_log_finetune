@@ -47,7 +47,14 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
       }
       
       // Use apiService for authenticated request
-      const response = await apiService.get<{ logs: LogEntry[]; total_count: number; infected_count: number; websocket_id?: string }>(url);
+      const response = await apiService.get<{
+        logs: LogEntry[];
+        total_count: number;
+        infected_count: number;
+        safe_count: number;
+        threat_rate: number;
+        websocket_id?: string;
+      }>(url);
       const data = response.data;
       
       if (Array.isArray(data.logs)) {

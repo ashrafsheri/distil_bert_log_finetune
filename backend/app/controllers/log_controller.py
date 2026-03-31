@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ID_FILTER_DESCRIPTION = "Project ID to filter logs"
 PROJECT_ACCESS_DENIED = "You don't have access to this project"
+PROJECT_NOT_FOUND = "Project not found"
 
 # Dependency injection for services
 def get_log_service() -> LogService:
@@ -86,6 +87,128 @@ async def _resolve_log_scope(
         raise HTTPException(status_code=403, detail=missing_org_detail)
     return org_id
 
+
+def _build_search_window(from_date: str | None, to_date: str | None) -> tuple[str | None, str | None]:
+    from_dt = f"{from_date}T00:00:00Z" if from_date else None
+    to_dt = f"{to_date}T23:59:59Z" if to_date else None
+    return from_dt, to_dt
+
+
+def _resolve_infected_filter(malicious: bool | None) -> bool | None:
+    if malicious is None:
+        return None
+    return malicious
+
+
+async def _get_project_record(project_id: str, db: AsyncSession):
+    from sqlalchemy import select
+    from app.models.project_db import ProjectDB
+
+    result = await db.execute(select(ProjectDB).where(ProjectDB.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+    return project
+
+
+def _get_log_parser(log_parser_service: LogParserService, log_type: str):
+    return log_parser_service.parse_nginx_log if log_type == "nginx" else log_parser_service.parse_apache_log
+
+
+def _parse_logs_for_storage(
+    raw_logs: list[str],
+    log_parser_service: LogParserService,
+    log_type: str,
+) -> list[dict[str, Any]]:
+    parser = _get_log_parser(log_parser_service, log_type)
+    parsed_logs_data: list[dict[str, Any]] = []
+
+    for index, raw_log in enumerate(raw_logs):
+        try:
+            parsed_log = parser(raw_log)
+            if parsed_log is None:
+                logger.warning("Could not parse %s log entry", log_type)
+                continue
+            parsed_logs_data.append(
+                LogSerializer.serialize_parsed_log_data(parsed_log, raw_log, index)
+            )
+        except Exception as exc:
+            logger.error("Error parsing %s log: %s", log_type, exc)
+
+    return parsed_logs_data
+
+
+def _collect_unique_ips(parsed_logs_data: list[dict[str, Any]]) -> set[str]:
+    return {
+        parsed_log["parsed_log"].get("ip_address")
+        for parsed_log in parsed_logs_data
+        if parsed_log["parsed_log"].get("ip_address")
+    }
+
+
+def _build_default_anomaly_results(raw_logs: list[str]) -> list[dict[str, Any]]:
+    return [{"is_anomaly": False, "anomaly_score": 0.0, "details": {}}] * len(raw_logs)
+
+
+def _parse_report_datetime(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+
+def _validate_report_window(start_dt: datetime, end_dt: datetime) -> None:
+    if end_dt <= start_dt:
+        raise HTTPException(
+            status_code=400,
+            detail="End time must be after start time"
+        )
+
+    duration = end_dt - start_dt
+    if duration.days > 30:
+        raise HTTPException(
+            status_code=400,
+            detail="Time range cannot exceed 30 days"
+        )
+
+
+async def _resolve_report_scope(
+    request: GenerateReportRequest,
+    current_user: dict[str, Any],
+    db: AsyncSession,
+) -> tuple[str | None, str, str | None]:
+    from app.services.project_service import ProjectService
+
+    project_service = ProjectService()
+
+    if request.project_id:
+        project = await project_service.get_project_by_id(request.project_id, db)
+        if not project:
+            raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+
+        is_admin = current_user.get("role") == "admin"
+        is_manager_in_org = (
+            current_user.get("role") == "manager"
+            and current_user.get("org_id") == project.org_id
+        )
+        member_role = await project_service.check_user_project_access(
+            current_user.get("uid"),
+            request.project_id,
+            db,
+        )
+        if not (is_admin or is_manager_in_org or member_role):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to generate a report for this project"
+            )
+
+        return request.project_id, "project", project.name
+
+    org_id = current_user.get("org_id")
+    if not org_id and current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Please select a project or ensure your account belongs to an organization"
+        )
+    return org_id, "organization", None
+
 @router.get(
     "/fetch",
     response_model=LogEntryResponse,
@@ -131,7 +254,11 @@ async def fetch_logs(
         result = await elasticsearch_service.get_logs(org_id=org_id_filter, limit=safe_limit, offset=safe_offset)
         logger.info("Fetched %s logs", len(result.get("logs", [])))
         
-        return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
+        return LogSerializer.build_log_response(
+            result["logs"],
+            result.get("total", 0),
+            result.get("infected_count"),
+        )
         
     except HTTPException:
         raise
@@ -176,17 +303,8 @@ async def search_logs(
             missing_org_detail="Please select a project to search logs",
         )
         
-        infected = None
-        if malicious is not None:
-            infected = True if malicious else False
-
-        # Convert YYYY-MM-DD to ISO datetimes covering full days
-        from_dt = None
-        to_dt = None
-        if from_date:
-            from_dt = f"{from_date}T00:00:00Z"
-        if to_date:
-            to_dt = f"{to_date}T23:59:59Z"
+        infected = _resolve_infected_filter(malicious)
+        from_dt, to_dt = _build_search_window(from_date, to_date)
 
         safe_limit = min(max(limit, 1), 100)
         safe_offset = max(offset, 0)
@@ -202,7 +320,11 @@ async def search_logs(
             offset=safe_offset,
         )
 
-        return LogSerializer.build_log_response(result["logs"], result.get("total", 0))
+        return LogSerializer.build_log_response(
+            result["logs"],
+            result.get("total", 0),
+            result.get("infected_count"),
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -244,17 +366,8 @@ async def export_logs_to_csv(
             missing_org_detail="Please select a project to export logs",
         )
         
-        infected = None
-        if malicious is not None:
-            infected = True if malicious else False
-
-        # Convert YYYY-MM-DD to ISO datetimes covering full days
-        from_dt = None
-        to_dt = None
-        if from_date:
-            from_dt = f"{from_date}T00:00:00Z"
-        if to_date:
-            to_dt = f"{to_date}T23:59:59Z"
+        infected = _resolve_infected_filter(malicious)
+        from_dt, to_dt = _build_search_window(from_date, to_date)
 
         # Get all matching logs (up to 10000 for export)
         result = await elasticsearch_service.search_logs(
@@ -398,15 +511,7 @@ async def receive_fluent_bit_logs(
         batch_id = str(uuid.uuid4())
 
         # Fetch project to get log_type
-        from sqlalchemy import select
-        from app.models.project_db import ProjectDB
-        
-        result = await db.execute(select(ProjectDB).where(ProjectDB.id == project_id))
-        project = result.scalar_one_or_none()
-        
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-        
+        project = await _get_project_record(project_id, db)
         log_type = project.log_type  # Get the log type (apache or nginx)
         logger.info("Processing Fluent Bit logs with parser=%s", log_type)
 
@@ -439,34 +544,10 @@ async def receive_fluent_bit_logs(
         
         if anomaly_results is None:
             logger.warning("Anomaly detection failed, processing logs without detection")
-            anomaly_results = [{"is_anomaly": False, "anomaly_score": 0.0, "details": {}}] * len(raw_logs)
-        
-        # Parse logs using the appropriate parser based on org's log_type
-        parsed_logs_data = []
-        for i, raw_log in enumerate(raw_logs):
-            try:
-                # Use appropriate parser based on log_type
-                if log_type == "nginx":
-                    parsed_log = log_parser_service.parse_nginx_log(raw_log)
-                else:  # Default to apache
-                    parsed_log = log_parser_service.parse_apache_log(raw_log)
-                
-                if parsed_log is None:
-                    logger.warning("Could not parse %s log entry", log_type)
-                    continue
-                parsed_logs_data.append(
-                    LogSerializer.serialize_parsed_log_data(parsed_log, raw_log, i)
-                )
-            except Exception as e:
-                logger.error(f"Error parsing {log_type} log: {e}")
-                continue
-        
-        # Get unique IP addresses from parsed logs
-        unique_ips = set()
-        for log_data in parsed_logs_data:
-            ip = log_data["parsed_log"].get("ip_address")
-            if ip:
-                unique_ips.add(ip)
+            anomaly_results = _build_default_anomaly_results(raw_logs)
+
+        parsed_logs_data = _parse_logs_for_storage(raw_logs, log_parser_service, log_type)
+        unique_ips = _collect_unique_ips(parsed_logs_data)
         
         # Query IP table for status overrides
         ip_status_map = await LogService.get_ip_status_map(unique_ips, project_id, db)
@@ -541,72 +622,20 @@ async def generate_security_report(
     try:
         # Parse datetime strings
         try:
-            start_dt = datetime.fromisoformat(request.start_time.replace('Z', '+00:00'))
-            end_dt = datetime.fromisoformat(request.end_time.replace('Z', '+00:00'))
+            start_dt = _parse_report_datetime(request.start_time)
+            end_dt = _parse_report_datetime(request.end_time)
         except ValueError:
             raise HTTPException(
                 status_code=400,
                 detail="Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"
             )
 
-        # Validate time range
-        if end_dt <= start_dt:
-            raise HTTPException(
-                status_code=400,
-                detail="End time must be after start time"
-            )
-
-        # Check 30-day limit
-        duration = end_dt - start_dt
-        if duration.days > 30:
-            raise HTTPException(
-                status_code=400,
-                detail="Time range cannot exceed 30 days"
-            )
-
-        from app.services.project_service import ProjectService
-        project_service = ProjectService()
-
-        # Determine the filter ID (project_id takes priority over org_id)
-        filter_id = None
-        report_scope = "organization"
-        project_name = None
-
-        if request.project_id:
-            # Validate project exists
-            project = await project_service.get_project_by_id(request.project_id, db)
-            if not project:
-                raise HTTPException(status_code=404, detail="Project not found")
-
-            # Permission check: admin can access any project;
-            # manager can access projects in their org;
-            # others must be an explicit project member
-            is_admin = current_user.get("role") == "admin"
-            is_manager_in_org = (
-                current_user.get("role") == "manager" and
-                current_user.get("org_id") == project.org_id
-            )
-            member_role = await project_service.check_user_project_access(
-                current_user.get("uid"), request.project_id, db
-            )
-            if not (is_admin or is_manager_in_org or member_role):
-                raise HTTPException(
-                    status_code=403,
-                    detail="You don't have permission to generate a report for this project"
-                )
-
-            filter_id = request.project_id
-            report_scope = "project"
-            project_name = project.name
-        else:
-            # No project specified — fall back to user's org
-            org_id = current_user.get("org_id")
-            if not org_id and current_user.get("role") != "admin":
-                raise HTTPException(
-                    status_code=403,
-                    detail="Please select a project or ensure your account belongs to an organization"
-                )
-            filter_id = org_id  # may be None for admin (all data)
+        _validate_report_window(start_dt, end_dt)
+        filter_id, report_scope, project_name = await _resolve_report_scope(
+            request,
+            current_user,
+            db,
+        )
 
         logger.info("Generating security report for scope=%s", report_scope)
 
@@ -624,7 +653,7 @@ async def generate_security_report(
         scope_label = project_name or filter_id or "all"
         filename = f"security_report_{scope_label}_{timestamp}.pdf"
 
-        logger.info(f"Successfully generated report: {filename}")
+        logger.info("Successfully generated report: %s", filename)
 
         return StreamingResponse(
             pdf_buffer,
