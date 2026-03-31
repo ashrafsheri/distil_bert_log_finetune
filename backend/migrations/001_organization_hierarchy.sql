@@ -7,10 +7,10 @@
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS organizations_backup AS 
-SELECT * FROM organizations;
+SELECT id, name, api_key, created_by, created_at, updated_at FROM organizations;
 
 CREATE TABLE IF NOT EXISTS users_backup AS 
-SELECT * FROM users;
+SELECT org_id, uid, email, role, enabled, created_at, updated_at FROM users;
 
 -- ================================================================
 -- STEP 2: CREATE NEW TABLES

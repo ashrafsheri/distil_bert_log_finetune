@@ -26,31 +26,21 @@ from app.services.email_service import can_send_alert, mark_alert_sent, send_ema
 from app.controllers.websocket_controller import send_log_update
 
 logger = logging.getLogger(__name__)
+APACHE_LOG_TIMESTAMP_FORMAT = "%d/%b/%Y:%H:%M:%S +0000"
 
 
 class LogService:
     """Service class for log-related business logic"""
     
     def __init__(self):
-        # TODO: Initialize database connection, cache, etc.
         self.logs_storage = []  # Placeholder for actual storage
         self.websocket_connections = {}  # Placeholder for WebSocket management
     
-    
-    async def export_logs_to_csv(self, logs: List[dict]) -> str:
-        """
-        Export logs to CSV format with anomaly scores for each model
-        
-        Args:
-            logs: List of log dictionaries from Elasticsearch
-            
-        Returns:
-            CSV string content
-        """
+    @staticmethod
+    def _build_csv_content(logs: List[dict]) -> str:
         output = io.StringIO()
         writer = csv.writer(output)
-        
-        # Write CSV header
+
         writer.writerow([
             'Timestamp',
             'IP Address',
@@ -68,33 +58,28 @@ class LogService:
             'Transformer Threshold',
             'Transformer Sequence Length'
         ])
-        
-        # Write log data
+
         for log in logs:
             anomaly_details = log.get('anomaly_details', {})
-            
-            # Extract rule-based details
+
             rule_based = anomaly_details.get('rule_based', {})
             rule_attack = rule_based.get('is_attack', False)
             rule_confidence = rule_based.get('confidence', 0.0)
             rule_attack_types = ', '.join(rule_based.get('attack_types', []))
-            
-            # Extract isolation forest details
+
             iso_forest = anomaly_details.get('isolation_forest', {})
             iso_anomaly = iso_forest.get('is_anomaly', 0)
             iso_score = iso_forest.get('score', 0.0)
-            
-            # Extract transformer details
+
             transformer = anomaly_details.get('transformer', {})
             trans_anomaly = transformer.get('is_anomaly', 0)
             trans_score = transformer.get('score', 0.0)
             trans_threshold = transformer.get('threshold', 0.0)
             trans_seq_len = transformer.get('sequence_length', 0)
-            
-            # Extract ensemble details
+
             ensemble = anomaly_details.get('ensemble', {})
             ensemble_score = ensemble.get('score', 0.0)
-            
+
             writer.writerow([
                 log.get('timestamp', ''),
                 log.get('ip_address', ''),
@@ -112,8 +97,21 @@ class LogService:
                 trans_threshold,
                 trans_seq_len
             ])
-        
+
         return output.getvalue()
+
+    
+    async def export_logs_to_csv(self, logs: List[dict]) -> str:
+        """
+        Export logs to CSV format with anomaly scores for each model
+        
+        Args:
+            logs: List of log dictionaries from Elasticsearch
+            
+        Returns:
+            CSV string content
+        """
+        return await asyncio.to_thread(self._build_csv_content, logs)
     
 
     async def correct_log_status(
@@ -137,7 +135,6 @@ class LogService:
         """
         # Extract user information
         user_email = user_info.get("email", "unknown")
-        user_role = user_info.get("role", "unknown")
         org_id = user_info["org_id"]
 
         # Validate IP address format
@@ -161,7 +158,6 @@ class LogService:
         # Prepare database operation
         if existing_ip:
             # Update existing IP record
-            old_status = existing_ip.status.value
             existing_ip.status = status_enum
 
             logger.warning(
@@ -237,7 +233,7 @@ class LogService:
         try:
             import msgpack
             request_data = msgpack.unpackb(body, raw=False)
-            logger.debug(f"[parse_fluent_bit_request] Successfully parsed as MessagePack")
+            logger.debug("[parse_fluent_bit_request] Successfully parsed as MessagePack")
             if not isinstance(request_data, list):
                 request_data = [request_data]  # Wrap single record in list
             return request_data
@@ -247,7 +243,7 @@ class LogService:
         # Try JSON format
         try:
             request_data = json.loads(body)
-            logger.debug(f"[parse_fluent_bit_request] Successfully parsed as JSON")
+            logger.debug("[parse_fluent_bit_request] Successfully parsed as JSON")
         except json.JSONDecodeError as json_error:
             logger.debug(f"[parse_fluent_bit_request] JSON failed: {json_error}")
             raise HTTPException(status_code=400, detail=f"Invalid request format. Body must be JSON or MessagePack. JSON error: {str(json_error)}")
@@ -285,7 +281,7 @@ class LogService:
                     # Convert structured nginx log to Apache Combined Log Format
                     log_content = LogService._convert_nginx_to_combined(record)
                     if i == 0:
-                        logger.debug(f"[extract_raw_logs] Converted nginx structured log to Combined format")
+                        logger.debug("[extract_raw_logs] Converted nginx structured log to Combined format")
                 else:
                     # Try multiple common field names used by Fluent Bit
                     common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
@@ -304,7 +300,7 @@ class LogService:
                             if all(k in nested_record for k in ['remote', 'method', 'path', 'code']):
                                 log_content = LogService._convert_nginx_to_combined(nested_record)
                                 if i == 0:
-                                    logger.debug(f"[extract_raw_logs] Converted nested nginx structured log")
+                                    logger.debug("[extract_raw_logs] Converted nested nginx structured log")
                             else:
                                 for field_name in common_fields:
                                     if field_name in nested_record:
@@ -329,18 +325,18 @@ class LogService:
                         if non_meta_keys:
                             log_content = json.dumps(record)
                             if i == 0:
-                                logger.debug(f"[extract_raw_logs] Converting entire record to JSON string")
+                                logger.debug("[extract_raw_logs] Converting entire record to JSON string")
                     
             elif isinstance(record, str):
                 # Direct string log
                 log_content = record
                 if i == 0:
-                    logger.debug(f"[extract_raw_logs] Record is direct string")
+                    logger.debug("[extract_raw_logs] Record is direct string")
             
             if log_content and isinstance(log_content, str) and log_content.strip():
                 raw_logs.append(log_content.strip())
             elif i == 0:
-                logger.debug(f"[extract_raw_logs] Skipping record - no valid content found")
+                logger.debug("[extract_raw_logs] Skipping record - no valid content found")
 
         logger.debug(f"[extract_raw_logs] Extracted {len(raw_logs)} logs from {len(records)} records")
         return raw_logs
@@ -383,12 +379,12 @@ class LogService:
         timestamp = record.get('date')
         if timestamp:
             try:
-                dt = datetime.fromtimestamp(float(timestamp))
-                timestamp_str = dt.strftime('%d/%b/%Y:%H:%M:%S +0000')
-            except:
-                timestamp_str = datetime.now().strftime('%d/%b/%Y:%H:%M:%S +0000')
+                dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
+                timestamp_str = dt.strftime(APACHE_LOG_TIMESTAMP_FORMAT)
+            except (TypeError, ValueError, OSError):
+                timestamp_str = datetime.now(timezone.utc).strftime(APACHE_LOG_TIMESTAMP_FORMAT)
         else:
-            timestamp_str = datetime.now().strftime('%d/%b/%Y:%H:%M:%S +0000')
+            timestamp_str = datetime.now(timezone.utc).strftime(APACHE_LOG_TIMESTAMP_FORMAT)
         
         # Handle size = "-" or "0"
         if size == '-':
@@ -542,7 +538,7 @@ class LogService:
                     example = next((l for l in processed_logs if l.get("infected", False)), None)
                     subject = f"LogGuard Alert: {anomalies_detected} anomalous log(s) detected"
                     body_lines = [
-                        f"Anomaly summary:",
+                        "Anomaly summary:",
                         f"- Batch ID: {batch_id}",
                         f"- Anomalies detected: {anomalies_detected}",
                     ]
@@ -551,11 +547,11 @@ class LogService:
                         body_lines += [
                             "",
                             "Example:",
-                            f"Time: {example.get('timestamp','')}",
-                            f"IP: {example.get('ip_address','')}",
-                            f"API: {example.get('api_accessed','')}",
-                            f"Status: {example.get('status_code','')}",
-                            f"Score: {example.get('anomaly_score','')}",
+                            f"Time: {example.get('timestamp', '')}",
+                            f"IP: {example.get('ip_address', '')}",
+                            f"API: {example.get('api_accessed', '')}",
+                            f"Status: {example.get('status_code', '')}",
+                            f"Score: {example.get('anomaly_score', '')}",
                         ]
 
                     body = "\n".join(body_lines)

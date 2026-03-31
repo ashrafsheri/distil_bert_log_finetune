@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: anomaly-detection
-          image: ghcr.io/OWNER/anomaly-detection:latest
+          image: ghcr.io/OWNER/anomaly-detection:main
           ports:
             - containerPort: 8001
           env:
@@ -43,9 +43,11 @@ spec:
             requests:
               cpu: 500m
               memory: 1Gi
+              ephemeral-storage: 1Gi
             limits:
               cpu: "1"
               memory: 2Gi
+              ephemeral-storage: 2Gi
           startupProbe:
             httpGet:
               path: /health

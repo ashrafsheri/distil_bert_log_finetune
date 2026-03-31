@@ -29,7 +29,7 @@ ADD COLUMN IF NOT EXISTS manager_email VARCHAR;
 
 -- Update existing organizations to have warmup status
 UPDATE organizations 
-SET model_status = 'warmup', log_count = 0, warmup_progress = 0.0 
+SET model_status = DEFAULT, log_count = 0, warmup_progress = 0.0 
 WHERE model_status IS NULL;
 
 -- Add index for faster API key lookups (if not exists)

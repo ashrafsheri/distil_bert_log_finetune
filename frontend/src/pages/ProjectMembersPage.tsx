@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   projectService,
   ProjectMemberDetail,
+  ProjectMemberRole,
   ProjectSummary,
   AvailableMember,
 } from '../services/projectService';
@@ -148,11 +149,8 @@ const ProjectMembersPage: React.FC = () => {
   /** Open role update modal */
   const openRoleModal = (member: ProjectMemberDetail) => {
     setRoleModalUser(member);
-    setNewRole(
-      member.role === 'owner'
-        ? 'project_admin'
-        : (member.role as 'project_staff' | 'project_admin')
-    );
+    const nextRole: ProjectMemberRole = member.role === 'owner' ? 'project_admin' : member.role;
+    setNewRole(nextRole);
     setShowRoleModal(member.user_id);
   };
 
@@ -416,7 +414,11 @@ const ProjectMembersPage: React.FC = () => {
                       {canManageMembers && (
                         <td className="py-4 px-4">
                           <div className="flex items-center justify-center gap-2">
-                            {member.role !== 'owner' ? (
+                            {member.role === 'owner' ? (
+                              <span className="text-vt-muted text-xs italic">
+                                Project owner
+                              </span>
+                            ) : (
                               <>
                                 <Button
                                   variant="secondary"
@@ -464,10 +466,6 @@ const ProjectMembersPage: React.FC = () => {
                                   Remove
                                 </Button>
                               </>
-                            ) : (
-                              <span className="text-vt-muted text-xs italic">
-                                Project owner
-                              </span>
                             )}
                           </div>
                         </td>

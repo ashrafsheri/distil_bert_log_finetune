@@ -83,7 +83,7 @@ def get_firebase_app() -> firebase_admin.App:
     return _firebase_app
 
 
-async def verify_firebase_token(token: str) -> dict:
+def verify_firebase_token(token: str) -> dict:
     """
     Verify Firebase ID token and return decoded token claims
     
@@ -179,7 +179,7 @@ async def get_current_user(
     
     # Verify Firebase token
     token = credentials.credentials
-    user_info = await verify_firebase_token(token)
+    user_info = verify_firebase_token(token)
     
     # Check if user exists in database and is enabled
     # Import here to avoid circular dependencies

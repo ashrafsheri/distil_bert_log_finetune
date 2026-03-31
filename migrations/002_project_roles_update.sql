@@ -8,7 +8,7 @@
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS project_members_backup AS 
-SELECT * FROM project_members;
+SELECT id, project_id, user_id, role, created_at, updated_at FROM project_members;
 
 -- ================================================================
 -- STEP 2: ALTER COLUMN TYPE FROM ENUM TO VARCHAR (if using enum)

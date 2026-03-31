@@ -3,6 +3,7 @@ Elasticsearch Service
 Handles log storage and retrieval from Elasticsearch
 """
 
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from elasticsearch import Elasticsearch
@@ -79,9 +80,10 @@ class ElasticsearchService:
             log_data["created_at"] = datetime.now(timezone.utc).isoformat()
             
             # Index the document
-            response = self.client.index(
+            response = await asyncio.to_thread(
+                self.client.index,
                 index=self.index_name,
-                body=log_data
+                body=log_data,
             )
             
             logger.debug(f"Stored log with ID: {response['_id']}")
@@ -125,7 +127,7 @@ class ElasticsearchService:
             
             if bulk_body:
                 logger.debug(f"[ES] Sending bulk request with {len(bulk_body)//2} documents to index {self.index_name}")
-                response = self.client.bulk(body=bulk_body)
+                response = await asyncio.to_thread(self.client.bulk, body=bulk_body)
                 
                 if response.get("errors"):
                     logger.error(f"Some documents failed to index: {response}")
@@ -176,9 +178,10 @@ class ElasticsearchService:
                 "track_total_hits": True  # Ensure accurate total count beyond 10,000
             }
             
-            response = self.client.search(
+            response = await asyncio.to_thread(
+                self.client.search,
                 index=self.index_name,
-                body=query
+                body=query,
             )
             
             logs = []
@@ -252,10 +255,14 @@ class ElasticsearchService:
                     range_params["lte"] = to_datetime
                 range_clause = {"range": {"timestamp": range_params}}
 
+            query_filters: List[Dict] = list(must_clauses)
+            if range_clause:
+                query_filters.append(range_clause)
+
             query_body = {
                 "query": {
                     "bool": {
-                        "must": ([range_clause] if range_clause else []) + (must_clauses if must_clauses else ([{"match_all": {}}] if not range_clause else []))
+                        "must": query_filters
                     }
                 },
                 "sort": [{"created_at": {"order": "desc"}}],
@@ -264,7 +271,11 @@ class ElasticsearchService:
                 "track_total_hits": True
             }
 
-            response = self.client.search(index=self.index_name, body=query_body)
+            response = await asyncio.to_thread(
+                self.client.search,
+                index=self.index_name,
+                body=query_body,
+            )
 
             logs: List[Dict] = []
             for hit in response["hits"]["hits"]:
@@ -315,12 +326,13 @@ class ElasticsearchService:
                 }
             }
 
-            response = self.client.update_by_query(
+            response = await asyncio.to_thread(
+                self.client.update_by_query,
                 index=self.index_name,
                 body=query,
-                wait_for_completion=True,  # Wait for completion to get accurate count
-                refresh=True,  # Refresh index after update
-                conflicts="proceed"  # Continue on version conflicts
+                wait_for_completion=True,
+                refresh=True,
+                conflicts="proceed",
             )
 
             updated_count = response.get("updated", 0)

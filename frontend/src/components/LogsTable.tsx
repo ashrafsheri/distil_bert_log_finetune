@@ -366,9 +366,10 @@ const LogsTable: React.FC<LogsTableProps> = ({
               });
               
               const { transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
+              const rowKey = `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-${log.statusCode}`;
 
               return (
-                <React.Fragment key={index}>
+                <React.Fragment key={rowKey}>
                   <tr className={rowClasses}>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -552,9 +553,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div className="pt-3 border-t border-vt-muted/20">
                                   <span className="text-xs font-semibold text-vt-muted mb-2 block">Detected Attacks</span>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {log.anomaly_details.rule_based.attack_types.map((type: string, i: number) => (
+                                    {log.anomaly_details.rule_based.attack_types.map((type: string) => (
                                       <span 
-                                        key={i}
+                                        key={`${log.timestamp}-${log.ipAddress}-${type}`}
                                         className="px-2.5 py-1 bg-vt-error/20 text-vt-error rounded-lg text-xs font-semibold border border-vt-error/30"
                                       >
                                         {type}

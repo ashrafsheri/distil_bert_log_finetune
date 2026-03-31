@@ -1,6 +1,8 @@
+const { protocol, host } = globalThis.location;
+
 export const API_ENDPOINTS = {
   FETCH_LOGS: '/api/v1/logs/fetch',
-  WEBSOCKET_BASE: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
+  WEBSOCKET_BASE: `${protocol === 'https:' ? 'wss:' : 'ws:'}//${host}/ws`,
 } as const;
 
 export const WEBSOCKET_RECONNECT_DELAY = 5000; // 5 seconds
