@@ -4,7 +4,7 @@ Parses Apache log entries and extracts structured data
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional, Tuple
 import logging
 
@@ -125,7 +125,7 @@ class LogParserService:
                     user_agent_start = remaining.find('"', referer_end + 1)
                     user_agent_end = remaining.find('"', user_agent_start + 1)
                     user_agent = remaining[user_agent_start + 1:user_agent_end] if user_agent_start != -1 and user_agent_end != -1 else ""
-                except:
+                except Exception:
                     referer = ""
                     user_agent = ""
                 logger.debug(
@@ -311,7 +311,7 @@ class LogParserService:
                 except ValueError:
                     # If all parsing fails, return current timestamp
                     logger.warning(f"Could not parse timestamp: {timestamp_str}")
-                    return datetime.utcnow().isoformat()
+                    return datetime.now(timezone.utc).isoformat()
     
     def format_for_frontend(self, parsed_log: Dict, anomaly_result: Dict) -> Dict:
         """

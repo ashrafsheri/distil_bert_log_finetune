@@ -215,7 +215,7 @@ const AdminDashboardPage: React.FC = () => {
                       <td className="py-4 text-white font-medium">{org.name}</td>
                       <td className="py-4 text-slate-300">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-slate-700 text-slate-300">
-                          {org.user_count} user{org.user_count !== 1 ? 's' : ''}
+                          {org.user_count} user{org.user_count === 1 ? '' : 's'}
                         </span>
                       </td>
                       <td className="py-4">

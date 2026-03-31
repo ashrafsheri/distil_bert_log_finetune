@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/OWNER/frontend:latest
+          image: ghcr.io/OWNER/frontend:main
           ports:
             - containerPort: 3000
           env:
@@ -33,9 +33,11 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+              ephemeral-storage: 256Mi
             limits:
               cpu: 250m
               memory: 256Mi
+              ephemeral-storage: 512Mi
           readinessProbe:
             httpGet:
               path: /

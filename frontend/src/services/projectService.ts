@@ -6,6 +6,7 @@
 import { apiService } from './apiService';
 
 export type ProjectLogType = 'apache' | 'nginx';
+export type ProjectMemberRole = 'project_staff' | 'project_admin' | 'owner';
 
 export interface ProjectSummary {
   id: string;
@@ -60,14 +61,14 @@ export interface ProjectMemberDetail {
   project_id: string;
   user_id: string;
   user_email: string;
-  role: 'project_staff' | 'project_admin' | 'owner';
+  role: ProjectMemberRole;
   created_at: string;
 }
 
 export interface AddProjectMemberRequest {
   project_id: string;
   user_email: string;
-  role: 'project_staff' | 'project_admin' | 'owner';
+  role: ProjectMemberRole;
 }
 
 export interface AddProjectMemberResponse {
@@ -179,7 +180,7 @@ export class ProjectService {
   async updateProjectMemberRole(
     projectId: string, 
     userId: string, 
-    role: 'project_staff' | 'project_admin' | 'owner'
+    role: ProjectMemberRole
   ): Promise<{ message: string }> {
     const response = await apiService.put<{ message: string }>(
       `/api/v1/projects/members/${projectId}/${userId}/role`,

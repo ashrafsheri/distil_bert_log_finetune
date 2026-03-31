@@ -41,7 +41,7 @@ import json
 import random
 import signal
 import threading
-import datetime
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -54,9 +54,6 @@ try:
 except ImportError:
     pass
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Config
-# ─────────────────────────────────────────────────────────────────────────────
 LOGGUARD_ENDPOINT = "http://57.128.223.176/api/v1/logs/agent/send-logs"
 
 ORGS = [
@@ -124,10 +121,10 @@ PATHS_PLAYGROUND = [
 STATUS_CODES = [200, 200, 200, 200, 200, 200, 301, 304, 400, 404, 500]
 
 def _now_iso():
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def _nginx_ts():
-    return datetime.datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+    return datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
 def random_ip():
     return f"{random.randint(1,254)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
@@ -272,7 +269,7 @@ def health_monitor(stop_event: threading.Event):
                 round_ms.append(ms)
                 if resp.status_code >= 500:
                     round_ok = False
-            except requests.exceptions.RequestException as e:
+            except requests.exceptions.RequestException:
                 round_ok = False
                 round_ms.append(POST_TIMEOUT * 1000)
 
@@ -369,7 +366,7 @@ def display_loop(stop_event: threading.Event):
 # Report writer
 # ─────────────────────────────────────────────────────────────────────────────
 def write_report() -> str:
-    ts       = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts       = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_dir  = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(out_dir, f"stress_test_results_{ts}.json")
 

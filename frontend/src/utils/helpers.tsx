@@ -1,18 +1,18 @@
 import { LogEntry } from '../components/LogsTable';
 
 export const formatTimestamp = (timestamp: string): string => {
-  try {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch (error) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
     return timestamp;
   }
+
+  return date.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 };
 
 export const getStatusColor = (statusCode: number): string => {

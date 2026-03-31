@@ -18,6 +18,7 @@ const UsersPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
+  const updateRoleSelectId = 'update-user-role';
 
   // Check if user has permission to access this page
   const isAdmin = userInfo?.role === 'admin';
@@ -80,7 +81,7 @@ const UsersPage: React.FC = () => {
   };
 
   const handleDelete = async (uid: string, email: string) => {
-    if (!window.confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
+    if (!globalThis.confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
       return;
     }
 
@@ -162,6 +163,141 @@ const UsersPage: React.FC = () => {
     );
   }
 
+  let usersContent: React.ReactNode;
+  if (loading) {
+    usersContent = (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vt-primary"></div>
+        <span className="ml-3 text-vt-muted">Loading users...</span>
+      </div>
+    );
+  } else if (users.length === 0) {
+    usersContent = (
+      <div className="text-center py-12">
+        <svg className="w-16 h-16 text-vt-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <p className="text-vt-muted text-lg">No users found</p>
+        {isAdmin && (
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+            className="mt-4"
+          >
+            Create First User
+          </Button>
+        )}
+      </div>
+    );
+  } else {
+    usersContent = (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-vt-muted/20">
+              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
+              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
+              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
+              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.uid} className="border-b border-vt-muted/10 hover:bg-vt-muted/5 transition-colors">
+                <td className="py-4 px-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vt-primary to-vt-success flex items-center justify-center">
+                      <span className="text-xs font-bold text-white">
+                        {user.email.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-vt-light font-medium">{user.email}</span>
+                  </div>
+                </td>
+                <td className="py-4 px-4 text-center">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </span>
+                </td>
+                <td className="py-4 px-4 text-center">
+                  {user.enabled ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                      Enabled
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                      Disabled
+                    </span>
+                  )}
+                </td>
+                <td className="py-4 px-4">
+                  <div className="flex items-center justify-center gap-2">
+                    {isAdmin && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowRoleModal(user.uid);
+                          setSelectedRole(user.role);
+                        }}
+                        isLoading={actionLoading === user.uid}
+                        disabled={actionLoading !== null}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Role
+                      </Button>
+                    )}
+                    {user.enabled ? (
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() => handleDisable(user.uid)}
+                        isLoading={actionLoading === user.uid}
+                        disabled={actionLoading !== null}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        Disable
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleEnable(user.uid)}
+                        isLoading={actionLoading === user.uid}
+                        disabled={actionLoading !== null}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Enable
+                      </Button>
+                    )}
+                    <Button
+                      variant="error"
+                      size="sm"
+                      onClick={() => handleDelete(user.uid, user.email)}
+                      isLoading={actionLoading === user.uid}
+                      disabled={actionLoading !== null}
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -220,133 +356,7 @@ const UsersPage: React.FC = () => {
 
         {/* Users Table */}
         <Card variant="strong" className="p-6 animate-slide-up">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vt-primary"></div>
-              <span className="ml-3 text-vt-muted">Loading users...</span>
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-vt-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <p className="text-vt-muted text-lg">No users found</p>
-              {isAdmin && (
-                <Button
-                  variant="primary"
-                  onClick={() => setShowCreateModal(true)}
-                  className="mt-4"
-                >
-                  Create First User
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-vt-muted/20">
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.uid} className="border-b border-vt-muted/10 hover:bg-vt-muted/5 transition-colors">
-                      <td className="py-4 px-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vt-primary to-vt-success flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">
-                              {user.email.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="text-vt-light font-medium">{user.email}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        {user.enabled ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                            Enabled
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
-                            Disabled
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center justify-center gap-2">
-                          {isAdmin && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                setShowRoleModal(user.uid);
-                                setSelectedRole(user.role);
-                              }}
-                              isLoading={actionLoading === user.uid}
-                              disabled={actionLoading !== null}
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Role
-                            </Button>
-                          )}
-                          {user.enabled ? (
-                            <Button
-                              variant="warning"
-                              size="sm"
-                              onClick={() => handleDisable(user.uid)}
-                              isLoading={actionLoading === user.uid}
-                              disabled={actionLoading !== null}
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                              Disable
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => handleEnable(user.uid)}
-                              isLoading={actionLoading === user.uid}
-                              disabled={actionLoading !== null}
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Enable
-                            </Button>
-                          )}
-                          <Button
-                            variant="error"
-                            size="sm"
-                            onClick={() => handleDelete(user.uid, user.email)}
-                            isLoading={actionLoading === user.uid}
-                            disabled={actionLoading !== null}
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {usersContent}
         </Card>
 
         {/* Role Update Modal */}
@@ -367,10 +377,11 @@ const UsersPage: React.FC = () => {
               <h3 className="text-2xl font-bold gradient-text mb-4">Update User Role</h3>
               
               <div className="mb-6">
-                <label className="block text-sm font-medium text-vt-light mb-2">
+                <label htmlFor={updateRoleSelectId} className="block text-sm font-medium text-vt-light mb-2">
                   Select Role
                 </label>
                 <Select
+                  id={updateRoleSelectId}
                   value={selectedRole}
                   onChange={(val) => setSelectedRole(val as 'admin' | 'manager' | 'employee')}
                   options={[
@@ -407,4 +418,3 @@ const UsersPage: React.FC = () => {
 };
 
 export default UsersPage;
-

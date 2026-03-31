@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import LogsTable from '../components/LogsTable';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLogs } from '../hooks/useLogs';
-// import StreamControls from '../components/StreamControls';
 import { useAuth } from '../context/AuthContext';
 import Select from '../components/Select';
 import Button from '../components/Button';
@@ -24,20 +23,13 @@ const DashboardPage: React.FC = () => {
     safeCount,
     isStreamPaused,
     refetch,
-    // pendingCount,
-    // pendingThreatCount,
-    // lastUpdate,
     pauseStream,
     resumeStream,
-    // stepPending,
-    // applyPending,
-    // discardPending,
-  } = useLogs(projectId); // Pass projectId to useLogs hook
+  } = useLogs(projectId);
   
   const [statsUpdated, setStatsUpdated] = useState(false);
   const [previousLogCount, setPreviousLogCount] = useState(0);
-  // showAnomaliesOnly is still used in displayLogs logic
-  const showAnomaliesOnly = false; // Set to constant since StreamControls is commented out
+  const showAnomaliesOnly = false;
   const [focusedIp, setFocusedIp] = useState<string | null>(null);
   const { userInfo } = useAuth();
   const isPrivileged = userInfo?.role === 'admin' || userInfo?.role === 'manager';
@@ -146,18 +138,6 @@ const DashboardPage: React.FC = () => {
     return ((infectedCount / totalCount) * 100).toFixed(1);
   }, [totalCount, infectedCount]);
 
-  // const handleTogglePause = useCallback(() => {
-  //   if (isStreamPaused) {
-  //     resumeStream();
-  //   } else {
-  //     pauseStream();
-  //   }
-  // }, [isStreamPaused, pauseStream, resumeStream]);
-
-  // const handleToggleAnomalies = useCallback(() => {
-  //   setShowAnomaliesOnly(prev => !prev);
-  // }, []);
-
   const handleFocusIp = useCallback((ip: string | null) => {
     setFocusedIp(ip);
   }, []);
@@ -249,7 +229,7 @@ const DashboardPage: React.FC = () => {
     }
     try {
       setExportLoading(true);
-      setSearchError(''); // Clear any previous errors
+      setSearchError('');
       const params: Record<string, unknown> = {};
       if (projectId) params.project_id = projectId;
       if (searchIp.trim()) params.ip = searchIp.trim();
@@ -263,15 +243,15 @@ const DashboardPage: React.FC = () => {
       const blob = await logService.exportLogs(params);
       
       // Create download link
-      const url = window.URL.createObjectURL(blob);
+      const url = globalThis.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       const projectName = currentProject?.name || 'project';
       link.download = `logguard_${projectName}_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      link.remove();
+      globalThis.URL.revokeObjectURL(url);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Export failed';
       setSearchError(msg);
@@ -283,19 +263,17 @@ const DashboardPage: React.FC = () => {
   // Pause/resume stream based on page number
   useEffect(() => {
     if (searchResults) return; // Don't control stream in search mode
-    
-    if (page === 1) {
-      // Resume stream on page 1
-      if (isStreamPaused) {
-        resumeStream();
-      }
-    } else {
-      // Pause stream on other pages
-      if (!isStreamPaused) {
-        pauseStream();
-      }
+
+    if (page === 1 && isStreamPaused) {
+      resumeStream();
+    } else if (page > 1 && !isStreamPaused) {
+      pauseStream();
     }
   }, [page, searchResults, isStreamPaused, pauseStream, resumeStream]);
+
+  const totalResults = searchResults ? searchTotal : browseTotal;
+  const canGoNext = page * pageSize < totalResults;
+  const correctionCountSuffix = correctionSuccess?.count === 1 ? '' : 's';
 
   // Browse pagination loader when not searching
   useEffect(() => {
@@ -603,7 +581,7 @@ const DashboardPage: React.FC = () => {
                   <span className={`font-semibold ${correctionSuccess.status === 'clean' ? 'text-vt-success' : 'text-vt-error'}`}>
                     {correctionSuccess.status.toUpperCase()}
                   </span>
-                  {' '}• {correctionSuccess.count} log{correctionSuccess.count !== 1 ? 's' : ''} updated
+                  {' '}• {correctionSuccess.count} log{correctionCountSuffix} updated
                 </p>
               </div>
               <button
@@ -640,11 +618,12 @@ const DashboardPage: React.FC = () => {
               {focusedLogs.length === 0 ? (
                 <div className="text-vt-muted text-sm">No recent activity in current window.</div>
               ) : (
-                focusedLogs.map((log, index) => {
+                focusedLogs.map((log) => {
                   const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
+                  const focusedLogKey = `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-${log.statusCode}`;
                   return (
                     <div
-                      key={`${log.timestamp}-${index}`}
+                      key={focusedLogKey}
                       className={`rounded-xl px-4 py-3 border ${
                         log.infected || isTransformerAnomaly
                           ? 'border-vt-error/40 bg-vt-error/10'
@@ -749,7 +728,7 @@ const DashboardPage: React.FC = () => {
         {/* Bottom Pagination (works for both normal fetch and search) */}
         <div className="mt-4 flex items-center justify-between text-sm text-vt-muted">
           <span>
-            {searchResults ? searchTotal : browseTotal} total results
+            {totalResults} total results
           </span>
           <div className="flex items-center gap-3">
             <Button
@@ -762,8 +741,8 @@ const DashboardPage: React.FC = () => {
             </Button>
             <span>Page {page}</span>
             <Button
-              onClick={() => setPage((p) => p * pageSize < (searchResults ? searchTotal : browseTotal) ? p + 1 : p)}
-              disabled={page * pageSize >= (searchResults ? searchTotal : browseTotal) || searchLoading}
+              onClick={() => setPage((p) => (canGoNext ? p + 1 : p))}
+              disabled={!canGoNext || searchLoading}
               variant="secondary"
               size="sm"
             >

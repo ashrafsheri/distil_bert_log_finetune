@@ -404,7 +404,7 @@ const ProjectsDashboard: React.FC = () => {
                       </td>
                       <td className="py-4 text-slate-300">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-slate-700 text-slate-300">
-                          {project.member_count} member{project.member_count !== 1 ? 's' : ''}
+                          {project.member_count} member{project.member_count === 1 ? '' : 's'}
                         </span>
                       </td>
                       <td className="py-4">

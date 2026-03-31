@@ -52,17 +52,17 @@ COLOR_SUBHEADING = RGBColor(0x2E, 0x74, 0xB5)   # mid blue   — font
 def _set_cell_bg(cell, hex_color: str):
     """Set table cell background colour. hex_color = 'RRGGBB' string."""
     tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
+    tc_properties = tc.get_or_add_tcPr()
     shd  = OxmlElement("w:shd")
     shd.set(qn("w:val"),   "clear")
     shd.set(qn("w:color"), "auto")
     shd.set(qn("w:fill"),  hex_color)
-    tcPr.append(shd)
+    tc_properties.append(shd)
 
 def _set_cell_border(cell, border_sides=("top","bottom","left","right"), size=4, color="1F497D"):
     """Add border to specific sides of a cell."""
     tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
+    tc_properties = tc.get_or_add_tcPr()
     borders = OxmlElement("w:tcBorders")
     for side in border_sides:
         el = OxmlElement(f"w:{side}")
@@ -70,7 +70,7 @@ def _set_cell_border(cell, border_sides=("top","bottom","left","right"), size=4,
         el.set(qn("w:sz"),    str(size))
         el.set(qn("w:color"), color)
         borders.append(el)
-    tcPr.append(borders)
+    tc_properties.append(borders)
 
 def _bold_run(para, text, size=None, color=None):
     run = para.add_run(text)
@@ -309,7 +309,7 @@ def build_report(data: dict, out_path: str):
         bullets.append(
             f"The server reached its limit at approximately {total_logs:,} total logs "
             f"(peak rate: {peak_rate} logs/s). Beyond this point the service became "
-            f"unavailable. This is the maximum sustained throughput for the current deployment."
+            "unavailable. This is the maximum sustained throughput for the current deployment."
         )
         bullets.append(
             "Recommended actions: scale up the anomaly-detection or Elasticsearch pods "
@@ -318,18 +318,18 @@ def build_report(data: dict, out_path: str):
         )
     else:
         bullets.append(
-            f"The server handled all test phases without crashing. "
+            "The server handled all test phases without crashing. "
             f"Maximum tested rate was {peak_rate} logs/s ({total_logs:,} total logs). "
-            f"The actual breaking point may be higher — re-run with increased MAX phase rate."
+            "The actual breaking point may be higher — re-run with increased MAX phase rate."
         )
 
     if baseline and final_ms:
         ratio = final_ms / baseline
         if ratio > 3:
             bullets.append(
-                f"LogGuard response time degraded significantly under load: "
+                "LogGuard response time degraded significantly under load: "
                 f"from {baseline:.0f}ms (baseline) to {final_ms:.0f}ms ({ratio:.1f}× slower). "
-                f"This indicates the backend is under memory or CPU pressure at peak rate."
+                "This indicates the backend is under memory or CPU pressure at peak rate."
             )
         else:
             bullets.append(
@@ -354,7 +354,7 @@ def build_report(data: dict, out_path: str):
     footer_para = doc.add_paragraph()
     footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     fr = footer_para.add_run(
-        f"LogGuard Stress Test Report  •  "
+        "LogGuard Stress Test Report  •  "
         f"Generated {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
     )
     fr.font.size = Pt(8)
@@ -395,7 +395,7 @@ def main():
 
     print(f"\n  Building Word report from: {os.path.basename(json_path)}")
     build_report(data, out_path)
-    print(f"  Done.\n")
+    print("  Done.\n")
 
 
 if __name__ == "__main__":

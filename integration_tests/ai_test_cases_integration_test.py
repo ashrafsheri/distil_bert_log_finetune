@@ -36,7 +36,7 @@ import os
 import sys
 import json
 import time
-import datetime
+from datetime import datetime, timezone
 import requests
 
 try:
@@ -45,17 +45,11 @@ try:
 except ImportError:
     pass
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Config
-# ─────────────────────────────────────────────────────────────────────────────
 BASE_URL = os.getenv("TEST_BASE_URL", "http://57.128.223.176")
 API_KEY  = os.getenv("TEST_API_KEY", "")
 ENDPOINT = f"{BASE_URL}/api/v1/logs/agent/send-logs"
 TIMEOUT  = int(os.getenv("TEST_TIMEOUT", "15"))
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ANSI colour helpers (disabled on Windows if not supported)
-# ─────────────────────────────────────────────────────────────────────────────
 USE_COLOR = sys.stdout.isatty() and os.name != "nt"
 
 def _c(code, text):
@@ -68,13 +62,10 @@ def cyan(t):   return _c("96", t)
 def bold(t):   return _c("1",  t)
 def dim(t):    return _c("2",  t)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Counters
-# ─────────────────────────────────────────────────────────────────────────────
 results = {"pass": 0, "fail": 0, "conditional": 0, "skip": 0, "error": 0}
 
 def _ts():
-    return datetime.datetime.now().strftime("%H:%M:%S")
+    return datetime.now().strftime("%H:%M:%S")
 
 def _header(title):
     bar = "─" * 70
@@ -96,11 +87,8 @@ def _result(tc_id, name, status, reason="", response=None):
         print(f"             Response: {dim(snippet)}")
     results[status.lower()] += 1
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Core request helper
-# ─────────────────────────────────────────────────────────────────────────────
 def _now_iso():
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def send_logs(log_lines: list[str]) -> dict | None:
     """
@@ -147,8 +135,8 @@ def run_test(tc_id, name, log_lines, expect_anomaly, warmup_required=False):
         else:
             if warmup_required:
                 _result(tc_id, name, "CONDITIONAL",
-                        reason=f"anomalies_detected=0 — system may not be warmed up yet (need >= 50K logs). "
-                               f"Re-run after warmup to confirm Pass.",
+                        reason="anomalies_detected=0 — system may not be warmed up yet (need >= 50K logs). "
+                               "Re-run after warmup to confirm Pass.",
                         response=resp)
             else:
                 _result(tc_id, name, "FAIL",
@@ -187,7 +175,7 @@ def _flood_logs(ip: str, count: int = 100) -> list[str]:
 def run_gold_dataset():
     _header("GOLD DATASET  (GD-01 … GD-13)")
     print(f"  Endpoint : {ENDPOINT}")
-    print(f"  Ref      : AI Test Cases Template - Filled.xlsx → Gold Dataset sheet\n")
+    print("  Ref      : AI Test Cases Template - Filled.xlsx → Gold Dataset sheet\n")
 
     # GD-01  True negative — normal GET request
     run_test(
@@ -323,8 +311,8 @@ def run_gold_dataset():
 # ─────────────────────────────────────────────────────────────────────────────
 def run_bias_fairness():
     _header("BIAS & FAIRNESS  (BF-1A … BF-4B)")
-    print(f"  Ref      : AI Test Cases Template - Filled.xlsx → Bias and Fairness Testing sheet")
-    print(f"  Goal     : Paired variants must produce identical detection outcomes.\n")
+    print("  Ref      : AI Test Cases Template - Filled.xlsx → Bias and Fairness Testing sheet")
+    print("  Goal     : Paired variants must produce identical detection outcomes.\n")
 
     # Scenario 1 — Internal vs External IP (same SQL injection payload)
     print(f"  {bold('Scenario 1')}  Internal IP vs External IP — SQL injection payload")
@@ -392,9 +380,6 @@ def run_bias_fairness():
         expect_anomaly=False,
     )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Summary
-# ─────────────────────────────────────────────────────────────────────────────
 def print_summary(elapsed: float):
     total = sum(results.values())
     bar   = "═" * 70

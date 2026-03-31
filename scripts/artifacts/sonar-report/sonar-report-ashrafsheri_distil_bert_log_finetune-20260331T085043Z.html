@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sonar Report - ashrafsheri_distil_bert_log_finetune</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 32px;
+      color: #1f2937;
+      line-height: 1.45;
+    }
+    h1, h2, h3 { margin-bottom: 0.4rem; }
+    .meta, .muted { color: #6b7280; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .card {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      break-inside: avoid;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f9fafb; }
+    code {
+      background: #f3f4f6;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sonar Report</h1>
+  <p class="meta"><strong>Project:</strong> <code>ashrafsheri_distil_bert_log_finetune</code></p>
+  <p class="meta"><strong>Generated:</strong> <code>2026-03-31T08:50:46.199734+00:00</code></p>
+  <p class="meta"><strong>Dashboard:</strong> <a href="https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune">https://sonarcloud.io/dashboard?id=ashrafsheri_distil_bert_log_finetune</a></p>
+
+  <section class="grid">
+    <div class="card"><h3>Quality Gate</h3><p><strong>ERROR</strong></p></div>
+    <div class="card"><h3>Bugs</h3><p><strong>0</strong></p></div>
+    <div class="card"><h3>Vulnerabilities</h3><p><strong>0</strong></p></div>
+    <div class="card"><h3>Code Smells</h3><p><strong>255</strong></p></div>
+    <div class="card"><h3>Coverage</h3><p><strong>3.5%</strong></p></div>
+    <div class="card"><h3>Security Hotspots</h3><p><strong>154</strong></p></div>
+  </section>
+
+  <section class="card">
+    <h2>Ratings</h2>
+    <ul>
+      <li>Reliability: <strong>A</strong></li>
+      <li>Security: <strong>A</strong></li>
+      <li>Maintainability: <strong>A</strong></li>
+      <li>Duplicated Lines Density: <strong>0.7%</strong></li>
+      <li>Lines of Code: <strong>25732</strong></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Quality Gate Conditions</h2>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Status</th><th>Actual</th><th>Threshold</th></tr>
+      </thead>
+      <tbody><tr><td>new_reliability_rating</td><td>OK</td><td>1</td><td>1</td></tr>
+<tr><td>new_security_rating</td><td>OK</td><td>1</td><td>1</td></tr>
+<tr><td>new_maintainability_rating</td><td>OK</td><td>1</td><td>1</td></tr>
+<tr><td>new_coverage</td><td>ERROR</td><td>3.3</td><td>80</td></tr>
+<tr><td>new_duplicated_lines_density</td><td>OK</td><td>2.3</td><td>3</td></tr>
+<tr><td>new_security_hotspots_reviewed</td><td>ERROR</td><td>0.0</td><td>100</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Issue Summary</h2>
+    <p><strong>Total issues:</strong> 255</p>
+    <p><strong>By severity:</strong> <code>{&quot;CRITICAL&quot;: 67, &quot;INFO&quot;: 1, &quot;MAJOR&quot;: 152, &quot;MINOR&quot;: 35}</code></p>
+    <p><strong>By type:</strong> <code>{&quot;CODE_SMELL&quot;: 255}</code></p>
+    <table>
+      <thead>
+        <tr><th>Rule</th><th>Count</th></tr>
+      </thead>
+      <tbody><tr><td>python:S3457</td><td>49</td></tr>
+<tr><td>python:S8415</td><td>32</td></tr>
+<tr><td>python:S1192</td><td>29</td></tr>
+<tr><td>python:S3776</td><td>23</td></tr>
+<tr><td>shelldre:S7688</td><td>11</td></tr>
+<tr><td>python:S5754</td><td>7</td></tr>
+<tr><td>python:S7503</td><td>7</td></tr>
+<tr><td>python:S125</td><td>6</td></tr>
+<tr><td>shelldre:S7682</td><td>6</td></tr>
+<tr><td>python:S6903</td><td>5</td></tr>
+<tr><td>shelldre:S7679</td><td>5</td></tr>
+<tr><td>typescript:S7764</td><td>5</td></tr>
+<tr><td>python:S1481</td><td>4</td></tr>
+<tr><td>python:S3358</td><td>4</td></tr>
+<tr><td>typescript:S7735</td><td>4</td></tr>
+<tr><td>python:S6983</td><td>4</td></tr>
+<tr><td>python:S1172</td><td>4</td></tr>
+<tr><td>python:S1871</td><td>4</td></tr>
+<tr><td>plsql:SelectStarCheck</td><td>3</td></tr>
+<tr><td>kubernetes:S6897</td><td>3</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Security Hotspots</h2>
+    <p><strong>Total hotspots:</strong> 155</p>
+    <p><strong>By status:</strong> <code>{&quot;REVIEWED&quot;: 1, &quot;TO_REVIEW&quot;: 154}</code></p>
+  </section>
+
+  <h2>Issues By File</h2>
+  
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/controllers/log_controller.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>78</td><td>Define a constant instead of duplicating this literal &quot;Project not found&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>376</td><td>Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>528</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/controllers/user_controller.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>21</td><td>Refactor this function to reduce its Cognitive Complexity from 37 to the 15 allowed.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/elasticsearch_service.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>210</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3358</td><td>258</td><td>Extract this nested conditional expression into an independent statement.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>75</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>95</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>146</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>210</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>283</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/log_parser_service.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>29</td><td>Refactor this function to reduce its Cognitive Complexity from 28 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>171</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>128</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>314</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/log_service.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>387</td><td>Define a constant instead of duplicating this literal &#x27;%d/%b/%Y:%H:%M:%S +0000&#x27; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>261</td><td>Refactor this function to reduce its Cognitive Complexity from 124 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>388</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>INFO</td><td>CODE_SMELL</td><td>python:S1135</td><td>35</td><td>Complete the task associated to this &quot;TODO&quot; comment.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>240</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>250</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>288</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>307</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>332</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>338</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>343</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>545</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S1481</td><td>140</td><td>Remove the unused local variable &quot;user_role&quot;.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S1481</td><td>164</td><td>Remove the unused local variable &quot;old_status&quot;.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>40</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/services/report_service.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>262</td><td>Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/app/utils/firebase_auth.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S7503</td><td>86</td><td>Use asynchronous features in this function or remove the `async` keyword.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/migrations/001_add_model_tracking_to_orgs.sql</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>plsql:S1192</td><td>6</td><td>Define a constant instead of duplicating this literal 3 times.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:backend/migrations/001_organization_hierarchy.sql</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>plsql:SelectStarCheck</td><td>10</td><td>SELECT * should not be used.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>plsql:SelectStarCheck</td><td>13</td><td>SELECT * should not be used.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/components/LogsTable.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3776</td><td>355</td><td>Refactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6479</td><td>371</td><td>Do not use Array index in keys</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6479</td><td>557</td><td>Do not use Array index in keys</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/AdminDashboardPage.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>218</td><td>Unexpected negated condition.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/DashboardPage.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>typescript:S3776</td><td>13</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>6</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>149</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S125</td><td>157</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>724</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>765</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6660</td><td>294</td><td>&#x27;If&#x27; statement should not be the only statement in &#x27;else&#x27; block</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>273</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>606</td><td>Unexpected negated condition.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>266</td><td>Prefer `globalThis` over `window`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>274</td><td>Prefer `globalThis` over `window`.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectMembersPage.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S4325</td><td>154</td><td>This assertion is unnecessary since it does not change the type of the expression.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>419</td><td>Unexpected negated condition.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ProjectsDashboard.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7735</td><td>407</td><td>Unexpected negated condition.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/ReportsPage.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S7762</td><td>126</td><td>Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/pages/UsersPage.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S3358</td><td>228</td><td>Extract this nested ternary operation into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>typescript:S6853</td><td>370</td><td>A form label must be associated with a control.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>83</td><td>Prefer `globalThis` over `window`.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/services/projectService.ts</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S4323</td><td>63</td><td>Replace this union type with a type alias.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/utils/constants.ts</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>3</td><td>Prefer `globalThis` over `window`.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S7764</td><td>3</td><td>Prefer `globalThis` over `window`.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:frontend/src/utils/helpers.tsx</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>typescript:S2486</td><td>13</td><td>Handle this exception or don&#x27;t catch it at all.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:integration_tests/ai_test_cases_integration_test.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>121</td><td>Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>103</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>48</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>71</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>395</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>150</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>190</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>326</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>327</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:integration_tests/generate_stress_report.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>149</td><td>Refactor this function to reduce its Cognitive Complexity from 29 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>49</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>398</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S117</td><td>55</td><td>Rename this local variable &quot;tcPr&quot; to match the regular expression ^[_a-z][a-z0-9_]*$.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S117</td><td>65</td><td>Rename this local variable &quot;tcPr&quot; to match the regular expression ^[_a-z][a-z0-9_]*$.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:integration_tests/selenium_integration_test.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>212</td><td>Define a constant instead of duplicating this literal &quot;button[type=&#x27;submit&#x27;]&quot; 9 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>325</td><td>Define a constant instead of duplicating this literal &quot;Navigating to /login&quot; 5 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>348</td><td>Define a constant instead of duplicating this literal &quot;Clicking submit&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>434</td><td>Define a constant instead of duplicating this literal &quot;Add New Organization&quot; 5 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>435</td><td>Define a constant instead of duplicating this literal &quot;arguments[0].scrollIntoView({block:&#x27;center&#x27;})&quot; 13 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>437</td><td>Define a constant instead of duplicating this literal &quot;arguments[0].click()&quot; 13 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>456</td><td>Define a constant instead of duplicating this literal &quot;Opening form&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>461</td><td>Define a constant instead of duplicating this literal &quot;input[placeholder=&#x27;Enter manager email&#x27;]&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>468</td><td>Define a constant instead of duplicating this literal &quot;Create Organization&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>475</td><td>Define a constant instead of duplicating this literal &quot;input[placeholder=&#x27;Enter organization name&#x27;]&quot; 6 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>484</td><td>Define a constant instead of duplicating this literal &quot;//button[contains(normalize-space(),&#x27;Cancel&#x27;)]&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>624</td><td>Define a constant instead of duplicating this literal &quot;//h1[contains(text(),&#x27;Users Management&#x27;)]&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>665</td><td>Define a constant instead of duplicating this literal &quot;//*[contains(text(),&#x27;Update User Role&#x27;)]&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>736</td><td>Define a constant instead of duplicating this literal &quot;//tbody/tr&quot; 5 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>870</td><td>Define a constant instead of duplicating this literal &quot;No orgs present&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1021</td><td>Define a constant instead of duplicating this literal &quot;Depends on 6.1&quot; 6 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1145</td><td>Define a constant instead of duplicating this literal &quot;//h2[contains(text(),&#x27;Recent Activity&#x27;)]&quot; 5 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1160</td><td>Define a constant instead of duplicating this literal &quot;//h1[contains(text(),&#x27;Security Dashboard&#x27;)]&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1175</td><td>Define a constant instead of duplicating this literal &quot;input[placeholder=&#x27;e.g. 192.168.1.5&#x27;]&quot; 4 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1177</td><td>Define a constant instead of duplicating this literal &quot;Clicking Search&quot; 7 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1327</td><td>Define a constant instead of duplicating this literal &quot;Export CSV&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>1363</td><td>Define a constant instead of duplicating this literal &quot;.relative select&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>615</td><td>Refactor this function to reduce its Cognitive Complexity from 73 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>823</td><td>Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>1589</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr>
+                </tbody>
+              </table>
+              <p class='muted'>8 more issue(s) omitted from this file.</p>
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:integration_tests/stress_test.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>205</td><td>Define a constant instead of duplicating this literal &quot;application/json&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>248</td><td>Refactor this function to reduce its Cognitive Complexity from 34 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>127</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>130</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S6903</td><td>372</td><td>Don&#x27;t use `datetime.datetime.utcnow` to create this datetime object.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>57</td><td>Remove this commented out code.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S125</td><td>433</td><td>Remove this commented out code.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S1481</td><td>275</td><td>Remove the unused local variable &quot;e&quot;.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:k8s/anomaly-detection-deployment.yaml</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>26</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>25</td><td>Specify a storage request for this container.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:k8s/backend-deployment.yaml</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>37</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>36</td><td>Specify a storage request for this container.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:k8s/frontend-deployment.yaml</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6596</td><td>26</td><td>Use a specific version tag for the image instead of &quot;latest&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>kubernetes:S6897</td><td>25</td><td>Specify a storage request for this container.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:migrations/002_project_roles_update.sql</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>plsql:SelectStarCheck</td><td>11</td><td>SELECT * should not be used.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>plsql:OrderByExplicitAscCheck</td><td>70</td><td>Add ASC in order to make the order explicit.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/api/server.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>125</td><td>Define a constant instead of duplicating this literal &quot;Detector not initialized&quot; 5 times.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>125</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>150</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>168</td><td>Document this HTTPException with status code 400 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>189</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>230</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>240</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/api/server_adaptive.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>125</td><td>Define a constant instead of duplicating this literal &quot;Detector not initialized&quot; 4 times.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3358</td><td>174</td><td>Extract this nested conditional expression into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>125</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>156</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>186</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>207</td><td>Document this HTTPException with status code 400 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>216</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/api/server_multi_tenant.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>205</td><td>Document this HTTPException with status code 403 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>314</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>339</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>350</td><td>Document this HTTPException with status code 500 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>361</td><td>Document this HTTPException with status code 400 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>374</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>403</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>409</td><td>Document this HTTPException with status code 404 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>424</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>428</td><td>Document this HTTPException with status code 404 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>465</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>475</td><td>Document this HTTPException with status code 401 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>478</td><td>Document this HTTPException with status code 400 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>502</td><td>Document this HTTPException with status code 400 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>527</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>532</td><td>Document this HTTPException with status code 401 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>586</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>599</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>615</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>637</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S8415</td><td>652</td><td>Document this HTTPException with status code 503 in the &quot;responses&quot; parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/api/start_multi_tenant.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7677</td><td>48</td><td>Redirect this error message to stderr (&gt;&amp;2).</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>47</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/adaptive_detector.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>716</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>804</td><td>Refactor this function to reduce its Cognitive Complexity from 41 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1871</td><td>738</td><td>Either merge this branch with the identical one on line &quot;734&quot; or change one of the implementations.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1871</td><td>742</td><td>Either merge this branch with the identical one on line &quot;734&quot; or change one of the implementations.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3358</td><td>994</td><td>Extract this nested conditional expression into an independent statement.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>105</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>108</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>109</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>128</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>152</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>174</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>180</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>185</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>189</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>198</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>212</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>215</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>216</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>220</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>229</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>231</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>409</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>537</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>639</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>644</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr>
+                </tbody>
+              </table>
+              <p class='muted'>3 more issue(s) omitted from this file.</p>
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/ensemble_detector.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>180</td><td>Refactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>223</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1066</td><td>151</td><td>Merge this if statement with the enclosing one.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1172</td><td>138</td><td>Remove the unused function parameter &quot;method&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>321</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S116</td><td>175</td><td>Rename this field &quot;RE_IPv4&quot; to match the regular expression ^[_a-z][_a-z0-9]*$.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/knowledge_distillation.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>263</td><td>Refactor this function to reduce its Cognitive Complexity from 28 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>494</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S6711</td><td>467</td><td>Use a &quot;numpy.random.Generator&quot; here instead of this legacy function.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S6983</td><td>289</td><td>Specify the `num_workers` parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/multi_tenant_detector.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1172</td><td>398</td><td>Remove the unused function parameter &quot;project_id&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>93</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/project_manager.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>139</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>278</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>299</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/student_model.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>286</td><td>Refactor this function to reduce its Cognitive Complexity from 44 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1172</td><td>573</td><td>Remove the unused function parameter &quot;session_stats&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>481</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S6973</td><td>383</td><td>Add the missing hyperparameter weight_decay for this PyTorch optimizer.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>pythonenterprise:S7708</td><td>422</td><td>Collect tensors in a list and concatenate once outside the loop to improve performance.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S6983</td><td>379</td><td>Specify the `num_workers` parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/models/teacher_model.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>126</td><td>Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>538</td><td>Refactor this function to reduce its Cognitive Complexity from 24 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1172</td><td>418</td><td>Remove the unused function parameter &quot;session_stats&quot;.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1871</td><td>260</td><td>Either merge this branch with the identical one on line &quot;257&quot; or change one of the implementations.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>641</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S6973</td><td>598</td><td>Add the missing hyperparameter weight_decay for this PyTorch optimizer.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S6983</td><td>594</td><td>Specify the `num_workers` parameter.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:realtime_anomaly_detection/streaming/log_streamer.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S3776</td><td>102</td><td>Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S1871</td><td>169</td><td>Either merge this branch with the identical one on line &quot;166&quot; or change one of the implementations.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>55</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>python:S1481</td><td>123</td><td>Remove the unused local variable &quot;color&quot;.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/k8s-deploy.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7677</td><td>23</td><td>Redirect this error message to stderr (&gt;&amp;2).</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>21</td><td>Add an explicit return statement at the end of the function.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>22</td><td>Add an explicit return statement at the end of the function.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>23</td><td>Add an explicit return statement at the end of the function.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/log_generator.py</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>191</td><td>Define a constant instead of duplicating this literal &quot;/api/gcp&quot; 7 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S1192</td><td>296</td><td>Define a constant instead of duplicating this literal &quot;/api/mxfunnel/submit&quot; 3 times.</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>198</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>246</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>273</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>CRITICAL</td><td>CODE_SMELL</td><td>python:S5754</td><td>303</td><td>Specify an exception class to catch or reraise the exception</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>507</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>python:S3457</td><td>533</td><td>Add replacement fields or use a normal string instead of an f-string.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/monitor.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>36</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>47</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>60</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>shelldre:S1192</td><td>77</td><td>Define a constant instead of using the literal &#x27;==========================================&#x27; 5 times.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/preflight_check.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7679</td><td>14</td><td>Assign this positional parameter to a local variable.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7679</td><td>15</td><td>Assign this positional parameter to a local variable.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7679</td><td>18</td><td>Assign this positional parameter to a local variable.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7679</td><td>20</td><td>Assign this positional parameter to a local variable.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7679</td><td>21</td><td>Assign this positional parameter to a local variable.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>13</td><td>Add an explicit return statement at the end of the function.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>14</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>20</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>59</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>60</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>108</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>108</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7688</td><td>126</td><td>Use &#x27;[[&#x27; instead of &#x27;[&#x27; for conditional tests. The &#x27;[[&#x27; construct is safer and more feature-rich.</td></tr><tr><td>MINOR</td><td>CODE_SMELL</td><td>shelldre:S1192</td><td>119</td><td>Define a constant instead of using the literal &#x27;━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━&#x27; 5 times.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/production_run.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MINOR</td><td>CODE_SMELL</td><td>shelldre:S1192</td><td>26</td><td>Define a constant instead of using the literal &#x27;==========================================&#x27; 4 times.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+            <section class="card">
+              <h3>ashrafsheri_distil_bert_log_finetune:scripts/upload-model-artifacts.sh</h3>
+              <table>
+                <thead>
+                  <tr><th>Severity</th><th>Type</th><th>Rule</th><th>Line</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7677</td><td>20</td><td>Redirect this error message to stderr (&gt;&amp;2).</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>19</td><td>Add an explicit return statement at the end of the function.</td></tr><tr><td>MAJOR</td><td>CODE_SMELL</td><td>shelldre:S7682</td><td>20</td><td>Add an explicit return statement at the end of the function.</td></tr>
+                </tbody>
+              </table>
+              
+            </section>
+            
+</body>
+</html>
