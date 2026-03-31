@@ -27,6 +27,8 @@ export interface LogSearchResponse {
   websocket_id: string;
   total_count: number;
   infected_count: number;
+  safe_count: number;
+  threat_rate: number;
 }
 
 export const logService = {
@@ -74,5 +76,4 @@ export const logService = {
     return response.data;
   },
 };
-
 

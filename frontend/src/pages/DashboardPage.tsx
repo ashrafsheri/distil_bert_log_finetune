@@ -20,7 +20,6 @@ const DashboardPage: React.FC = () => {
     error,
     totalCount,
     infectedCount,
-    safeCount,
     isStreamPaused,
     refetch,
     pauseStream,
@@ -43,6 +42,7 @@ const DashboardPage: React.FC = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<typeof logs | null>(null);
   const [searchTotal, setSearchTotal] = useState(0);
+  const [searchInfectedCount, setSearchInfectedCount] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [fromDate, setFromDate] = useState('');
@@ -133,10 +133,14 @@ const DashboardPage: React.FC = () => {
   }, [logs, focusedIp]);
 
   // Calculate detection rate
+  const isSearchMode = searchResults !== null;
+  const displayedTotalCount = isSearchMode ? searchTotal : totalCount;
+  const displayedInfectedCount = isSearchMode ? searchInfectedCount : infectedCount;
+  const displayedSafeCount = Math.max(displayedTotalCount - displayedInfectedCount, 0);
   const detectionRate = useMemo(() => {
-    if (totalCount === 0) return 0;
-    return ((infectedCount / totalCount) * 100).toFixed(1);
-  }, [totalCount, infectedCount]);
+    if (displayedTotalCount === 0) return '0.0';
+    return ((displayedInfectedCount / displayedTotalCount) * 100).toFixed(1);
+  }, [displayedTotalCount, displayedInfectedCount]);
 
   const handleFocusIp = useCallback((ip: string | null) => {
     setFocusedIp(ip);
@@ -190,6 +194,7 @@ const DashboardPage: React.FC = () => {
       }));
       setSearchResults(mapped);
       setSearchTotal(res.total_count || 0);
+      setSearchInfectedCount(res.infected_count || 0);
       setBrowseResults(null);
       setBrowseTotal(0);
     } catch (e: unknown) {
@@ -197,6 +202,7 @@ const DashboardPage: React.FC = () => {
       setSearchError(msg);
       setSearchResults([]);
       setSearchTotal(0);
+      setSearchInfectedCount(0);
     } finally {
       setSearchLoading(false);
     }
@@ -214,6 +220,7 @@ const DashboardPage: React.FC = () => {
     setPage(1);
     setPageSize(25);
     setSearchTotal(0);
+    setSearchInfectedCount(0);
     // Load browse defaults
     (async () => {
       const res = await logService.fetchLogs(25, 0, projectId);
@@ -262,29 +269,29 @@ const DashboardPage: React.FC = () => {
 
   // Pause/resume stream based on page number
   useEffect(() => {
-    if (searchResults) return; // Don't control stream in search mode
+    if (isSearchMode) return; // Don't control stream in search mode
 
     if (page === 1 && isStreamPaused) {
       resumeStream();
     } else if (page > 1 && !isStreamPaused) {
       pauseStream();
     }
-  }, [page, searchResults, isStreamPaused, pauseStream, resumeStream]);
+  }, [page, isSearchMode, isStreamPaused, pauseStream, resumeStream]);
 
-  const totalResults = searchResults ? searchTotal : browseTotal;
+  const totalResults = isSearchMode ? searchTotal : browseTotal;
   const canGoNext = page * pageSize < totalResults;
   const correctionCountSuffix = correctionSuccess?.count === 1 ? '' : 's';
 
   // Browse pagination loader when not searching
   useEffect(() => {
-    if (searchResults) return; // search mode controls its own fetch
+    if (isSearchMode) return; // search mode controls its own fetch
     (async () => {
       const offset = (page - 1) * pageSize;
       const res = await logService.fetchLogs(pageSize, offset, projectId);
       setBrowseResults(res.logs as typeof logs);
       setBrowseTotal(res.total_count || 0);
     })();
-  }, [searchResults, page, pageSize, projectId]);
+  }, [isSearchMode, page, pageSize, projectId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-vt-dark via-vt-dark to-vt-blue/5">
@@ -477,7 +484,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <p className={`text-3xl lg:text-4xl font-bold transition-all duration-300 ${
                   statsUpdated ? 'text-vt-primary' : 'text-vt-light'
-                }`}>{totalCount.toLocaleString()}</p>
+                }`}>{displayedTotalCount.toLocaleString()}</p>
                 <div className="mt-3 flex items-center gap-2 text-xs text-vt-success">
                   <div className="w-1.5 h-1.5 rounded-full bg-vt-success animate-pulse"></div>
                   <span className="font-medium">Live Tracking</span>
@@ -492,7 +499,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div className={`glass-strong rounded-2xl p-5 lg:p-6 border card-hover animate-scale-in stagger-1 transition-all duration-300 ${
-            statsUpdated && infectedCount > 0 ? 'border-vt-error/60 shadow-xl shadow-vt-error/30' : 'border-vt-error/20'
+            statsUpdated && displayedInfectedCount > 0 ? 'border-vt-error/60 shadow-xl shadow-vt-error/30' : 'border-vt-error/20'
           }`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -500,10 +507,10 @@ const DashboardPage: React.FC = () => {
                 <p className={`text-3xl lg:text-4xl font-bold transition-all duration-300 ${
                   'text-vt-error'
                 }`}>
-                  {infectedCount.toLocaleString()}
+                  {displayedInfectedCount.toLocaleString()}
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs">
-                  {infectedCount > 0 ? (
+                  {displayedInfectedCount > 0 ? (
                     <>
                       <div className="w-1.5 h-1.5 rounded-full bg-vt-error animate-pulse"></div>
                       <span className="text-vt-error font-medium">Active Threats</span>
@@ -529,7 +536,7 @@ const DashboardPage: React.FC = () => {
               <div className="flex-1">
                 <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Safe Logs</p>
                 <p className="text-3xl lg:text-4xl font-bold text-vt-success">
-                  {safeCount.toLocaleString()}
+                  {displayedSafeCount.toLocaleString()}
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs">
                   <div className="w-1.5 h-1.5 rounded-full bg-vt-success"></div>

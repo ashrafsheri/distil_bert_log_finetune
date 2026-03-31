@@ -39,16 +39,26 @@ class LogSerializer:
         return logs
 
     @staticmethod
-    def build_log_response(logs_data: List[Dict[str, Any]], total_count: int) -> LogEntryResponse:
+    def build_log_response(
+        logs_data: List[Dict[str, Any]],
+        total_count: int,
+        infected_count: int | None = None,
+    ) -> LogEntryResponse:
         """Build LogEntryResponse from raw Elasticsearch data"""
         logs = LogSerializer.convert_elasticsearch_logs_to_entries(logs_data)
         websocket_id = str(uuid.uuid4())
-        infected_count = sum(1 for l in logs if l.infected)
+        aggregate_infected_count = infected_count
+        if aggregate_infected_count is None:
+            aggregate_infected_count = sum(1 for l in logs if l.infected)
+        safe_count = max(total_count - aggregate_infected_count, 0)
+        threat_rate = round((aggregate_infected_count / total_count) * 100, 1) if total_count else 0.0
         return LogEntryResponse(
             logs=logs,
             websocket_id=websocket_id,
             total_count=total_count,
-            infected_count=infected_count
+            infected_count=aggregate_infected_count,
+            safe_count=safe_count,
+            threat_rate=threat_rate,
         )
 
     @staticmethod
