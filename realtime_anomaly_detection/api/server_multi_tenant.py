@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi import FastAPI, HTTPException, Header, Depends, Query, BackgroundTasks
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import uvicorn
 
 from models.multi_tenant_detector import MultiTenantDetector
@@ -129,6 +129,8 @@ class ProjectIngestStatsRequest(BaseModel):
 
 class DetectionResponse(BaseModel):
     """Anomaly detection response"""
+    model_config = ConfigDict(protected_namespaces=())
+
     is_anomaly: bool
     anomaly_score: float
     model_type: str  # 'teacher' or 'student'
@@ -299,6 +301,27 @@ async def startup_event():
         
         # Start background scheduler
         update_scheduler.start_background_scheduler()
+
+        teacher_info = detector.teacher.get_model_info()
+        logger.info("Teacher startup summary:")
+        logger.info("  Base model dir: %s", base_model_dir)
+        logger.info("  Storage dir: %s", storage_dir)
+        logger.info(
+            "  Base artifacts present: transformer=%s isolation_forest=%s",
+            teacher_info.get('base_transformer_artifact_present'),
+            teacher_info.get('base_iso_artifact_present'),
+        )
+        logger.info(
+            "  Saved teacher state present: transformer=%s isolation_forest=%s",
+            teacher_info.get('saved_transformer_present'),
+            teacher_info.get('saved_iso_present'),
+        )
+        logger.info(
+            "  Teacher readiness: loaded=%s iso_forest_status=%s vocab_size=%s",
+            teacher_info.get('is_loaded'),
+            teacher_info.get('iso_forest_status'),
+            teacher_info.get('vocab_size'),
+        )
         
         logger.info("Multi-tenant detector initialized successfully!")
         
