@@ -636,11 +636,12 @@ class LogService:
         raw_log: Optional[str],
         batch_id: str,
         org_id: str,
-        project_id: str,
         event_time: str,
         parse_error: str,
         source_record: Any,
+        project_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        resolved_project_id = project_id or org_id
         return {
             "timestamp": event_time,
             "event_time": event_time,
@@ -655,7 +656,7 @@ class LogService:
             "batch_id": batch_id,
             "source": "fluent_bit",
             "org_id": org_id,
-            "project_id": project_id,
+            "project_id": resolved_project_id,
             "parse_status": "failed",
             "parse_error": parse_error,
             "detection_status": "skipped",
