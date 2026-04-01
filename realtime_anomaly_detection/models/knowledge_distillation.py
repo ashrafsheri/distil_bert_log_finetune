@@ -6,6 +6,7 @@ teacher model updates using aggregated student logs.
 
 import math
 import threading
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Callable
 from datetime import datetime
@@ -16,6 +17,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+
+
+logger = logging.getLogger(__name__)
 
 
 class DistillationConfig:

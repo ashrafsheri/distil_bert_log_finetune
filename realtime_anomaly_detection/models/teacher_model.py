@@ -726,6 +726,8 @@ class TeacherModel:
     
     def get_model_info(self) -> Dict:
         """Get teacher model information"""
+        base_transformer_path = self.model_dir / 'transformer_model.pt'
+        base_iso_path = self.model_dir / 'isolation_forest.pkl'
         return {
             'vocab_size': self.vocab_size,
             'num_templates': len(self.id_to_template),
@@ -735,5 +737,14 @@ class TeacherModel:
             'is_loaded': self.is_loaded,
             'is_training': self.is_training,
             'window_size': self.window_size,
-            'device': str(self.device)
+            'device': str(self.device),
+            'iso_forest_status': (
+                'active' if self._is_iso_forest_fitted()
+                else 'not_loaded' if self.iso_forest is None
+                else 'not_fitted'
+            ),
+            'base_transformer_artifact_present': base_transformer_path.exists(),
+            'base_iso_artifact_present': base_iso_path.exists(),
+            'saved_transformer_present': self.teacher_model_path.exists(),
+            'saved_iso_present': self.teacher_iso_path.exists(),
         }
