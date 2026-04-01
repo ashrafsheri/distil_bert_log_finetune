@@ -190,7 +190,7 @@ app = FastAPI(
     3. After warmup, student model is automatically trained
     4. Active phase uses project-specific student model
     """,
-    version="3.0.0"
+    version="3.0.1"
 )
 
 # API Key security
