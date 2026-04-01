@@ -743,7 +743,7 @@ async def receive_fluent_bit_logs(
                 return response
             
             # Send logs to WebSocket connections for real-time updates (filtered by project_id)
-            await LogService.send_logs_to_websocket(processed_logs, org_id=project_id)
+            await LogService.send_logs_to_websocket(processed_logs, org_id=project_id, project_id=project_id)
             
             # Increment project log count for warmup tracking
             model_phase = None

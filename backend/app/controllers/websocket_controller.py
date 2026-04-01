@@ -20,20 +20,34 @@ class ConnectionInfo(NamedTuple):
     websocket: WebSocket
     org_id: Optional[str]
     user_role: Optional[str]
+    project_id: Optional[str]
 
 # Store active WebSocket connections
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, ConnectionInfo] = {}
     
-    def connect(self, websocket: WebSocket, client_id: str, org_id: Optional[str] = None, user_role: Optional[str] = None):
+    def connect(
+        self,
+        websocket: WebSocket,
+        client_id: str,
+        org_id: Optional[str] = None,
+        user_role: Optional[str] = None,
+        project_id: Optional[str] = None,
+    ):
         """Store WebSocket connection with org_id (connection must already be accepted)"""
         self.active_connections[client_id] = ConnectionInfo(
             websocket=websocket,
             org_id=org_id,
-            user_role=user_role
+            user_role=user_role,
+            project_id=project_id,
         )
-        logger.info(f"WebSocket connected. Total active connections: {len(self.active_connections)}")
+        logger.info(
+            "WebSocket connected. Total active connections: %s (org_id=%s, project_id=%s)",
+            len(self.active_connections),
+            org_id,
+            project_id,
+        )
     
     def disconnect(self, client_id: str):
         """Remove WebSocket connection"""
@@ -50,13 +64,21 @@ class ConnectionManager:
                 logger.error("Error sending WebSocket message: %s", e)
                 self.disconnect(client_id)
     
-    async def broadcast(self, message: dict, org_id: Optional[str] = None):
-        """Broadcast message to all connected clients, optionally filtered by org_id"""
+    async def broadcast(
+        self,
+        message: dict,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+    ):
+        """Broadcast message to all connected clients, optionally filtered by org_id/project_id"""
         # Determine which clients to send to
         target_clients = []
         for client_id, conn_info in self.active_connections.items():
+            if project_id is not None:
+                if conn_info.user_role == "admin" or conn_info.project_id == project_id:
+                    target_clients.append((client_id, conn_info))
             # If org_id filter is provided, only send to matching orgs or admin users
-            if org_id is not None:
+            elif org_id is not None:
                 if conn_info.user_role == "admin" or conn_info.org_id == org_id:
                     target_clients.append((client_id, conn_info))
             else:
@@ -79,7 +101,8 @@ manager = ConnectionManager()
 async def websocket_endpoint(
     websocket: WebSocket, 
     client_id: str,
-    token: Optional[str] = Query(None)
+    token: Optional[str] = Query(None),
+    project_id: Optional[str] = Query(None),
 ):
     """
     WebSocket endpoint for real-time log updates
@@ -137,6 +160,7 @@ async def websocket_endpoint(
         client_id=client_id,
         org_id=user_org_id,
         user_role=user_role,
+        project_id=project_id,
     )
     
     try:
@@ -165,7 +189,12 @@ async def websocket_endpoint(
         manager.disconnect(client_id)
 
 # Utility functions for sending log updates
-async def send_log_update(log_entry: dict, client_id: str = None, org_id: str = None):
+async def send_log_update(
+    log_entry: dict,
+    client_id: str = None,
+    org_id: str = None,
+    project_id: str = None,
+):
     """
     Send new log entry to specific client or broadcast to matching org
     
@@ -184,7 +213,7 @@ async def send_log_update(log_entry: dict, client_id: str = None, org_id: str = 
         await manager.send_personal_message(message, client_id)
     else:
         # Broadcast to clients matching the org_id
-        await manager.broadcast(message, org_id=org_id)
+        await manager.broadcast(message, org_id=org_id, project_id=project_id)
 
 async def send_anomaly_alert(alert_data: dict, client_id: str = None, org_id: str = None):
     """

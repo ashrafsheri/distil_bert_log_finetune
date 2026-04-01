@@ -141,7 +141,9 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
       }
 
       // Create authenticated WebSocket connection
-      const websocketUrl = `${API_ENDPOINTS.WEBSOCKET_BASE}/${websocketId}`;
+      const websocketUrl = projectId
+        ? `${API_ENDPOINTS.WEBSOCKET_BASE}/${websocketId}?project_id=${encodeURIComponent(projectId)}`
+        : `${API_ENDPOINTS.WEBSOCKET_BASE}/${websocketId}`;
       
       const websocket = await websocketService.createConnection(
         websocketUrl,
@@ -231,7 +233,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
         }, WEBSOCKET_RECONNECT_DELAY);
       }
     }
-  }, [ws, enqueuePendingLog, applyLogToDisplay]);
+  }, [ws, enqueuePendingLog, applyLogToDisplay, projectId]);
 
   const refetch = useCallback(() => {
     fetchInitialLogs();
