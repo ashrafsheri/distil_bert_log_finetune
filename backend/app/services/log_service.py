@@ -837,22 +837,34 @@ class LogService:
         return processed_logs
 
     @staticmethod
-    async def send_logs_to_websocket(processed_logs: List[Dict[str, Any]], org_id: Optional[str] = None) -> None:
+    async def send_logs_to_websocket(
+        processed_logs: List[Dict[str, Any]],
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+    ) -> None:
         """
         Send processed logs to WebSocket connections for real-time updates.
 
         Args:
             processed_logs: List of processed logs
             org_id: Organization ID to filter which clients receive the updates
+            project_id: Project ID to filter which project dashboards receive updates
         """
         for log in processed_logs:
             try:
                 # Get org_id from log if not explicitly provided
                 log_org_id = org_id or log.get("org_id")
+                log_project_id = project_id or log.get("org_id")
                 websocket_log = LogService.convert_log_for_websocket(log)
-                await send_log_update(websocket_log, org_id=log_org_id)
+                await send_log_update(websocket_log, org_id=log_org_id, project_id=log_project_id)
                 logger.debug(f"Sent log to WebSocket: {websocket_log}")
-                logger.info(f"WebSocket log sent - IP: {websocket_log.get('ipAddress')}, API: {websocket_log.get('apiAccessed')}, org_id: {log_org_id}")
+                logger.info(
+                    "WebSocket log sent - IP: %s, API: %s, org_id: %s, project_id: %s",
+                    websocket_log.get('ipAddress'),
+                    websocket_log.get('apiAccessed'),
+                    log_org_id,
+                    log_project_id,
+                )
             except Exception as e:
                 logger.error(f"Error sending log to WebSocket: {e}")
 
