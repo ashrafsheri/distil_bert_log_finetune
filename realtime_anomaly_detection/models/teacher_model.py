@@ -20,6 +20,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
 
 from .ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
@@ -122,6 +124,51 @@ class TeacherModel:
         else:
             logger.info("Initializing teacher from base model...")
             self._initialize_from_base()
+
+    def _create_iso_forest(self):
+        """Create an unfitted isolation forest instance."""
+        from sklearn.ensemble import IsolationForest
+
+        return IsolationForest(
+            n_estimators=100,
+            contamination=0.1,
+            random_state=42,
+            warm_start=False,
+        )
+
+    def _is_iso_forest_fitted(self, model=None) -> bool:
+        """Return True only when the isolation forest has been fitted."""
+        candidate = self.iso_forest if model is None else model
+        if candidate is None:
+            return False
+        try:
+            check_is_fitted(candidate)
+            return True
+        except Exception:
+            return False
+
+    def _load_iso_forest(self, path: Path, source: str) -> bool:
+        """Load a fitted isolation forest from disk, ignoring poisoned/unfitted files."""
+        try:
+            with open(path, 'rb') as f:
+                candidate = pickle.load(f)
+        except Exception as exc:
+            logger.warning("Failed to load %s isolation forest from %s: %s", source, path, exc)
+            self.iso_forest = None
+            return False
+
+        if not self._is_iso_forest_fitted(candidate):
+            logger.warning(
+                "%s isolation forest at %s is not fitted; ignoring persisted model",
+                source.capitalize(),
+                path,
+            )
+            self.iso_forest = None
+            return False
+
+        self.iso_forest = candidate
+        logger.info("Loaded fitted %s isolation forest from %s", source, path)
+        return True
     
     def _initialize_from_base(self):
         """Initialize teacher model from the base exported model"""
@@ -166,10 +213,10 @@ class TeacherModel:
             # Try to load base isolation forest
             base_iso_path = self.model_dir / 'isolation_forest.pkl'
             if base_iso_path.exists():
-                with open(base_iso_path, 'rb') as f:
-                    self.iso_forest = pickle.load(f)
+                self._load_iso_forest(base_iso_path, "base")
             else:
-                self._initialize_fresh_iso_forest()
+                logger.warning("Base isolation forest artifact missing at %s", base_iso_path)
+                self.iso_forest = None
             
             self.is_loaded = True
             logger.info("Teacher model initialized from base")
@@ -195,7 +242,7 @@ class TeacherModel:
         self.unknown_id = 1
         
         self._initialize_fresh_transformer()
-        self._initialize_fresh_iso_forest()
+        self.iso_forest = None
         
         self.is_loaded = True
         logger.info("Fresh teacher model initialized")
@@ -216,14 +263,7 @@ class TeacherModel:
     
     def _initialize_fresh_iso_forest(self):
         """Initialize a fresh isolation forest"""
-        from sklearn.ensemble import IsolationForest
-        # Note: warm_start=False to avoid sklearn warning about not increasing n_estimators
-        self.iso_forest = IsolationForest(
-            n_estimators=100,
-            contamination=0.1,
-            random_state=42,
-            warm_start=False
-        )
+        self.iso_forest = self._create_iso_forest()
     
     def _load_transformer_weights(self, checkpoint: Dict):
         """Load transformer weights from checkpoint"""
@@ -291,10 +331,10 @@ class TeacherModel:
             
             # Load isolation forest
             if self.teacher_iso_path.exists():
-                with open(self.teacher_iso_path, 'rb') as f:
-                    self.iso_forest = pickle.load(f)
+                self._load_iso_forest(self.teacher_iso_path, "saved")
             else:
-                self._initialize_fresh_iso_forest()
+                logger.warning("Saved teacher isolation forest missing at %s", self.teacher_iso_path)
+                self.iso_forest = None
             
             self.is_loaded = True
             logger.info("Loaded saved teacher model")
@@ -335,10 +375,13 @@ class TeacherModel:
                 with open(self.teacher_state_path, 'wb') as f:
                     pickle.dump(state, f)
                 
-                # Save isolation forest
-                if self.iso_forest is not None:
+                # Save isolation forest only when it is actually fitted.
+                if self._is_iso_forest_fitted():
                     with open(self.teacher_iso_path, 'wb') as f:
                         pickle.dump(self.iso_forest, f)
+                elif self.teacher_iso_path.exists():
+                    self.teacher_iso_path.unlink()
+                    logger.warning("Removed stale unfitted teacher isolation forest at %s", self.teacher_iso_path)
                 
                 logger.info(f"Teacher model saved to {self.storage_dir}")
                 
@@ -447,17 +490,22 @@ class TeacherModel:
         
         # 3. Isolation Forest detection
         iso_result = {'is_anomaly': 0, 'score': 0.0, 'status': 'not_available'}
-        if self.iso_forest is not None and features is not None:
-            try:
-                iso_pred = self.iso_forest.predict(features)[0]
-                iso_score = -self.iso_forest.score_samples(features)[0]
-                iso_result = {
-                    'is_anomaly': int(iso_pred == -1),
-                    'score': float(iso_score),
-                    'status': 'active'
-                }
-            except Exception as e:
-                iso_result['status'] = f'error: {str(e)[:50]}'
+        if features is not None and self.iso_forest is not None:
+            if not self._is_iso_forest_fitted():
+                iso_result['status'] = 'not_fitted'
+            else:
+                try:
+                    iso_pred = self.iso_forest.predict(features)[0]
+                    iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_result = {
+                        'is_anomaly': int(iso_pred == -1),
+                        'score': float(iso_score),
+                        'status': 'active'
+                    }
+                except NotFittedError:
+                    iso_result['status'] = 'not_fitted'
+                except Exception as e:
+                    iso_result['status'] = f'error: {str(e)[:50]}'
         
         # 4. Ensemble voting
         votes = []
@@ -628,6 +676,8 @@ class TeacherModel:
             # Update isolation forest if features provided
             if all_features is not None and len(all_features) > 100:
                 logger.info("Updating isolation forest...")
+                if self.iso_forest is None or not self._is_iso_forest_fitted():
+                    self.iso_forest = self._create_iso_forest()
                 self.iso_forest.fit(all_features)
                 scores = -self.iso_forest.score_samples(all_features)
                 self.iso_threshold = float(np.percentile(scores, 95))
