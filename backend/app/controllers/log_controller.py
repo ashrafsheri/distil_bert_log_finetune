@@ -259,6 +259,9 @@ async def fetch_logs(
             result["logs"],
             result.get("total", 0),
             result.get("infected_count"),
+            parse_failure_count=result.get("parse_failure_count", 0),
+            detection_failure_count=result.get("detection_failure_count", 0),
+            incident_count=result.get("incident_count", 0),
         )
         
     except HTTPException:
@@ -282,6 +285,9 @@ async def search_logs(
     api: str | None = None,
     status_code: int | None = None,
     malicious: bool | None = None,
+    parse_status: str | None = None,
+    detection_status: str | None = None,
+    incident_id: str | None = None,
     from_date: str | None = None,
     to_date: str | None = None,
     limit: int = 100,
@@ -315,6 +321,9 @@ async def search_logs(
             api=api,
             status_code=status_code,
             infected=infected,
+            parse_status=parse_status,
+            detection_status=detection_status,
+            incident_id=incident_id,
             from_datetime=from_dt,
             to_datetime=to_dt,
             limit=safe_limit,
@@ -325,6 +334,9 @@ async def search_logs(
             result["logs"],
             result.get("total", 0),
             result.get("infected_count"),
+            parse_failure_count=result.get("parse_failure_count", 0),
+            detection_failure_count=result.get("detection_failure_count", 0),
+            incident_count=result.get("incident_count", 0),
         )
     except HTTPException:
         raise
@@ -345,6 +357,9 @@ async def export_logs_to_csv(
     api: str | None = None,
     status_code: int | None = None,
     malicious: bool | None = None,
+    parse_status: str | None = None,
+    detection_status: str | None = None,
+    incident_id: str | None = None,
     from_date: str | None = None,
     to_date: str | None = None,
     project_id: Annotated[str | None, Query(description=PROJECT_ID_FILTER_DESCRIPTION)] = None,
@@ -377,6 +392,9 @@ async def export_logs_to_csv(
             api=api,
             status_code=status_code,
             infected=infected,
+            parse_status=parse_status,
+            detection_status=detection_status,
+            incident_id=incident_id,
             from_datetime=from_dt,
             to_datetime=to_dt,
             limit=10000,

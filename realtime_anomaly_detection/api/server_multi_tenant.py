@@ -496,6 +496,18 @@ async def record_project_ingest_stats_internal(request: ProjectIngestStatsReques
     return status
 
 
+@app.get("/internal/projects/{project_id}/status")
+async def get_project_status_internal(project_id: str):
+    """Return detailed project detector state for backend dashboards."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    status = detector.get_project_status(project_id)
+    if status is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return status
+
+
 # ============================================================================
 # AUTHENTICATED ENDPOINTS (API Key Required)
 # ============================================================================

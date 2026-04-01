@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { projectService, ProjectSummary, CreateProjectResponse } from '../services/projectService';
+import { projectService, ProjectSummary, ProjectHealthSummary, CreateProjectResponse } from '../services/projectService';
 import { organizationService, OrganizationSummary } from '../services/organizationService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/Button';
@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ProjectsDashboard: React.FC = () => {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectHealth, setProjectHealth] = useState<Record<string, ProjectHealthSummary>>({});
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +57,24 @@ const ProjectsDashboard: React.FC = () => {
         projectsData = await projectService.getMyProjects();
       }
       setProjects(projectsData);
+      const healthEntries = await Promise.all(
+        projectsData.map(async (project) => {
+          try {
+            const health = await projectService.getProjectHealth(project.id);
+            return [project.id, health] as const;
+          } catch {
+            return null;
+          }
+        })
+      );
+      setProjectHealth(
+        healthEntries.reduce<Record<string, ProjectHealthSummary>>((acc, entry) => {
+          if (entry) {
+            acc[entry[0]] = entry[1];
+          }
+          return acc;
+        }, {})
+      );
       
       // Load organizations for dropdown (only for admins)
       if (isAdmin) {
@@ -387,10 +406,27 @@ const ProjectsDashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {projects.map((project) => (
-                    <tr key={project.id} className="border-b border-slate-800">
+                    <tr key={project.id} className="border-b border-slate-800 align-top">
                       <td className="py-4 text-white">
                         <div className="font-medium">{project.name}</div>
                         <div className="text-sm text-slate-400 font-mono">{project.id}</div>
+                        {projectHealth[project.id] && (
+                          <div className="mt-2 space-y-1 text-xs text-slate-400">
+                            <div>
+                              Phase: <span className="text-slate-200 font-medium">{projectHealth[project.id].phase}</span>
+                              {' '}• Warmup {projectHealth[project.id].warmup_progress.toFixed(1)}%
+                            </div>
+                            <div>
+                              Baseline eligible: <span className="text-slate-200 font-medium">{projectHealth[project.id].baseline_eligible_count.toLocaleString()}</span>
+                              {' '}• Parse failure rate: <span className="text-slate-200 font-medium">{(projectHealth[project.id].parse_failure_rate * 100).toFixed(1)}%</span>
+                            </div>
+                            {projectHealth[project.id].student_training_blockers.length > 0 && (
+                              <div className="text-vt-warning">
+                                Blockers: {projectHealth[project.id].student_training_blockers.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
@@ -401,6 +437,9 @@ const ProjectsDashboard: React.FC = () => {
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(project.model_status)}`}>
                           {project.model_status || 'warmup'}
                         </span>
+                        {projectHealth[project.id]?.has_student_model && (
+                          <div className="mt-2 text-xs text-vt-success">Student model active</div>
+                        )}
                       </td>
                       <td className="py-4 text-slate-300">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-slate-700 text-slate-300">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { LogEntry } from '../components/LogsTable';
+import { LogEntry, LogSearchResponse } from '../services/logService';
 import { API_ENDPOINTS, WEBSOCKET_RECONNECT_DELAY, MAX_LOGS_DISPLAY } from '../utils/constants';
 import { apiService, websocketService } from '../services/apiService';
 
@@ -11,6 +11,9 @@ interface UseLogsReturn {
   totalCount: number;
   infectedCount: number;
   safeCount: number;
+  parseFailureCount: number;
+  detectionFailureCount: number;
+  incidentCount: number;
   isStreamPaused: boolean;
   pendingCount: number;
   pendingThreatCount: number;
@@ -29,11 +32,23 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [infectedCount, setInfectedCount] = useState(0);
+  const [parseFailureCount, setParseFailureCount] = useState(0);
+  const [detectionFailureCount, setDetectionFailureCount] = useState(0);
+  const [incidentCount, setIncidentCount] = useState(0);
   const [isStreamPaused, setIsStreamPaused] = useState(false);
   const [pendingLogs, setPendingLogs] = useState<LogEntry[]>([]);
   const [pendingThreatCount, setPendingThreatCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const isStreamPausedRef = useRef(false);
+
+  const resolveLogTimestamp = useCallback((log: LogEntry): Date => {
+    const candidate = log.eventTime || log.timestamp || log.ingestTime;
+    const parsed = candidate ? new Date(candidate) : null;
+    if (parsed && !Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+    return new Date();
+  }, []);
 
   const fetchInitialLogs = useCallback(async () => {
     try {
@@ -47,14 +62,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
       }
       
       // Use apiService for authenticated request
-      const response = await apiService.get<{
-        logs: LogEntry[];
-        total_count: number;
-        infected_count: number;
-        safe_count: number;
-        threat_rate: number;
-        websocket_id?: string;
-      }>(url);
+      const response = await apiService.get<LogSearchResponse>(url);
       const data = response.data;
       
       if (Array.isArray(data.logs)) {
@@ -63,7 +71,10 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
         // Set counts from backend response
         setTotalCount(data.total_count || 0);
         setInfectedCount(data.infected_count || 0);
-        setLastUpdate(new Date());
+        setParseFailureCount(data.parse_failure_count || 0);
+        setDetectionFailureCount(data.detection_failure_count || 0);
+        setIncidentCount(data.incident_count || 0);
+        setLastUpdate(data.logs[0] ? resolveLogTimestamp(data.logs[0]) : new Date());
         
         // If we get a websocket ID, establish WebSocket connection
         if (data.websocket_id) {
@@ -77,7 +88,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, resolveLogTimestamp]);
 
   const enqueuePendingLog = useCallback((log: LogEntry) => {
     setPendingLogs(prev => [log, ...prev].slice(0, MAX_LOGS_DISPLAY));
@@ -88,8 +99,8 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
 
   const applyLogToDisplay = useCallback((log: LogEntry) => {
     setLogs(prevLogs => [log, ...prevLogs].slice(0, MAX_LOGS_DISPLAY));
-    setLastUpdate(new Date());
-  }, []);
+    setLastUpdate(resolveLogTimestamp(log));
+  }, [resolveLogTimestamp]);
 
   const applyAllPending = useCallback(() => {
     setPendingLogs(currentPending => {
@@ -97,11 +108,11 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
         return currentPending;
       }
       setLogs(prevLogs => [...currentPending, ...prevLogs].slice(0, MAX_LOGS_DISPLAY));
-      setLastUpdate(new Date());
+      setLastUpdate(resolveLogTimestamp(currentPending[0]));
       setPendingThreatCount(0);
       return [];
     });
-  }, []);
+  }, [resolveLogTimestamp]);
 
   const discardPending = useCallback(() => {
     setPendingLogs([]);
@@ -157,6 +168,15 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               if (newLog.infected) {
                 setInfectedCount(prev => prev + 1);
               }
+              if (newLog.parseStatus === 'failed') {
+                setParseFailureCount(prev => prev + 1);
+              }
+              if (newLog.detectionStatus === 'failed') {
+                setDetectionFailureCount(prev => prev + 1);
+              }
+              if (newLog.infected && newLog.incidentId) {
+                setIncidentCount(prev => prev + 1);
+              }
             } else if (message && typeof message === 'object' && message.ipAddress) {
               // Handle direct log format (fallback)
               
@@ -171,6 +191,15 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               setTotalCount(prev => prev + 1);
               if (message.infected) {
                 setInfectedCount(prev => prev + 1);
+              }
+              if (message.parseStatus === 'failed') {
+                setParseFailureCount(prev => prev + 1);
+              }
+              if (message.detectionStatus === 'failed') {
+                setDetectionFailureCount(prev => prev + 1);
+              }
+              if (message.infected && message.incidentId) {
+                setIncidentCount(prev => prev + 1);
               }
             }
           } catch {
@@ -217,7 +246,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
         ws.close();
       }
     };
-  }, []);
+  }, [fetchInitialLogs, projectId]);
 
   // Cleanup WebSocket when component unmounts
   useEffect(() => {
@@ -256,6 +285,9 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
     totalCount,
     infectedCount,
     safeCount,
+    parseFailureCount,
+    detectionFailureCount,
+    incidentCount,
     isStreamPaused,
     pendingCount,
     pendingThreatCount,

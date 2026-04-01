@@ -20,7 +20,11 @@ const DashboardPage: React.FC = () => {
     error,
     totalCount,
     infectedCount,
+    parseFailureCount,
+    detectionFailureCount,
+    incidentCount,
     isStreamPaused,
+    lastUpdate,
     refetch,
     pauseStream,
     resumeStream,
@@ -38,11 +42,17 @@ const DashboardPage: React.FC = () => {
   const [searchApi, setSearchApi] = useState('');
   const [searchStatus, setSearchStatus] = useState('');
   const [searchMalicious, setSearchMalicious] = useState(''); // '', 'malicious', 'clean'
+  const [searchParseStatus, setSearchParseStatus] = useState('');
+  const [searchDetectionStatus, setSearchDetectionStatus] = useState('');
+  const [searchIncidentId, setSearchIncidentId] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<typeof logs | null>(null);
   const [searchTotal, setSearchTotal] = useState(0);
   const [searchInfectedCount, setSearchInfectedCount] = useState(0);
+  const [searchParseFailureCount, setSearchParseFailureCount] = useState(0);
+  const [searchDetectionFailureCount, setSearchDetectionFailureCount] = useState(0);
+  const [searchIncidentCount, setSearchIncidentCount] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [fromDate, setFromDate] = useState('');
@@ -136,11 +146,9 @@ const DashboardPage: React.FC = () => {
   const isSearchMode = searchResults !== null;
   const displayedTotalCount = isSearchMode ? searchTotal : totalCount;
   const displayedInfectedCount = isSearchMode ? searchInfectedCount : infectedCount;
-  const displayedSafeCount = Math.max(displayedTotalCount - displayedInfectedCount, 0);
-  const detectionRate = useMemo(() => {
-    if (displayedTotalCount === 0) return '0.0';
-    return ((displayedInfectedCount / displayedTotalCount) * 100).toFixed(1);
-  }, [displayedTotalCount, displayedInfectedCount]);
+  const displayedParseFailureCount = isSearchMode ? searchParseFailureCount : parseFailureCount;
+  const displayedDetectionFailureCount = isSearchMode ? searchDetectionFailureCount : detectionFailureCount;
+  const displayedIncidentCount = isSearchMode ? searchIncidentCount : incidentCount;
 
   const handleFocusIp = useCallback((ip: string | null) => {
     setFocusedIp(ip);
@@ -183,6 +191,9 @@ const DashboardPage: React.FC = () => {
       if (searchStatus.trim()) params.status_code = Number(searchStatus.trim());
       if (searchMalicious === 'malicious') params.malicious = true;
       if (searchMalicious === 'clean') params.malicious = false;
+      if (searchParseStatus) params.parse_status = searchParseStatus;
+      if (searchDetectionStatus) params.detection_status = searchDetectionStatus;
+      if (searchIncidentId.trim()) params.incident_id = searchIncidentId.trim();
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
       params.limit = pageSize;
@@ -195,6 +206,9 @@ const DashboardPage: React.FC = () => {
       setSearchResults(mapped);
       setSearchTotal(res.total_count || 0);
       setSearchInfectedCount(res.infected_count || 0);
+      setSearchParseFailureCount(res.parse_failure_count || 0);
+      setSearchDetectionFailureCount(res.detection_failure_count || 0);
+      setSearchIncidentCount(res.incident_count || 0);
       setBrowseResults(null);
       setBrowseTotal(0);
     } catch (e: unknown) {
@@ -203,16 +217,22 @@ const DashboardPage: React.FC = () => {
       setSearchResults([]);
       setSearchTotal(0);
       setSearchInfectedCount(0);
+      setSearchParseFailureCount(0);
+      setSearchDetectionFailureCount(0);
+      setSearchIncidentCount(0);
     } finally {
       setSearchLoading(false);
     }
-  }, [isPrivileged, projectId, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate, page, pageSize]);
+  }, [isPrivileged, projectId, searchIp, searchApi, searchStatus, searchMalicious, searchParseStatus, searchDetectionStatus, searchIncidentId, fromDate, toDate, page, pageSize]);
 
   const clearSearch = useCallback(() => {
     setSearchIp('');
     setSearchApi('');
     setSearchStatus('');
     setSearchMalicious('');
+    setSearchParseStatus('');
+    setSearchDetectionStatus('');
+    setSearchIncidentId('');
     setSearchResults(null);
     setSearchError(null);
     setFromDate('');
@@ -221,6 +241,9 @@ const DashboardPage: React.FC = () => {
     setPageSize(25);
     setSearchTotal(0);
     setSearchInfectedCount(0);
+    setSearchParseFailureCount(0);
+    setSearchDetectionFailureCount(0);
+    setSearchIncidentCount(0);
     // Load browse defaults
     (async () => {
       const res = await logService.fetchLogs(25, 0, projectId);
@@ -244,6 +267,9 @@ const DashboardPage: React.FC = () => {
       if (searchStatus.trim()) params.status_code = Number(searchStatus.trim());
       if (searchMalicious === 'malicious') params.malicious = true;
       if (searchMalicious === 'clean') params.malicious = false;
+      if (searchParseStatus) params.parse_status = searchParseStatus;
+      if (searchDetectionStatus) params.detection_status = searchDetectionStatus;
+      if (searchIncidentId.trim()) params.incident_id = searchIncidentId.trim();
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
 
@@ -265,7 +291,7 @@ const DashboardPage: React.FC = () => {
     } finally {
       setExportLoading(false);
     }
-  }, [isPrivileged, projectId, currentProject, searchIp, searchApi, searchStatus, searchMalicious, fromDate, toDate]);
+  }, [isPrivileged, projectId, currentProject, searchIp, searchApi, searchStatus, searchMalicious, searchParseStatus, searchDetectionStatus, searchIncidentId, fromDate, toDate]);
 
   // Pause/resume stream based on page number
   useEffect(() => {
@@ -420,8 +446,8 @@ const DashboardPage: React.FC = () => {
                 </Button>
               </div>
             </div>
-            {showAdvanced && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              {showAdvanced && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                 <div className="w-36">
                   <label htmlFor="dashboard-search-status" className="block text-xs text-vt-muted mb-2">
                     Status Code
@@ -432,6 +458,51 @@ const DashboardPage: React.FC = () => {
                     onChange={(e) => setSearchStatus(e.target.value.replace(/\D/g, ''))}
                     placeholder="e.g. 404"
                     inputMode="numeric"
+                    className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="w-44">
+                  <label htmlFor="dashboard-search-parse-status" className="block text-xs text-vt-muted mb-2">
+                    Parse Status
+                  </label>
+                  <Select
+                    id="dashboard-search-parse-status"
+                    value={searchParseStatus}
+                    onChange={(val) => setSearchParseStatus(val as string)}
+                    options={[
+                      { label: 'All', value: '' },
+                      { label: 'Parsed', value: 'parsed' },
+                      { label: 'Failed', value: 'failed' },
+                    ]}
+                    density="sm"
+                  />
+                </div>
+                <div className="w-44">
+                  <label htmlFor="dashboard-search-detection-status" className="block text-xs text-vt-muted mb-2">
+                    Detection Status
+                  </label>
+                  <Select
+                    id="dashboard-search-detection-status"
+                    value={searchDetectionStatus}
+                    onChange={(val) => setSearchDetectionStatus(val as string)}
+                    options={[
+                      { label: 'All', value: '' },
+                      { label: 'Scored', value: 'scored' },
+                      { label: 'Failed', value: 'failed' },
+                      { label: 'Skipped', value: 'skipped' },
+                    ]}
+                    density="sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-search-incident" className="block text-xs text-vt-muted mb-2">
+                    Incident ID
+                  </label>
+                  <input
+                    id="dashboard-search-incident"
+                    value={searchIncidentId}
+                    onChange={(e) => setSearchIncidentId(e.target.value)}
+                    placeholder="incident id"
                     className="w-full px-4 py-2 bg-vt-dark/50 border border-vt-muted/30 rounded-lg text-vt-light placeholder-vt-muted focus:outline-none focus:ring-2 focus:ring-vt-primary focus:border-transparent"
                   />
                 </div>
@@ -468,7 +539,7 @@ const DashboardPage: React.FC = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8 lg:mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 lg:gap-6 mb-8 lg:mb-10">
           <div className={`glass-strong rounded-2xl p-5 lg:p-6 border card-hover animate-scale-in transition-all duration-300 ${
             statsUpdated ? 'border-vt-primary/60 shadow-xl shadow-vt-primary/30 scale-105' : 'border-vt-primary/20'
           }`}>
@@ -531,41 +602,61 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-success/20 card-hover animate-scale-in stagger-2 transition-all duration-300">
+          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-warning/20 card-hover animate-scale-in stagger-2 transition-all duration-300">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Safe Logs</p>
-                <p className="text-3xl lg:text-4xl font-bold text-vt-success">
-                  {displayedSafeCount.toLocaleString()}
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Incidents</p>
+                <p className="text-3xl lg:text-4xl font-bold text-vt-warning">
+                  {displayedIncidentCount.toLocaleString()}
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs">
-                  <div className="w-1.5 h-1.5 rounded-full bg-vt-success"></div>
-                  <span className="text-vt-success font-medium">Verified Clean</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-vt-warning"></div>
+                  <span className="text-vt-warning font-medium">Grouped Threat Clusters</span>
                 </div>
               </div>
-              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-success/40 to-vt-success/20 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-warning/40 to-vt-warning/20 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-8 5h5M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-warning/20 card-hover animate-scale-in stagger-3 transition-all duration-300">
+          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-accent/20 card-hover animate-scale-in stagger-3 transition-all duration-300">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Detection Rate</p>
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Parse Failures</p>
                 <p className="text-3xl lg:text-4xl font-bold text-vt-accent">
-                  {detectionRate}%
+                  {displayedParseFailureCount.toLocaleString()}
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs">
                   <div className="w-1.5 h-1.5 rounded-full bg-vt-accent"></div>
-                  <span className="text-vt-accent font-medium">Model Accuracy</span>
+                  <span className="text-vt-accent font-medium">Schema or Format Drift</span>
                 </div>
               </div>
               <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-accent/40 to-vt-accent/20 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-strong rounded-2xl p-5 lg:p-6 border border-vt-muted/30 card-hover animate-scale-in stagger-4 transition-all duration-300">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs lg:text-sm font-semibold text-vt-muted uppercase tracking-wider mb-2">Detection Failures</p>
+                <p className="text-3xl lg:text-4xl font-bold text-vt-light">
+                  {displayedDetectionFailureCount.toLocaleString()}
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-vt-muted"></div>
+                  <span className="text-vt-muted font-medium">Scoring Path Health</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-vt-muted/30 to-vt-muted/10 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 lg:w-7 lg:h-7 text-vt-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-1.414 1.414M6.343 17.657l-1.414 1.414M5.636 5.636L7.05 7.05m9.9 9.9l1.414 1.414M12 6v2m0 8v2m6-6h-2M8 12H6" />
                 </svg>
               </div>
             </div>
@@ -678,7 +769,7 @@ const DashboardPage: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-vt-light">Recent Activity</h2>
-                  <p className="text-sm text-vt-muted mt-1">Real-time log entries with anomaly detection results</p>
+                  <p className="text-sm text-vt-muted mt-1">Real-time events with incident, parse, and detector state</p>
                 </div>
                 {isPrivileged && (
                   <Button
@@ -699,7 +790,7 @@ const DashboardPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   <p className="text-xs text-vt-muted uppercase tracking-wider">Last Update</p>
-                  <p className="text-sm font-mono text-vt-light">{new Date().toLocaleTimeString()}</p>
+                  <p className="text-sm font-mono text-vt-light">{lastUpdate ? lastUpdate.toLocaleTimeString() : 'N/A'}</p>
                 </div>
               </div>
             </div>

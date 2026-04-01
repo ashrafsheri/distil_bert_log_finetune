@@ -8,7 +8,7 @@ from .organization import (
     OrganizationSummary, OrganizationUpdate
 )
 from .project import (
-    Project, ProjectCreate, ProjectResponse, ProjectSummary, 
+    Project, ProjectCreate, ProjectResponse, ProjectSummary, ProjectHealthSummary,
     ProjectUpdate, RegenerateApiKeyRequest, RegenerateApiKeyResponse,
     UpdateLogTypeRequest, UpdateLogTypeResponse
 )
@@ -45,6 +45,7 @@ __all__ = [
     "ProjectCreate",
     "ProjectResponse",
     "ProjectSummary",
+    "ProjectHealthSummary",
     "ProjectUpdate",
     "RegenerateApiKeyRequest",
     "RegenerateApiKeyResponse",

@@ -78,6 +78,7 @@ jobs:
             sudo kubectl apply -f k8s/postgres-pvc.yaml
             sudo kubectl apply -f k8s/elasticsearch-pvc.yaml
             sudo kubectl apply -f k8s/model-artifacts-pvc.yaml
+            sudo kubectl apply -f k8s/anomaly-state-pvc.yaml
             sudo kubectl apply -f k8s/postgres-deployment.yaml
             sudo kubectl apply -f k8s/postgres-service.yaml
             sudo kubectl apply -f k8s/elasticsearch-deployment.yaml
