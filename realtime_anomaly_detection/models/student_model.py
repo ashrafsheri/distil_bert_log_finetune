@@ -8,6 +8,7 @@ import json
 import math
 import pickle
 import threading
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from collections import deque, Counter
@@ -23,6 +24,9 @@ from sklearn.ensemble import IsolationForest
 from .ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class StudentTrainingDataset(Dataset):

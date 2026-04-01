@@ -1,11 +1,11 @@
 """
 Log Parser Service
-Parses Apache log entries and extracts structured data
+Parses supported access log formats and extracts structured data.
 """
 
 import re
 from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,10 @@ class LogParserService:
         """
         # Only regex for timestamp parsing
         self.timestamp_pattern = re.compile(r'\[([^\]]+)\]')
+        self.meta_timestamp_formats = (
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            "%Y-%m-%dT%H:%M:%SZ",
+        )
 
     @staticmethod
     def _find_request_bounds(log_line: str) -> tuple[int, int]:
@@ -94,6 +98,7 @@ class LogParserService:
         status_code: int,
         size: int,
         raw_log: str,
+        auth_user: str = "",
         referer: str = "",
         user_agent: str = "",
     ) -> Dict:
@@ -105,10 +110,28 @@ class LogParserService:
             "protocol": protocol,
             "status_code": status_code,
             "size": size,
+            "auth_user": auth_user,
             "referer": referer,
             "user_agent": user_agent,
             "raw_log": raw_log
         }
+
+    def parse_log_with_error(
+        self,
+        log_line: str,
+        log_type: str,
+        fallback_event_time: Optional[str] = None,
+    ) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+        """Parse a supported access log and return a structured error code on failure."""
+        parsed_log = self.parse_nginx_log(log_line) if log_type == "nginx" else self.parse_apache_log(log_line)
+        if parsed_log is None:
+            return None, f"unable_to_parse_{log_type}_access_log"
+
+        parsed_log["log_type"] = log_type
+        if fallback_event_time and not parsed_log.get("timestamp"):
+            parsed_log["timestamp"] = self.normalize_record_timestamp(fallback_event_time)
+        parsed_log["normalized_event"] = self.build_normalized_event(parsed_log)
+        return parsed_log, None
     
     def parse_apache_log(self, log_line: str) -> Optional[Dict]:
         """
@@ -131,6 +154,7 @@ class LogParserService:
                 return None
 
             ip_address, timestamp_str, parts = metadata
+            auth_user = parts[2] if len(parts) > 2 and parts[2] != "-" else ""
             request_data = self._extract_request_parts(log_line, "log")
             if request_data is None:
                 return None
@@ -182,6 +206,7 @@ class LogParserService:
                     status_code,
                     size,
                     log_line,
+                    auth_user,
                     referer,
                     user_agent,
                 )
@@ -195,6 +220,7 @@ class LogParserService:
                 status_code,
                 size,
                 log_line,
+                auth_user,
             )
             
         except Exception as e:
@@ -220,7 +246,8 @@ class LogParserService:
             if metadata is None:
                 return None
 
-            ip_address, timestamp_str, _parts = metadata
+            ip_address, timestamp_str, parts = metadata
+            auth_user = parts[2] if len(parts) > 2 and parts[2] != "-" else ""
             request_data = self._extract_request_parts(log_line, "nginx log")
             if request_data is None:
                 return None
@@ -264,6 +291,7 @@ class LogParserService:
                 status_code,
                 size,
                 log_line,
+                auth_user,
                 referer,
                 user_agent,
             )
@@ -301,6 +329,42 @@ class LogParserService:
                     # If all parsing fails, return current timestamp
                     logger.warning(f"Could not parse timestamp: {timestamp_str}")
                     return datetime.now(timezone.utc).isoformat()
+
+    def normalize_record_timestamp(self, timestamp_value: Any) -> str:
+        """Normalize metadata timestamps coming from Fluent Bit or structured records."""
+        if isinstance(timestamp_value, (int, float)):
+            return datetime.fromtimestamp(float(timestamp_value), tz=timezone.utc).isoformat()
+
+        if isinstance(timestamp_value, str):
+            cleaned = timestamp_value.strip()
+            if not cleaned:
+                return datetime.now(timezone.utc).isoformat()
+
+            for fmt in self.meta_timestamp_formats:
+                try:
+                    return datetime.strptime(cleaned, fmt).replace(tzinfo=timezone.utc).isoformat()
+                except ValueError:
+                    continue
+
+            try:
+                return datetime.fromisoformat(cleaned.replace("Z", "+00:00")).isoformat()
+            except ValueError:
+                pass
+
+            try:
+                return datetime.fromtimestamp(float(cleaned), tz=timezone.utc).isoformat()
+            except ValueError:
+                pass
+
+        return datetime.now(timezone.utc).isoformat()
+
+    def build_normalized_event(self, parsed_log: Dict[str, Any]) -> str:
+        """Build the canonical event string passed into the detector."""
+        method = parsed_log.get("method", "GET")
+        path = parsed_log.get("path", "/")
+        protocol = parsed_log.get("protocol", "HTTP/1.1")
+        status_code = parsed_log.get("status_code", 0)
+        return f"{method} {path} {protocol} {status_code}"
     
     def format_for_frontend(self, parsed_log: Dict, anomaly_result: Dict) -> Dict:
         """

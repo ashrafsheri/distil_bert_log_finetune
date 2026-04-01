@@ -21,7 +21,7 @@ COPY models/ ./models/
 COPY streaming/ ./streaming/
 
 # Create necessary directories
-RUN mkdir -p /app/artifacts/ensemble_model_export /app/logs
+RUN mkdir -p /app/artifacts/ensemble_model_export /app/logs /app/data/multi_tenant
 
 # Expose port
 EXPOSE 8001
@@ -33,8 +33,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV MODEL_DIR=/app/artifacts/ensemble_model_export
+ENV ADAPTIVE_STATE_DIR=/app/logs/adaptive_state
+ENV STORAGE_DIR=/app/data/multi_tenant
 ENV LOG_LEVEL=INFO
 ENV ANOMALY_SERVICE_PORT=8001
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "api.server_adaptive:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "-m", "uvicorn", "api.server_multi_tenant:app", "--host", "0.0.0.0", "--port", "8001"]

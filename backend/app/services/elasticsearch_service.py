@@ -12,6 +12,7 @@ from elasticsearch.exceptions import (
     RequestError as ElasticsearchRequestError
 )
 import logging
+from app.utils.runtime_metrics import runtime_metrics
 
 logger = logging.getLogger(__name__)
 ORG_ID_KEYWORD = "org_id.keyword"
@@ -57,6 +58,8 @@ class ElasticsearchService:
                     "mappings": {
                         "properties": {
                             "timestamp": {"type": "date"},
+                            "event_time": {"type": "date"},
+                            "ingest_time": {"type": "date"},
                             "ip_address": {"type": "ip"},
                             "api_accessed": {"type": "keyword"},
                             "status_code": {"type": "integer"},
@@ -64,7 +67,24 @@ class ElasticsearchService:
                             "anomaly_score": {"type": "float"},
                             "anomaly_details": {"type": "object"},
                             "raw_log": {"type": "text"},
-                            "created_at": {"type": "date"}
+                            "created_at": {"type": "date"},
+                            "project_id": {"type": "keyword"},
+                            "org_id": {"type": "keyword"},
+                            "parse_status": {"type": "keyword"},
+                            "parse_error": {"type": "keyword"},
+                            "detection_status": {"type": "keyword"},
+                            "detection_error": {"type": "keyword"},
+                            "session_key_hash": {"type": "keyword"},
+                            "normalized_template": {"type": "keyword"},
+                            "incident_id": {"type": "keyword"},
+                            "incident_type": {"type": "keyword"},
+                            "incident_bucket_start": {"type": "date"},
+                            "calibration": {"type": "object"},
+                            "raw_anomaly_score": {"type": "float"},
+                            "model_type": {"type": "keyword"},
+                            "detector_phase": {"type": "keyword"},
+                            "model_version": {"type": "keyword"},
+                            "feature_schema_version": {"type": "keyword"},
                         }
                     }
                 }
@@ -117,9 +137,10 @@ class ElasticsearchService:
         logger.debug(f"[ES] store_logs_batch called with {len(logs_data)} logs")
         
         if self.client is None:
-            logger.warning("Elasticsearch not available, skipping log storage")
-            logger.debug("[ES] Client is None, skipping storage")
-            return True
+            logger.warning("Elasticsearch not available, refusing log storage")
+            logger.debug("[ES] Client is None, storage failed")
+            runtime_metrics.increment("es_unavailable_total")
+            return False
             
         try:
             bulk_body = []
@@ -142,16 +163,19 @@ class ElasticsearchService:
                 if response.get("errors"):
                     logger.error(f"Some documents failed to index: {response}")
                     logger.debug(f"[ES] Bulk errors: {response}")
+                    runtime_metrics.increment("es_write_failures_total")
                     return False
                 
                 logger.debug(f"[ES] Successfully indexed {len(bulk_body)//2} documents")
                 logger.info(f"Successfully stored {len(logs_data)} logs in Elasticsearch")
+                runtime_metrics.increment("es_documents_written_total", len(logs_data))
                 return True
             
             return True
             
         except (ElasticsearchConnectionError, ElasticsearchRequestError) as e:
             logger.error(f"Error storing logs batch in Elasticsearch: {e}")
+            runtime_metrics.increment("es_write_failures_total")
             return False
 
 
@@ -189,7 +213,7 @@ class ElasticsearchService:
                         }
                     }
                 },
-                "sort": [{"created_at": {"order": "desc"}}],
+                "sort": [{"event_time": {"order": "desc", "unmapped_type": "date"}}],
                 "from": offset,
                 "size": limit,
                 "track_total_hits": True  # Ensure accurate total count beyond 10,000
@@ -286,7 +310,7 @@ class ElasticsearchService:
                         }
                     }
                 },
-                "sort": [{"created_at": {"order": "desc"}}],
+                "sort": [{"event_time": {"order": "desc", "unmapped_type": "date"}}],
                 "from": offset,
                 "size": limit,
                 "track_total_hits": True

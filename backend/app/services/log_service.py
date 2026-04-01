@@ -4,7 +4,7 @@ Business logic for log processing and management
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import csv
 import io
@@ -12,6 +12,7 @@ import logging
 import ipaddress
 import json
 import asyncio
+import hashlib
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
@@ -152,18 +153,141 @@ class LogService:
         if nested_content is not None:
             return nested_content
 
-        fallback_content = LogService._extract_fallback_string(record)
-        if fallback_content is not None:
-            return fallback_content
+        return None
 
-        non_meta_keys = [
-            key for key in record.keys()
-            if key not in ['date', 'time', 'timestamp', '@timestamp', 'host', 'source', 'tag']
-        ]
-        if non_meta_keys:
-            return json.dumps(record)
+    @staticmethod
+    def _extract_event_time(record: Any) -> Optional[Any]:
+        if not isinstance(record, dict):
+            return None
+
+        for field_name in ("timestamp", "@timestamp", "time", "date"):
+            if field_name in record and record[field_name] not in (None, ""):
+                return record[field_name]
+
+        nested_record = record.get("record")
+        if isinstance(nested_record, dict):
+            for field_name in ("timestamp", "@timestamp", "time", "date"):
+                if field_name in nested_record and nested_record[field_name] not in (None, ""):
+                    return nested_record[field_name]
 
         return None
+
+    @staticmethod
+    def _extract_candidate_payload(record: Any, common_fields: List[str]) -> tuple[Optional[str], Optional[str]]:
+        if isinstance(record, str):
+            return record, None
+
+        if not isinstance(record, dict):
+            return None, "unsupported_record_type"
+
+        if LogService._is_structured_nginx_log(record):
+            return LogService._convert_nginx_to_combined(record), None
+
+        direct_content = LogService._extract_known_log_field(record, common_fields)
+        if direct_content is not None:
+            return direct_content, None
+
+        nested_record = record.get("record")
+        if isinstance(nested_record, dict):
+            if LogService._is_structured_nginx_log(nested_record):
+                return LogService._convert_nginx_to_combined(nested_record), None
+
+            nested_content = LogService._extract_known_log_field(nested_record, common_fields)
+            if nested_content is not None:
+                return nested_content, None
+
+            return None, "unsupported_nested_record"
+
+        return None, "unsupported_record_format"
+
+    @staticmethod
+    def _stable_record_hash(record: Any) -> str:
+        try:
+            serialized = json.dumps(record, sort_keys=True, default=str)
+        except TypeError:
+            serialized = str(record)
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _extract_identity_value(parsed_log: Dict[str, Any], source_record: Any) -> Optional[str]:
+        parsed_candidates = [
+            parsed_log.get("auth_user"),
+            parsed_log.get("session_id"),
+            parsed_log.get("user_id"),
+        ]
+        for value in parsed_candidates:
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+        candidate_records: List[Dict[str, Any]] = []
+        if isinstance(source_record, dict):
+            candidate_records.append(source_record)
+            nested_record = source_record.get("record")
+            if isinstance(nested_record, dict):
+                candidate_records.append(nested_record)
+
+        identity_fields = (
+            "session_id",
+            "session",
+            "sessionId",
+            "user_id",
+            "userId",
+            "uid",
+            "auth_user",
+            "authUser",
+            "user",
+            "username",
+            "principal",
+            "client_ip",
+            "ip",
+            "remote",
+        )
+        for candidate_record in candidate_records:
+            for field_name in identity_fields:
+                value = candidate_record.get(field_name)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+
+        ip_address = parsed_log.get("ip_address")
+        if isinstance(ip_address, str) and ip_address.strip():
+            return ip_address.strip()
+
+        return None
+
+    @staticmethod
+    def build_session_key(project_id: str, parsed_log: Dict[str, Any], source_record: Any) -> str:
+        identity = LogService._extract_identity_value(parsed_log, source_record)
+        if identity:
+            return f"{project_id}:{identity}"
+        return f"{project_id}:{LogService._stable_record_hash(source_record)}"
+
+    @staticmethod
+    def build_session_key_hash(session_key: str) -> str:
+        return hashlib.sha256(session_key.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def extract_log_candidates(records: List[Any]) -> List[Dict[str, Any]]:
+        """Extract candidate raw logs plus source metadata from Fluent Bit records."""
+        candidates: List[Dict[str, Any]] = []
+        common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
+
+        logger.debug(
+            "[extract_log_candidates] Processing %s records",
+            len(records) if hasattr(records, "__len__") else "unknown",
+        )
+
+        for index, record in enumerate(records):
+            raw_log, extraction_error = LogService._extract_candidate_payload(record, common_fields)
+            candidate = {
+                "index": index,
+                "record": record,
+                "raw_log": raw_log.strip() if isinstance(raw_log, str) else None,
+                "event_time": LogService._extract_event_time(record),
+                "extraction_error": extraction_error,
+            }
+            candidates.append(candidate)
+
+        return candidates
 
     
     async def export_logs_to_csv(self, logs: List[dict]) -> str:
@@ -329,34 +453,13 @@ class LogService:
         Returns:
             List of raw log strings in Apache Combined Log Format
         """
-        raw_logs = []
-        common_fields = ['log', 'message', 'msg', '_raw', 'content', 'line', 'MESSAGE', 'Log', 'Message']
-
-        logger.debug(f"[extract_raw_logs] Processing {len(records) if hasattr(records, '__len__') else 'unknown'} records")
-
-        for i, record in enumerate(records):
-            if i == 0:  # Debug first record
-                logger.debug(f"[extract_raw_logs] First record type: {type(record)}")
-                logger.debug(f"[extract_raw_logs] First record content: {record}")
-
-            log_content = LogService._extract_log_content(record, common_fields)
-
-            if i == 0:
-                if isinstance(record, str):
-                    logger.debug("[extract_raw_logs] Record is direct string")
-                elif isinstance(record, dict) and LogService._is_structured_nginx_log(record):
-                    logger.debug("[extract_raw_logs] Converted nginx structured log to Combined format")
-                elif isinstance(record, dict) and log_content in record.values():
-                    logger.debug("[extract_raw_logs] Found content in top-level record field")
-                elif isinstance(record, dict) and isinstance(record.get("record"), dict) and log_content is not None:
-                    logger.debug("[extract_raw_logs] Extracted content from nested record")
-
-            if log_content and isinstance(log_content, str) and log_content.strip():
-                raw_logs.append(log_content.strip())
-            elif i == 0:
-                logger.debug("[extract_raw_logs] Skipping record - no valid content found")
-
-        logger.debug(f"[extract_raw_logs] Extracted {len(raw_logs)} logs from {len(records)} records")
+        candidates = LogService.extract_log_candidates(records)
+        raw_logs = [
+            candidate["raw_log"]
+            for candidate in candidates
+            if isinstance(candidate.get("raw_log"), str) and candidate["raw_log"]
+        ]
+        logger.debug("[extract_raw_logs] Extracted %s logs from %s records", len(raw_logs), len(records))
         return raw_logs
 
     @staticmethod
@@ -455,7 +558,12 @@ class LogService:
         anomaly_result: Dict[str, Any],
         ip_status_map: Dict[str, bool],
         batch_id: str,
-        org_id: str
+        org_id: str,
+        session_key_hash: Optional[str] = None,
+        parse_status: str = "parsed",
+        parse_error: Optional[str] = None,
+        detection_status: str = "scored",
+        detection_error: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Format a parsed log for Elasticsearch storage.
@@ -482,6 +590,8 @@ class LogService:
         # Format for storage - use original ISO timestamp for Elasticsearch
         formatted_log = {
             "timestamp": parsed_log["timestamp"],  # Keep original ISO format for Elasticsearch
+            "event_time": parsed_log["timestamp"],
+            "ingest_time": datetime.now(timezone.utc).isoformat(),
             "ip_address": ip_address,
             "api_accessed": parsed_log["path"],
             "status_code": parsed_log["status_code"],
@@ -499,10 +609,69 @@ class LogService:
             "size": parsed_log.get("size", 0),
             "batch_id": batch_id,
             "source": "fluent_bit",
-            "org_id": org_id  # Add organization ID to the log
+            "org_id": org_id,
+            "project_id": org_id,
+            "parse_status": parse_status,
+            "parse_error": parse_error,
+            "detection_status": detection_status,
+            "detection_error": detection_error,
+            "session_key_hash": session_key_hash,
+            "normalized_template": parsed_log.get("normalized_event"),
+            "incident_id": anomaly_result.get("incident_id"),
+            "incident_type": anomaly_result.get("incident_type"),
+            "incident_bucket_start": anomaly_result.get("incident_bucket_start"),
+            "calibration": anomaly_result.get("calibration", {}),
+            "raw_anomaly_score": anomaly_result.get("raw_anomaly_score", anomaly_result.get("anomaly_score", 0.0)),
+            "model_type": anomaly_result.get("model_type"),
+            "detector_phase": anomaly_result.get("phase"),
+            "model_version": anomaly_result.get("model_version", "adaptive-v2"),
+            "feature_schema_version": anomaly_result.get("feature_schema_version", "access-log-v1"),
         }
 
         return formatted_log
+
+    @staticmethod
+    def format_parse_failure_for_storage(
+        raw_log: Optional[str],
+        batch_id: str,
+        org_id: str,
+        event_time: str,
+        parse_error: str,
+        source_record: Any,
+    ) -> Dict[str, Any]:
+        return {
+            "timestamp": event_time,
+            "event_time": event_time,
+            "ingest_time": datetime.now(timezone.utc).isoformat(),
+            "ip_address": "",
+            "api_accessed": "",
+            "status_code": 0,
+            "infected": False,
+            "anomaly_score": 0.0,
+            "anomaly_details": {},
+            "raw_log": raw_log or "",
+            "batch_id": batch_id,
+            "source": "fluent_bit",
+            "org_id": org_id,
+            "project_id": org_id,
+            "parse_status": "failed",
+            "parse_error": parse_error,
+            "detection_status": "skipped",
+            "detection_error": "parse_failed",
+            "session_key_hash": LogService.build_session_key_hash(
+                f"{org_id}:{LogService._stable_record_hash(source_record)}"
+            ),
+            "normalized_template": None,
+            "incident_id": None,
+            "incident_type": "parse_failure",
+            "incident_bucket_start": event_time,
+            "calibration": {},
+            "raw_anomaly_score": 0.0,
+            "model_type": None,
+            "detector_phase": "skipped",
+            "model_version": "adaptive-v2",
+            "feature_schema_version": "access-log-v1",
+        }
 
     @staticmethod
     def convert_log_for_websocket(log: Dict[str, Any]) -> Dict[str, Any]:
@@ -522,7 +691,9 @@ class LogService:
             "statusCode": log.get("status_code", 0),
             "infected": log.get("infected", False),
             "anomaly_score": log.get("anomaly_score", 0.0),
-            "anomaly_details": log.get("anomaly_details", {})
+            "anomaly_details": log.get("anomaly_details", {}),
+            "parseStatus": log.get("parse_status", "parsed"),
+            "detectionStatus": log.get("detection_status", "scored"),
         }
 
     @staticmethod
@@ -553,18 +724,40 @@ class LogService:
                 recipients = [u.email for u in managers if getattr(u, 'enabled', True)]
 
                 if recipients:
-                    example = next((l for l in processed_logs if l.get("infected", False)), None)
-                    subject = f"LogGuard Alert: {anomalies_detected} anomalous log(s) detected"
+                    grouped_incidents: Dict[str, Dict[str, Any]] = {}
+                    for log in processed_logs:
+                        if not log.get("infected", False):
+                            continue
+                        incident_id = log.get("incident_id") or f"fallback:{log.get('api_accessed')}:{log.get('ip_address')}"
+                        grouped_incidents.setdefault(incident_id, log)
+
+                    example = next(iter(grouped_incidents.values()), None)
+                    subject = f"LogGuard Alert: {len(grouped_incidents)} incident(s) detected"
                     body_lines = [
                         "Anomaly summary:",
                         f"- Batch ID: {batch_id}",
-                        f"- Anomalies detected: {anomalies_detected}",
+                        f"- Incident groups: {len(grouped_incidents)}",
+                        f"- Anomalous logs: {anomalies_detected}",
                     ]
+
+                    for incident_id, incident_log in list(grouped_incidents.items())[:5]:
+                        body_lines.extend(
+                            [
+                                "",
+                                f"Incident: {incident_id}",
+                                f"Type: {incident_log.get('incident_type', 'anomaly')}",
+                                f"Template: {incident_log.get('normalized_template', '')}",
+                                f"IP: {incident_log.get('ip_address', '')}",
+                                f"API: {incident_log.get('api_accessed', '')}",
+                                f"Status: {incident_log.get('status_code', '')}",
+                                f"Score: {incident_log.get('anomaly_score', '')}",
+                            ]
+                        )
 
                     if example:
                         body_lines += [
                             "",
-                            "Example:",
+                            "First incident example:",
                             f"Time: {example.get('timestamp', '')}",
                             f"IP: {example.get('ip_address', '')}",
                             f"API: {example.get('api_accessed', '')}",
@@ -650,7 +843,12 @@ class LogService:
                 logger.error(f"Error sending log to WebSocket: {e}")
 
     @staticmethod
-    async def increment_org_log_count(org_id: str, count: int, db: AsyncSession) -> None:
+    async def increment_org_log_count(
+        org_id: str,
+        count: int,
+        db: AsyncSession,
+        model_phase: Optional[str] = None,
+    ) -> None:
         """
         Increment the log count for an organization and update warmup progress.
         
@@ -658,6 +856,7 @@ class LogService:
             org_id: Organization ID
             count: Number of logs to add
             db: Database session
+            model_phase: Optional detector phase to mirror in project model_status
         """
         try:
             # Get current org data
@@ -678,7 +877,12 @@ class LogService:
                     .where(ProjectDB.id == org_id)
                     .values(
                         log_count=new_log_count,
-                        warmup_progress=new_progress
+                        warmup_progress=new_progress,
+                        model_status=(
+                            "ready" if model_phase == "active"
+                            else "training" if model_phase == "training"
+                            else "warmup"
+                        ) if model_phase else org.model_status,
                     )
                 )
                 await db.commit()

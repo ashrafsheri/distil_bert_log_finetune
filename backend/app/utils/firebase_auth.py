@@ -262,10 +262,6 @@ async def get_project_id_from_api_key(api_key: str, db: AsyncSession) -> str:
         HTTPException: If API key is invalid or project not found
     """
     try:
-        # For development/testing: accept test API key
-        if api_key == "sk-test-key-12345":
-            return "org-5eacc5cc"  # Legacy test case
-        
         result = await db.execute(select(ProjectDB).where(ProjectDB.api_key == api_key))
         project = result.scalar_one_or_none()
         

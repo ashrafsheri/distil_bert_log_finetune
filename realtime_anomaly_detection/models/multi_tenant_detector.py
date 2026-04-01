@@ -5,12 +5,15 @@ Handles API key routing, model lifecycle management, and coordinates
 between teacher and project-specific student models.
 """
 
+import os
 import re
 import threading
+import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
+import logging
 
 import numpy as np
 
@@ -18,6 +21,10 @@ from .project_manager import ProjectManager, ProjectConfig, ProjectPhase
 from .teacher_model import TeacherModel
 from .student_model import StudentModel
 from .ensemble_detector import ApacheLogNormalizer
+from .runtime_metrics import runtime_metrics
+
+
+logger = logging.getLogger(__name__)
 
 
 class MultiTenantDetector:
@@ -78,6 +85,15 @@ class MultiTenantDetector:
         
         # Session windows per project (project_id -> {session_id -> deque})
         self.project_sessions: Dict[str, Dict[str, Dict]] = {}
+        self.project_score_windows: Dict[str, deque] = {}
+        self.incident_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        self.session_ttl_seconds = int(os.getenv("MULTI_TENANT_SESSION_TTL_SECONDS", "1800"))
+        self.max_sessions_per_project = int(os.getenv("MULTI_TENANT_MAX_SESSIONS_PER_PROJECT", "50000"))
+        self.max_unique_paths = int(os.getenv("MULTI_TENANT_MAX_UNIQUE_PATHS", "1000"))
+        self.score_window_size = int(os.getenv("MULTI_TENANT_SCORE_WINDOW", "512"))
+        self.min_observed_hours = int(os.getenv("MULTI_TENANT_MIN_OBSERVED_HOURS", "6"))
+        self.max_parse_failure_rate = float(os.getenv("MULTI_TENANT_MAX_PARSE_FAILURE_RATE", "0.05"))
+        self.model_version = os.getenv("MULTI_TENANT_MODEL_VERSION", "student-teacher-v1")
         
         # Thread safety
         self._lock = threading.RLock()
@@ -172,6 +188,14 @@ class MultiTenantDetector:
             'warmup_progress': min(100, (project.current_log_count / project.warmup_threshold) * 100),
             'has_student_model': student is not None and student.is_trained,
             'student_info': student_info,
+            'baseline_eligible_count': project.baseline_eligible_count,
+            'parse_failure_rate': (
+                project.parse_failure_count / project.total_received_count
+                if project.total_received_count else 0.0
+            ),
+            'observed_hours': project.observed_hours,
+            'student_training_blockers': project.student_training_blockers,
+            'calibration_threshold': project.calibration_threshold,
             'created_at': project.created_at,
             'last_activity': project.last_activity
         }
@@ -179,6 +203,53 @@ class MultiTenantDetector:
     def list_projects(self) -> List[Dict]:
         """List all projects with status"""
         return self.project_manager.list_projects()
+
+    def ensure_project(
+        self,
+        project_id: str,
+        project_name: str,
+        warmup_threshold: Optional[int] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        threshold = warmup_threshold or self.default_warmup_threshold
+        project = self.project_manager.ensure_project(
+            project_id=project_id,
+            project_name=project_name,
+            warmup_threshold=threshold,
+            metadata=metadata or {},
+        )
+        self.project_sessions.setdefault(project_id, {})
+        self.project_score_windows.setdefault(project_id, deque(maxlen=self.score_window_size))
+        self.incident_cache.setdefault(project_id, {})
+        return self.get_project_status(project_id) or {
+            "project_id": project.project_id,
+            "project_name": project.project_name,
+            "phase": project.phase,
+        }
+
+    def record_project_ingest_stats(
+        self,
+        project_id: str,
+        *,
+        total_records: int,
+        parse_failures: int,
+        baseline_eligible: int,
+        observed_hours: Optional[List[int]] = None,
+        data_quality_incident_open: Optional[bool] = None,
+    ) -> Optional[Dict[str, Any]]:
+        project = self.project_manager.record_ingest_stats(
+            project_id,
+            total_records=total_records,
+            parse_failures=parse_failures,
+            baseline_eligible=baseline_eligible,
+            observed_hours=observed_hours,
+            data_quality_incident_open=data_quality_incident_open,
+        )
+        if not project:
+            return None
+        blockers = self._student_training_blockers(project)
+        self.project_manager.set_student_training_blockers(project_id, blockers)
+        return self.get_project_status(project_id)
     
     def delete_project(self, project_id: str) -> bool:
         """Delete a project and its student model"""
@@ -220,11 +291,20 @@ class MultiTenantDetector:
             'status': int(d.get('status', 200)),
             'referer': d.get('referer', '-'),
             'user_agent': d.get('user_agent', '-'),
-            'raw_line': log_line.strip()
+            'raw_line': log_line.strip(),
+            'event_time': datetime.now(timezone.utc).isoformat(),
         }
     
     def extract_features(self, log_data: Dict, session_stats: Dict) -> np.ndarray:
         """Extract features for Isolation Forest"""
+        event_hour = 0
+        event_time = log_data.get("event_time")
+        if isinstance(event_time, str) and event_time:
+            try:
+                event_hour = datetime.fromisoformat(event_time.replace("Z", "+00:00")).hour
+            except ValueError:
+                event_hour = 0
+
         features = [
             session_stats.get('request_count', 1),
             session_stats.get('error_rate', 0.0),
@@ -236,7 +316,7 @@ class MultiTenantDetector:
             len(log_data.get('path', '/')),
             log_data.get('path', '/').count('/'),
             1 if '?' in log_data.get('path', '/') else 0,
-            0  # time_hour placeholder
+            event_hour
         ]
         return np.array(features, dtype=np.float64).reshape(1, -1)
     
@@ -244,6 +324,91 @@ class MultiTenantDetector:
         """Normalize log to template"""
         message = f"{log_data['method']} {log_data['path']} {log_data['protocol']} {log_data['status']}"
         return self.normalizer.normalize(message)
+
+    def _student_training_blockers(self, project: ProjectConfig) -> List[str]:
+        blockers: List[str] = []
+        if project.baseline_eligible_count < project.warmup_threshold:
+            blockers.append("insufficient_clean_baseline_volume")
+        if len(project.observed_hours) < self.min_observed_hours:
+            blockers.append("insufficient_time_coverage")
+        parse_failure_rate = (
+            project.parse_failure_count / project.total_received_count
+            if project.total_received_count else 0.0
+        )
+        if parse_failure_rate > self.max_parse_failure_rate:
+            blockers.append("parse_failure_rate_too_high")
+        if project.data_quality_incident_open:
+            blockers.append("active_data_quality_incident")
+        return blockers
+
+    def _maybe_promote_project(self, project_id: str) -> None:
+        project = self.project_manager.get_project(project_id)
+        if not project:
+            return
+        blockers = self._student_training_blockers(project)
+        self.project_manager.set_student_training_blockers(project_id, blockers)
+        if blockers:
+            return
+        if project.phase == ProjectPhase.WARMUP.value and project.current_log_count >= project.warmup_threshold:
+            self.project_manager._trigger_student_training(project_id)
+
+    def _update_project_calibration(
+        self,
+        project_id: str,
+        ensemble_score: float,
+        *,
+        baseline_eligible: bool,
+    ) -> float:
+        window = self.project_score_windows.setdefault(
+            project_id,
+            deque(maxlen=self.score_window_size),
+        )
+        if baseline_eligible:
+            window.append(float(ensemble_score))
+
+        project = self.project_manager.get_project(project_id)
+        if not project:
+            return 0.5
+        if len(window) < 50:
+            return project.calibration_threshold
+
+        threshold = float(np.percentile(list(window), 97.5))
+        threshold = min(max(threshold, 0.45), 0.9)
+        self.project_manager.update_calibration_threshold(project_id, threshold)
+        return threshold
+
+    def _build_incident(
+        self,
+        project_id: str,
+        log_data: Dict[str, Any],
+        normalized_template: str,
+        *,
+        is_anomaly: bool,
+    ) -> Optional[Dict[str, Any]]:
+        if not is_anomaly:
+            return None
+
+        event_time = log_data.get("event_time") or datetime.now(timezone.utc).isoformat()
+        try:
+            parsed_time = datetime.fromisoformat(event_time.replace("Z", "+00:00"))
+        except ValueError:
+            parsed_time = datetime.now(timezone.utc)
+
+        bucket_time = parsed_time.replace(
+            minute=(parsed_time.minute // 15) * 15,
+            second=0,
+            microsecond=0,
+        )
+        entity = log_data.get("session_key_hash") or log_data.get("ip") or "unknown"
+        incident_id = f"{project_id}:{normalized_template}:{entity}:{bucket_time.isoformat()}"
+        incident = {
+            "incident_id": incident_id,
+            "incident_type": "anomaly",
+            "incident_bucket_start": bucket_time.isoformat(),
+            "normalized_template": normalized_template,
+        }
+        self.incident_cache.setdefault(project_id, {})[incident_id] = incident
+        return incident
     
     # ========================================================================
     # DETECTION
@@ -347,14 +512,123 @@ class MultiTenantDetector:
             # Check if we should start student training
             if project.phase == ProjectPhase.TRAINING.value:
                 self._maybe_trigger_student_training(project_id)
-        
+
+        calibrated_threshold = self._update_project_calibration(
+            project_id,
+            result.get('anomaly_score', 0.0),
+            baseline_eligible=True,
+        )
+        result['raw_anomaly_score'] = result.get('anomaly_score', 0.0)
+        result['is_anomaly'] = result.get('anomaly_score', 0.0) >= calibrated_threshold
+        result['calibration'] = {'project_threshold': calibrated_threshold, 'baseline_eligible': True}
+        incident = self._build_incident(project_id, log_data, normalized_template, is_anomaly=result['is_anomaly'])
+        if incident:
+            result.update(incident)
+
+        self._maybe_promote_project(project_id)
+        project = self.project_manager.get_project(project_id) or project
+
         # Add project info to result
         result['project_id'] = project_id
         result['project_name'] = project.project_name
         result['phase'] = project.phase
         result['log_count'] = project.current_log_count
         result['warmup_progress'] = min(100, (project.current_log_count / project.warmup_threshold) * 100)
-        
+        result['model_version'] = self.model_version
+        result['feature_schema_version'] = 'access-log-v2'
+        result['student_training_blockers'] = project.student_training_blockers
+
+        return result
+
+    def detect_structured(
+        self,
+        *,
+        project_id: str,
+        project_name: str,
+        warmup_threshold: Optional[int],
+        session_key: str,
+        event_time: Optional[str],
+        normalized_event: Optional[str],
+        raw_log: str,
+        parsed_fields: Dict[str, Any],
+        flags: Optional[Dict[str, Any]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict:
+        """Detect anomalies for a backend-owned project using structured events."""
+        self.ensure_project(
+            project_id=project_id,
+            project_name=project_name,
+            warmup_threshold=warmup_threshold,
+            metadata=metadata,
+        )
+        project = self.project_manager.get_project(project_id)
+        if not project:
+            return {'error': 'Project not found', 'is_anomaly': False, 'anomaly_score': 0.0}
+        if project.phase == ProjectPhase.SUSPENDED.value:
+            return {'error': 'Project is suspended', 'is_anomaly': False, 'anomaly_score': 0.0}
+
+        method = parsed_fields.get('method', 'GET')
+        path = parsed_fields.get('path', '/')
+        protocol = parsed_fields.get('protocol', 'HTTP/1.1')
+        status = int(parsed_fields.get('status_code', 0))
+        log_data = {
+            'ip': parsed_fields.get('ip_address', ''),
+            'method': method,
+            'path': path,
+            'protocol': protocol,
+            'status': status,
+            'referer': parsed_fields.get('referer', '-'),
+            'user_agent': parsed_fields.get('user_agent', '-'),
+            'auth_user': parsed_fields.get('auth_user', ''),
+            'raw_line': raw_log,
+            'event_time': event_time or datetime.now(timezone.utc).isoformat(),
+            'session_key_hash': parsed_fields.get('session_key_hash'),
+        }
+
+        baseline_eligible = not any(
+            bool((flags or {}).get(flag_name))
+            for flag_name in ('synthetic_attack', 'manual_malicious_override', 'rule_hit', 'parse_failed')
+        )
+        session, session_stats = self._get_or_create_session(project_id, session_key, log_data)
+        normalized_template = normalized_event or self.normalize_template(log_data)
+        features = self.extract_features(log_data, session_stats)
+        self.project_manager.increment_log_count(project_id)
+
+        if project.phase == ProjectPhase.ACTIVE.value and project_id in self.students:
+            result = self._detect_with_student(project_id, log_data, normalized_template, session, session_stats, features)
+        else:
+            result = self._detect_with_teacher(project_id, log_data, normalized_template, session, session_stats, features)
+            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible:
+                self._collect_training_data(project_id, normalized_template, session_key, features)
+            if project.phase == ProjectPhase.TRAINING.value:
+                self._maybe_trigger_student_training(project_id)
+
+        calibrated_threshold = self._update_project_calibration(
+            project_id,
+            result.get('anomaly_score', 0.0),
+            baseline_eligible=baseline_eligible,
+        )
+        result['raw_anomaly_score'] = result.get('anomaly_score', 0.0)
+        result['is_anomaly'] = result.get('anomaly_score', 0.0) >= calibrated_threshold
+        result['calibration'] = {
+            'project_threshold': calibrated_threshold,
+            'baseline_eligible': baseline_eligible,
+        }
+        incident = self._build_incident(project_id, log_data, normalized_template, is_anomaly=result['is_anomaly'])
+        if incident:
+            result.update(incident)
+
+        self._maybe_promote_project(project_id)
+        project = self.project_manager.get_project(project_id) or project
+        runtime_metrics.increment('structured_detections_total')
+        result['project_id'] = project_id
+        result['project_name'] = project.project_name
+        result['phase'] = project.phase
+        result['log_count'] = project.current_log_count
+        result['warmup_progress'] = min(100, (project.current_log_count / project.warmup_threshold) * 100)
+        result['model_version'] = self.model_version
+        result['feature_schema_version'] = 'access-log-v2'
+        result['student_training_blockers'] = project.student_training_blockers
         return result
     
     def _get_or_create_session(
@@ -367,14 +641,33 @@ class MultiTenantDetector:
         with self._lock:
             if project_id not in self.project_sessions:
                 self.project_sessions[project_id] = {}
+            now = time.time()
+            expired_sessions = [
+                existing_session_id
+                for existing_session_id, existing_session in self.project_sessions[project_id].items()
+                if now - existing_session.get('last_seen', now) > self.session_ttl_seconds
+            ]
+            for expired_session_id in expired_sessions:
+                del self.project_sessions[project_id][expired_session_id]
+                runtime_metrics.increment("session_cache_evictions_total")
             
             if session_id not in self.project_sessions[project_id]:
                 self.project_sessions[project_id][session_id] = {
                     'templates': deque(maxlen=self.window_size),
                     'request_count': 0,
                     'error_count': 0,
-                    'unique_paths': set()
+                    'unique_paths': set(),
+                    'last_seen': now,
                 }
+
+            if len(self.project_sessions[project_id]) > self.max_sessions_per_project:
+                oldest_sessions = sorted(
+                    self.project_sessions[project_id].items(),
+                    key=lambda item: item[1].get('last_seen', 0.0),
+                )[: len(self.project_sessions[project_id]) - self.max_sessions_per_project]
+                for oldest_session_id, _ in oldest_sessions:
+                    del self.project_sessions[project_id][oldest_session_id]
+                    runtime_metrics.increment("session_cache_evictions_total")
             
             session = self.project_sessions[project_id][session_id]
             
@@ -383,6 +676,9 @@ class MultiTenantDetector:
             if log_data['status'] >= 400:
                 session['error_count'] += 1
             session['unique_paths'].add(log_data['path'])
+            if len(session['unique_paths']) > self.max_unique_paths:
+                session['unique_paths'] = set(list(session['unique_paths'])[-self.max_unique_paths:])
+            session['last_seen'] = now
             
             session_stats = {
                 'request_count': session['request_count'],
@@ -390,6 +686,7 @@ class MultiTenantDetector:
                 'error_rate': session['error_count'] / session['request_count'],
                 'unique_paths': len(session['unique_paths'])
             }
+            runtime_metrics.observe("session_cache_size", len(self.project_sessions[project_id]))
             
             return session, session_stats
     
@@ -414,6 +711,7 @@ class MultiTenantDetector:
         result = self.teacher.detect(log_data, sequence, session_stats, features)
         result['using_model'] = 'teacher'
         result['log_data'] = log_data
+        result['model_version'] = self.model_version
         
         return result
     
@@ -440,6 +738,7 @@ class MultiTenantDetector:
         result = student.detect(log_data, sequence, session_stats, features)
         result['using_model'] = 'student'
         result['log_data'] = log_data
+        result['model_version'] = self.model_version
         
         return result
     

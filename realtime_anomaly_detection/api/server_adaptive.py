@@ -6,7 +6,7 @@ Uses online learning: Rule-based + Iso Forest initially, trains Transformer on f
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 # Add parent directory to path
@@ -18,6 +18,7 @@ import uvicorn
 import logging
 
 from models.adaptive_detector import AdaptiveEnsembleDetector
+from models.runtime_metrics import runtime_metrics
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -34,6 +35,23 @@ class BatchLogRequest(BaseModel):
     """Batch of log lines"""
     log_lines: List[str]
     session_id: Optional[str] = None
+
+
+class StructuredLogRequest(BaseModel):
+    """Structured parsed access log event."""
+    project_id: str
+    session_key: str
+    log_type: str
+    event_time: Optional[str] = None
+    normalized_event: Optional[str] = None
+    raw_log: str
+    parsed_fields: Dict[str, Any]
+    flags: Optional[Dict[str, Any]] = None
+
+
+class StructuredBatchLogRequest(BaseModel):
+    """Batch of structured parsed access log events."""
+    events: List[StructuredLogRequest]
 
 
 class DetectionResponse(BaseModel):
@@ -113,6 +131,9 @@ async def root():
             "health": "/health",
             "detect": "/detect (POST)",
             "detect_batch": "/detect/batch (POST)",
+            "detect_structured": "/detect/structured (POST)",
+            "detect_structured_batch": "/detect/batch/structured (POST)",
+            "metrics": "/metrics",
             "status": "/status"
         }
     }
@@ -186,6 +207,7 @@ async def detect_single(request: LogRequest):
         raise HTTPException(status_code=503, detail="Detector not initialized")
     
     try:
+        runtime_metrics.increment("requests_detect_single_total")
         result = detector.detect(request.log_line, request.session_id)
         
         return DetectionResponse(
@@ -217,6 +239,7 @@ async def detect_batch(request: BatchLogRequest):
     
     results = []
     anomaly_count = 0
+    runtime_metrics.increment("requests_detect_batch_total")
     
     for log_line in request.log_lines:
         try:
@@ -250,6 +273,107 @@ async def detect_batch(request: BatchLogRequest):
         total_logs=len(results),
         anomalies_detected=anomaly_count
     )
+
+
+@app.post("/detect/structured", response_model=DetectionResponse)
+async def detect_structured(request: StructuredLogRequest):
+    """Detect anomaly in a pre-parsed structured access-log event."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail="Detector not initialized")
+
+    try:
+        runtime_metrics.increment("requests_detect_structured_total")
+        result = detector.detect_structured(
+            project_id=request.project_id,
+            session_key=request.session_key,
+            event_time=request.event_time,
+            normalized_event=request.normalized_event,
+            raw_log=request.raw_log,
+            parsed_fields=request.parsed_fields,
+            flags=request.flags,
+        )
+
+        return DetectionResponse(
+            is_anomaly=result['is_anomaly'],
+            anomaly_score=result['anomaly_score'],
+            phase=result['phase'],
+            timestamp=datetime.now().isoformat(),
+            details={
+                'logs_processed': result['logs_processed'],
+                'transformer_ready': result['transformer_ready'],
+                'rule_based': result['rule_based'],
+                'isolation_forest': result['isolation_forest'],
+                'transformer': result['transformer'],
+                'ensemble': result['ensemble'],
+                'log_data': result['log_data'],
+                'detection_status': result.get('detection_status', 'scored'),
+                'detection_error': result.get('detection_error'),
+                'model_version': result.get('model_version'),
+                'feature_schema_version': result.get('feature_schema_version'),
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Structured detection failed: {str(e)}")
+
+
+@app.post("/detect/batch/structured", response_model=BatchDetectionResponse)
+async def detect_batch_structured(request: StructuredBatchLogRequest):
+    """Detect anomalies in multiple structured events."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail="Detector not initialized")
+
+    results = []
+    anomaly_count = 0
+    runtime_metrics.increment("requests_detect_batch_structured_total")
+
+    for event in request.events:
+        try:
+            result = detector.detect_structured(
+                project_id=event.project_id,
+                session_key=event.session_key,
+                event_time=event.event_time,
+                normalized_event=event.normalized_event,
+                raw_log=event.raw_log,
+                parsed_fields=event.parsed_fields,
+                flags=event.flags,
+            )
+
+            results.append(DetectionResponse(
+                is_anomaly=result['is_anomaly'],
+                anomaly_score=result['anomaly_score'],
+                phase=result['phase'],
+                timestamp=datetime.now().isoformat(),
+                details={
+                    'logs_processed': result['logs_processed'],
+                    'transformer_ready': result['transformer_ready'],
+                    'rule_based': result['rule_based'],
+                    'isolation_forest': result['isolation_forest'],
+                    'transformer': result['transformer'],
+                    'ensemble': result['ensemble'],
+                    'log_data': result['log_data'],
+                    'detection_status': result.get('detection_status', 'scored'),
+                    'detection_error': result.get('detection_error'),
+                    'model_version': result.get('model_version'),
+                    'feature_schema_version': result.get('feature_schema_version'),
+                }
+            ))
+
+            if result['is_anomaly']:
+                anomaly_count += 1
+        except Exception as e:
+            logger.error(f"Error processing structured log: {e}")
+
+    return BatchDetectionResponse(
+        results=results,
+        total_logs=len(results),
+        anomalies_detected=anomaly_count
+    )
+
+
+@app.get("/metrics", response_model=Dict[str, Any])
+async def metrics():
+    """Runtime metrics for the adaptive anomaly service."""
+    return runtime_metrics.snapshot()
 
 
 def main():

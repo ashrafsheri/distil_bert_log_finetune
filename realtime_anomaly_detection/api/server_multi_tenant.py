@@ -12,8 +12,9 @@ Features:
 import sys
 import os
 from pathlib import Path
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional, Any
 from datetime import datetime
+import logging
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -25,6 +26,10 @@ import uvicorn
 
 from models.multi_tenant_detector import MultiTenantDetector
 from models.knowledge_distillation import TeacherUpdateScheduler
+from models.runtime_metrics import runtime_metrics
+
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -86,6 +91,40 @@ class BatchLogRequest(BaseModel):
     """Batch of log lines"""
     log_lines: List[str]
     session_id: Optional[str] = None
+
+
+class StructuredLogRequest(BaseModel):
+    project_id: str
+    project_name: str
+    warmup_threshold: Optional[int] = None
+    session_key: str
+    log_type: str
+    event_time: Optional[str] = None
+    normalized_event: Optional[str] = None
+    raw_log: str
+    parsed_fields: Dict[str, Any]
+    flags: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class StructuredBatchLogRequest(BaseModel):
+    events: List[StructuredLogRequest]
+
+
+class InternalProjectRequest(BaseModel):
+    project_id: str
+    project_name: str
+    warmup_threshold: Optional[int] = 10000
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class ProjectIngestStatsRequest(BaseModel):
+    project_id: str
+    total_records: int
+    parse_failures: int = 0
+    baseline_eligible: int = 0
+    observed_hours: List[int] = Field(default_factory=list)
+    data_quality_incident_open: Optional[bool] = None
 
 
 class DetectionResponse(BaseModel):
@@ -299,6 +338,13 @@ async def root():
                 "detect_batch": "POST /detect/batch (X-API-Key)",
                 "project_status": "GET /project/status (X-API-Key)",
             },
+            "internal": {
+                "register_project": "POST /internal/projects/register",
+                "project_ingest_stats": "POST /internal/projects/ingest-stats",
+                "detect_structured": "POST /detect/structured",
+                "detect_structured_batch": "POST /detect/batch/structured",
+                "metrics": "GET /metrics",
+            },
             "admin": {
                 "teacher_info": "GET /admin/teacher",
                 "force_teacher_update": "POST /admin/teacher/update",
@@ -322,6 +368,12 @@ async def health_check():
         active_student_models=health['active_student_models'],
         training_in_progress=health['training_in_progress']
     )
+
+
+@app.get("/metrics", response_model=Dict[str, Any])
+async def metrics():
+    """Lightweight runtime metrics for the detector service."""
+    return runtime_metrics.snapshot()
 
 
 # ============================================================================
@@ -409,6 +461,39 @@ async def delete_project(
         raise HTTPException(status_code=404, detail="Project not found")
     
     return {"message": f"Project {project_id} deleted"}
+
+
+@app.post("/internal/projects/register")
+async def register_project_internal(request: InternalProjectRequest):
+    """Register or update a backend-owned project in detector storage."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    return detector.ensure_project(
+        project_id=request.project_id,
+        project_name=request.project_name,
+        warmup_threshold=request.warmup_threshold,
+        metadata=request.metadata,
+    )
+
+
+@app.post("/internal/projects/ingest-stats")
+async def record_project_ingest_stats_internal(request: ProjectIngestStatsRequest):
+    """Record ingest quality metrics for project qualification gates."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    status = detector.record_project_ingest_stats(
+        request.project_id,
+        total_records=request.total_records,
+        parse_failures=request.parse_failures,
+        baseline_eligible=request.baseline_eligible,
+        observed_hours=request.observed_hours,
+        data_quality_incident_open=request.data_quality_incident_open,
+    )
+    if status is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return status
 
 
 # ============================================================================
@@ -577,6 +662,92 @@ async def detect_batch(
     )
 
 
+@app.post("/detect/structured", response_model=DetectionResponse)
+async def detect_structured(request: StructuredLogRequest):
+    """Internal structured detection endpoint used by the backend ingest pipeline."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    result = detector.detect_structured(
+        project_id=request.project_id,
+        project_name=request.project_name,
+        warmup_threshold=request.warmup_threshold,
+        session_key=request.session_key,
+        event_time=request.event_time,
+        normalized_event=request.normalized_event,
+        raw_log=request.raw_log,
+        parsed_fields=request.parsed_fields,
+        flags=request.flags,
+        metadata=request.metadata,
+    )
+    if 'error' in result:
+        raise HTTPException(status_code=400, detail=result['error'])
+
+    return DetectionResponse(
+        is_anomaly=result['is_anomaly'],
+        anomaly_score=result['anomaly_score'],
+        model_type=result.get('using_model', 'teacher'),
+        phase=result['phase'],
+        project_id=result['project_id'],
+        project_name=result['project_name'],
+        log_count=result['log_count'],
+        warmup_progress=result['warmup_progress'],
+        timestamp=datetime.now().isoformat(),
+        details=result,
+    )
+
+
+@app.post("/detect/batch/structured", response_model=BatchDetectionResponse)
+async def detect_batch_structured(request: StructuredBatchLogRequest):
+    """Internal structured batch detection endpoint used by backend ingest."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    results: List[DetectionResponse] = []
+    anomaly_count = 0
+    project_id = request.events[0].project_id if request.events else ""
+
+    for event in request.events:
+        result = detector.detect_structured(
+            project_id=event.project_id,
+            project_name=event.project_name,
+            warmup_threshold=event.warmup_threshold,
+            session_key=event.session_key,
+            event_time=event.event_time,
+            normalized_event=event.normalized_event,
+            raw_log=event.raw_log,
+            parsed_fields=event.parsed_fields,
+            flags=event.flags,
+            metadata=event.metadata,
+        )
+        if 'error' in result:
+            logger.warning("Structured detection failed for project %s: %s", event.project_id, result['error'])
+            continue
+        results.append(
+            DetectionResponse(
+                is_anomaly=result['is_anomaly'],
+                anomaly_score=result['anomaly_score'],
+                model_type=result.get('using_model', 'teacher'),
+                phase=result['phase'],
+                project_id=result['project_id'],
+                project_name=result['project_name'],
+                log_count=result['log_count'],
+                warmup_progress=result['warmup_progress'],
+                timestamp=datetime.now().isoformat(),
+                details=result,
+            )
+        )
+        if result['is_anomaly']:
+            anomaly_count += 1
+
+    return BatchDetectionResponse(
+        results=results,
+        total_logs=len(results),
+        anomalies_detected=anomaly_count,
+        project_id=project_id,
+    )
+
+
 @app.post("/project/reset-sessions")
 async def reset_project_sessions(
     project_id: Annotated[str, Depends(get_project_from_api_key)],
@@ -664,7 +835,7 @@ async def get_update_history(
 def main():
     """Run the API server"""
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', '8000'))
+    port = int(os.getenv('PORT', os.getenv('ANOMALY_SERVICE_PORT', '8001')))
     reload = os.getenv('RELOAD', 'false').lower() == 'true'
     
     uvicorn.run(

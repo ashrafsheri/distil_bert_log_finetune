@@ -9,12 +9,13 @@ import math
 import re
 import pickle
 import threading
+import time
 from pathlib import Path
 import os
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from collections import deque, Counter
 from urllib.parse import unquote
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 import torch
@@ -30,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from models.ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
+from models.runtime_metrics import runtime_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +74,9 @@ class AdaptiveEnsembleDetector:
         
         # Session windows
         self.session_windows = {}
+        self.session_ttl_seconds = int(os.getenv("ADAPTIVE_SESSION_TTL_SECONDS", "1800"))
+        self.max_sessions = int(os.getenv("ADAPTIVE_MAX_SESSIONS", "200000"))
+        self.max_unique_paths = int(os.getenv("ADAPTIVE_MAX_UNIQUE_PATHS", "1000"))
         
         # Training data collection
         self.training_templates = []  # Collected template windows for transformer training
@@ -97,6 +102,8 @@ class AdaptiveEnsembleDetector:
         self.iso_last_retrain_log = 0
         self.iso_retraining = False
         self.iso_score_threshold: Optional[float] = None
+        self.model_version = os.getenv("ADAPTIVE_MODEL_VERSION", "adaptive-v2")
+        self.feature_schema_version = "access-log-v1"
         
         # Load initial models (rule-based + isolation forest)
         self._load_base_models()
@@ -340,6 +347,67 @@ class AdaptiveEnsembleDetector:
         fallback.mkdir(parents=True, exist_ok=True)
         return fallback
 
+    def _prune_sessions(self, now: Optional[float] = None):
+        """Bound session cache growth and evict stale sessions."""
+        current_time = now or time.time()
+        expired_sessions = [
+            session_id
+            for session_id, session in self.session_windows.items()
+            if current_time - session.get("last_seen", current_time) > self.session_ttl_seconds
+        ]
+        for session_id in expired_sessions:
+            self.session_windows.pop(session_id, None)
+            runtime_metrics.increment("session_cache_evictions_total")
+
+        if len(self.session_windows) <= self.max_sessions:
+            runtime_metrics.observe("session_cache_size", len(self.session_windows))
+            return
+
+        overflow = len(self.session_windows) - self.max_sessions
+        oldest_sessions = sorted(
+            self.session_windows.items(),
+            key=lambda item: item[1].get("last_seen", 0.0),
+        )[:overflow]
+        for session_id, _ in oldest_sessions:
+            self.session_windows.pop(session_id, None)
+            runtime_metrics.increment("session_cache_evictions_total")
+
+        runtime_metrics.observe("session_cache_size", len(self.session_windows))
+
+    def _get_or_create_session(self, session_id: str) -> Dict[str, Any]:
+        self._prune_sessions()
+        session = self.session_windows.get(session_id)
+        if session is None:
+            session = {
+                'templates': deque(maxlen=self.window_size),
+                'request_count': 0,
+                'error_count': 0,
+                'unique_paths': set(),
+                'last_seen': time.time(),
+            }
+            self.session_windows[session_id] = session
+
+        session['last_seen'] = time.time()
+        runtime_metrics.observe("session_cache_size", len(self.session_windows))
+        return session
+
+    @staticmethod
+    def _is_baseline_eligible(log_data: Dict[str, Any], flags: Optional[Dict[str, Any]], rule_result: Dict[str, Any]) -> bool:
+        if rule_result.get("is_attack"):
+            return False
+
+        if not flags:
+            return True
+
+        disqualifying_flags = (
+            "manual_malicious_override",
+            "synthetic_attack",
+            "allowlisted_synthetic_attack",
+            "parse_failed",
+            "rule_hit",
+        )
+        return not any(bool(flags.get(flag_name)) for flag_name in disqualifying_flags)
+
     def _record_iso_feature(self, features: Optional[np.ndarray]):
         """Store latest feature vector for Isolation Forest training/retraining"""
         if features is None:
@@ -465,6 +533,14 @@ class AdaptiveEnsembleDetector:
     def extract_features(self, log_data: Dict, session_stats: Dict) -> np.ndarray:
         """Extract features for Isolation Forest"""
         try:
+            event_hour = 0
+            event_time = log_data.get("event_time")
+            if isinstance(event_time, str) and event_time:
+                try:
+                    event_hour = datetime.fromisoformat(event_time.replace("Z", "+00:00")).hour
+                except ValueError:
+                    event_hour = 0
+
             features = [
                 session_stats.get('request_count', 1),
                 session_stats.get('error_rate', 0.0),
@@ -476,7 +552,7 @@ class AdaptiveEnsembleDetector:
                 len(log_data.get('path', '/')),
                 log_data.get('path', '/').count('/'),
                 1 if '?' in log_data.get('path', '/') else 0,
-                0  # time_hour placeholder
+                event_hour
             ]
             
             # Validate all features are numeric
@@ -489,6 +565,225 @@ class AdaptiveEnsembleDetector:
             logger.warning(f"   Session stats: {session_stats}")
             # Return default safe features
             return np.array([1, 0.0, 1, 0, 1, 0, 0, 1, 1, 0, 0], dtype=np.float64).reshape(1, -1)
+
+    def _build_detection_result(
+        self,
+        *,
+        log_data: Dict[str, Any],
+        rule_result: Dict[str, Any],
+        iso_result: Dict[str, Any],
+        transformer_result: Dict[str, Any],
+        ensemble_score: float,
+        total_weight: float,
+        votes: Dict[str, float],
+        weights: Dict[str, float],
+    ) -> Dict[str, Any]:
+        return {
+            'is_anomaly': ensemble_score >= 0.5,
+            'anomaly_score': ensemble_score,
+            'phase': 'warmup' if self.logs_processed <= self.warmup_logs else (
+                'training' if self.training_in_progress else 'ensemble'
+            ),
+            'logs_processed': self.logs_processed,
+            'transformer_ready': self.transformer_ready,
+            'isolation_forest_ready': self.iso_forest_ready,
+            'rule_based': rule_result,
+            'isolation_forest': iso_result,
+            'transformer': transformer_result,
+            'ensemble': {
+                'score': ensemble_score,
+                'votes': votes,
+                'weights': weights,
+                'active_models': sum(1 for w in weights.values() if w > 0.0),
+                'total_weight': total_weight
+            },
+            'log_data': log_data,
+            'detection_status': 'scored',
+            'detection_error': None,
+            'model_version': self.model_version,
+            'feature_schema_version': self.feature_schema_version,
+        }
+
+    def _build_parse_failure(self, log_line: str, error: str) -> Dict[str, Any]:
+        return {
+            'is_anomaly': False,
+            'anomaly_score': 0.0,
+            'phase': 'warmup' if self.logs_processed < self.warmup_logs else 'ensemble',
+            'logs_processed': self.logs_processed,
+            'transformer_ready': self.transformer_ready,
+            'isolation_forest_ready': self.iso_forest_ready,
+            'rule_based': {'is_attack': False, 'confidence': 0.0},
+            'isolation_forest': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
+            'transformer': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
+            'ensemble': {'score': 0.0, 'votes': {}, 'weights': {}, 'active_models': 0, 'total_weight': 0.0},
+            'log_data': {'raw': log_line},
+            'error': error,
+            'detection_status': 'failed',
+            'detection_error': error,
+            'model_version': self.model_version,
+            'feature_schema_version': self.feature_schema_version,
+        }
+
+    def _detect_log_data(
+        self,
+        log_data: Dict[str, Any],
+        session_id: str,
+        flags: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        self.logs_processed += 1
+        runtime_metrics.increment("detections_total")
+
+        session = self._get_or_create_session(session_id)
+        session['request_count'] += 1
+        if log_data['status'] >= 400:
+            session['error_count'] += 1
+        session['unique_paths'].add(log_data['path'])
+        if len(session['unique_paths']) > self.max_unique_paths:
+            session['unique_paths'] = set(list(session['unique_paths'])[-self.max_unique_paths:])
+            runtime_metrics.increment("session_unique_path_caps_total")
+
+        session_stats = {
+            'request_count': session['request_count'],
+            'error_count': session['error_count'],
+            'error_rate': session['error_count'] / session['request_count'],
+            'unique_paths': len(session['unique_paths'])
+        }
+
+        template_id = self.get_template_id(log_data)
+        session['templates'].append(template_id)
+
+        rule_result = self.rule_detector.detect(
+            log_data['path'],
+            log_data['method'],
+            log_data['status']
+        )
+
+        baseline_eligible = self._is_baseline_eligible(log_data, flags, rule_result)
+        features = self.extract_features(log_data, session_stats)
+        if baseline_eligible:
+            self._record_iso_feature(features)
+
+            if self.logs_processed <= self.warmup_logs and len(session['templates']) >= 5:
+                self.training_templates.append(list(session['templates']))
+
+            self._maybe_fit_iso_forest()
+
+        if self.iso_forest_ready:
+            try:
+                if features is None or features.shape != (1, 11):
+                    logger.warning(f"Warning: Invalid feature shape {features.shape if features is not None else 'None'}, expected (1, 11)")
+                    runtime_metrics.increment("feature_shape_errors_total")
+                    iso_result = {
+                        'is_anomaly': 0,
+                        'score': 0.0,
+                        'status': 'feature_error',
+                        'threshold': self.iso_score_threshold,
+                        'confidence': 0.0
+                    }
+                else:
+                    iso_pred = self.iso_forest.predict(features)[0]
+                    iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_confidence = self._normalize_anomaly_score(
+                        iso_score,
+                        self.iso_score_threshold,
+                        width=0.5
+                    )
+                    iso_result = {
+                        'is_anomaly': int(iso_pred == -1),
+                        'score': float(iso_score),
+                        'threshold': self.iso_score_threshold,
+                        'confidence': iso_confidence,
+                        'samples_tracked': len(self.iso_training_features)
+                    }
+            except Exception as e:
+                logger.warning(f"Isolation Forest error: {e}")
+                iso_result = {
+                    'is_anomaly': 0,
+                    'score': 0.0,
+                    'status': f'error: {str(e)[:50]}',
+                    'threshold': self.iso_score_threshold,
+                    'confidence': 0.0
+                }
+        else:
+            iso_result = {
+                'is_anomaly': 0,
+                'score': 0.0,
+                'status': 'collecting_baseline' if baseline_eligible else 'baseline_excluded',
+                'threshold': self.iso_score_threshold,
+                'confidence': 0.0
+            }
+
+        if self.transformer_ready:
+            sequence_length = len(session['templates'])
+            sequence_snapshot = list(session['templates'])
+            unknown_count = sum(1 for t in sequence_snapshot if t == self.unknown_id)
+            transformer_score = self.calculate_transformer_score(sequence_snapshot)
+            base_confidence = self._normalize_anomaly_score(
+                transformer_score,
+                self.transformer_threshold,
+                width=0.3
+            )
+            if unknown_count > 0:
+                ratio = unknown_count / max(sequence_length, 1)
+                transformer_confidence = min(1.0, base_confidence + 0.5 * ratio)
+            else:
+                transformer_confidence = base_confidence
+            transformer_result = {
+                'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
+                'score': float(transformer_score),
+                'threshold': float(self.transformer_threshold),
+                'sequence_length': sequence_length,
+                'context': 'single_log' if sequence_length == 1 else f'{sequence_length}_logs',
+                'confidence': transformer_confidence,
+                'unknown_count': unknown_count
+            }
+        else:
+            transformer_result = {
+                'is_anomaly': 0,
+                'score': 0.0,
+                'status': 'training' if self.training_in_progress else 'collecting_data',
+                'confidence': 0.0
+            }
+
+        votes = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
+        weights = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
+        weighted_sum = 0.0
+        total_weight = 0.0
+
+        rule_weight = 0.2 + 0.5 * rule_result.get('confidence', 0.0)
+        rule_signal = 1.0 if rule_result.get('is_attack') else 0.0
+        votes['rule'] = rule_signal
+        weights['rule'] = rule_weight
+        weighted_sum += rule_signal * rule_weight
+        total_weight += rule_weight
+
+        if self.iso_forest_ready:
+            iso_weight = 0.5
+            iso_signal = iso_result.get('confidence', 0.0)
+            votes['iso'] = iso_signal
+            weights['iso'] = iso_weight
+            weighted_sum += iso_signal * iso_weight
+            total_weight += iso_weight
+
+        if self.transformer_ready:
+            transformer_weight = 0.7
+            transformer_signal = transformer_result.get('confidence', 0.0)
+            votes['transformer'] = transformer_signal
+            weights['transformer'] = transformer_weight
+            weighted_sum += transformer_signal * transformer_weight
+            total_weight += transformer_weight
+
+        ensemble_score = weighted_sum / total_weight if total_weight > 0 else 0.0
+        return self._build_detection_result(
+            log_data=log_data,
+            rule_result=rule_result,
+            iso_result=iso_result,
+            transformer_result=transformer_result,
+            ensemble_score=ensemble_score,
+            total_weight=total_weight,
+            votes=votes,
+            weights=weights,
+        )
     
     def get_template_id(self, log_data: Dict) -> int:
         """Convert log to template ID and collect for training"""
@@ -808,203 +1103,43 @@ class AdaptiveEnsembleDetector:
         # Parse nginx log
         log_data = self.parse_nginx_log(log_line)
         if not log_data:
-            return {
-                'is_anomaly': False,
-                'anomaly_score': 0.0,
-                'phase': 'warmup' if self.logs_processed < self.warmup_logs else 'ensemble',
-                'logs_processed': self.logs_processed,
-                'transformer_ready': self.transformer_ready,
-                'isolation_forest_ready': self.iso_forest_ready,
-                'rule_based': {'is_attack': False, 'confidence': 0.0},
-                'isolation_forest': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
-                'transformer': {'is_anomaly': 0, 'score': 0.0, 'confidence': 0.0},
-                'ensemble': {'score': 0.0, 'votes': {}, 'weights': {}, 'active_models': 0, 'total_weight': 0.0},
-                'log_data': {'raw': log_line},
-                'error': 'Failed to parse log'
-            }
-        
-        self.logs_processed += 1
+            return self._build_parse_failure(log_line, "Failed to parse log")
+
+        log_data['event_time'] = datetime.now(timezone.utc).isoformat()
         
         if session_id is None:
             session_id = log_data['ip']
-        
-        # Initialize session stats
-        if session_id not in self.session_windows:
-            self.session_windows[session_id] = {
-                'templates': deque(maxlen=self.window_size),
-                'request_count': 0,
-                'error_count': 0,
-                'unique_paths': set()
-            }
-        
-        session = self.session_windows[session_id]
-        session['request_count'] += 1
-        if log_data['status'] >= 400:
-            session['error_count'] += 1
-        session['unique_paths'].add(log_data['path'])
-        
-        session_stats = {
-            'request_count': session['request_count'],
-            'error_count': session['error_count'],
-            'error_rate': session['error_count'] / session['request_count'],
-            'unique_paths': len(session['unique_paths'])
+
+        return self._detect_log_data(log_data, session_id)
+
+    def detect_structured(
+        self,
+        *,
+        project_id: str,
+        session_key: str,
+        event_time: Optional[str],
+        normalized_event: Optional[str],
+        raw_log: str,
+        parsed_fields: Dict[str, Any],
+        flags: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Detect anomalies from pre-parsed structured access-log events."""
+        method = parsed_fields.get("method") or "GET"
+        path = parsed_fields.get("path") or "/"
+        protocol = parsed_fields.get("protocol") or "HTTP/1.1"
+        status = int(parsed_fields.get("status_code") or 0)
+        log_data = {
+            "ip": parsed_fields.get("ip_address") or "",
+            "method": method,
+            "path": path,
+            "protocol": protocol,
+            "status": status,
+            "referer": parsed_fields.get("referer", "-"),
+            "user_agent": parsed_fields.get("user_agent", "-"),
+            "auth_user": parsed_fields.get("auth_user", ""),
+            "raw_line": raw_log,
+            "event_time": event_time or datetime.now(timezone.utc).isoformat(),
+            "project_id": project_id,
+            "normalized_event": normalized_event or f"{method} {path} {protocol} {status}",
         }
-        
-        # Extract template
-        template_id = self.get_template_id(log_data)
-        session['templates'].append(template_id)
-        
-        # Phase 1: Warmup - collect training data
-        features = self.extract_features(log_data, session_stats)
-        self._record_iso_feature(features)
-        
-        if self.logs_processed <= self.warmup_logs:
-            # Collect sequences more aggressively (min 5 instead of full window_size)
-            if len(session['templates']) >= 5:
-                self.training_templates.append(list(session['templates']))
-        
-        # Evaluate whether Isolation Forest needs (re)training
-        self._maybe_fit_iso_forest()
-        
-        # 1. Rule-based detection (always active)
-        rule_result = self.rule_detector.detect(
-            log_data['path'], 
-            log_data['method'], 
-            log_data['status']
-        )
-        
-        # 2. Isolation Forest (only after warmup)
-        if self.iso_forest_ready:
-            try:
-                if features is None or features.shape != (1, 11):
-                    logger.warning(f"Warning: Invalid feature shape {features.shape if features is not None else 'None'}, expected (1, 11)")
-                    iso_result = {
-                        'is_anomaly': 0,
-                        'score': 0.0,
-                        'status': 'feature_error',
-                        'threshold': self.iso_score_threshold,
-                        'confidence': 0.0
-                    }
-                else:
-                    iso_pred = self.iso_forest.predict(features)[0]
-                    iso_score = -self.iso_forest.score_samples(features)[0]
-                    iso_confidence = self._normalize_anomaly_score(
-                        iso_score,
-                        self.iso_score_threshold,
-                        width=0.5
-                    )
-                    iso_result = {
-                        'is_anomaly': int(iso_pred == -1),
-                        'score': float(iso_score),
-                        'threshold': self.iso_score_threshold,
-                        'confidence': iso_confidence,
-                        'samples_tracked': len(self.iso_training_features)
-                    }
-            except Exception as e:
-                logger.warning(f"Isolation Forest error: {e}")
-                logger.warning(f"   Features: {features if features is not None else 'not extracted'}")
-                logger.warning(f"   Session stats: {session_stats}")
-                logger.warning(f"   Log data: {log_data}")
-                iso_result = {
-                    'is_anomaly': 0,
-                    'score': 0.0,
-                    'status': f'error: {str(e)[:50]}',
-                    'threshold': self.iso_score_threshold,
-                    'confidence': 0.0
-                }
-        else:
-            # During warmup, don't use Isolation Forest for detection
-            iso_result = {
-                'is_anomaly': 0,
-                'score': 0.0,
-                'status': 'collecting_baseline',
-                'threshold': self.iso_score_threshold,
-                'confidence': 0.0
-            }
-        
-        # 3. Transformer (only if trained)
-        if self.transformer_ready:
-            sequence_length = len(session['templates'])
-            sequence_snapshot = list(session['templates'])
-            unknown_count = sum(1 for t in sequence_snapshot if t == self.unknown_id)
-            transformer_score = self.calculate_transformer_score(sequence_snapshot)
-            base_confidence = self._normalize_anomaly_score(
-                transformer_score,
-                self.transformer_threshold,
-                width=0.3
-            )
-            if unknown_count > 0:
-                ratio = unknown_count / max(sequence_length, 1)
-                transformer_confidence = min(1.0, base_confidence + 0.5 * ratio)
-            else:
-                transformer_confidence = base_confidence
-            transformer_result = {
-                'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
-                'score': float(transformer_score),
-                'threshold': float(self.transformer_threshold),
-                'sequence_length': sequence_length,
-                'context': 'single_log' if sequence_length == 1 else f'{sequence_length}_logs',
-                'confidence': transformer_confidence,
-                'unknown_count': unknown_count
-            }
-        else:
-            transformer_result = {
-                'is_anomaly': 0,
-                'score': 0.0,
-                'status': 'training' if self.training_in_progress else 'collecting_data',
-                'confidence': 0.0
-            }
-        
-        # Ensemble voting with confidence-weighted signals
-        votes = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
-        weights = {'rule': 0.0, 'iso': 0.0, 'transformer': 0.0}
-        weighted_sum = 0.0
-        total_weight = 0.0
-        
-        rule_weight = 0.2 + 0.5 * rule_result.get('confidence', 0.0)
-        rule_signal = 1.0 if rule_result.get('is_attack') else 0.0
-        votes['rule'] = rule_signal
-        weights['rule'] = rule_weight
-        weighted_sum += rule_signal * rule_weight
-        total_weight += rule_weight
-        
-        if self.iso_forest_ready:
-            iso_weight = 0.5
-            iso_signal = iso_result.get('confidence', 0.0)
-            votes['iso'] = iso_signal
-            weights['iso'] = iso_weight
-            weighted_sum += iso_signal * iso_weight
-            total_weight += iso_weight
-        
-        if self.transformer_ready:
-            transformer_weight = 0.7
-            transformer_signal = transformer_result.get('confidence', 0.0)
-            votes['transformer'] = transformer_signal
-            weights['transformer'] = transformer_weight
-            weighted_sum += transformer_signal * transformer_weight
-            total_weight += transformer_weight
-        
-        ensemble_score = weighted_sum / total_weight if total_weight > 0 else 0.0
-        is_anomaly = ensemble_score >= 0.5
-        
-        return {
-            'is_anomaly': is_anomaly,
-            'anomaly_score': ensemble_score,
-            'phase': 'warmup' if self.logs_processed <= self.warmup_logs else (
-                'training' if self.training_in_progress else 'ensemble'
-            ),
-            'logs_processed': self.logs_processed,
-            'transformer_ready': self.transformer_ready,
-            'isolation_forest_ready': self.iso_forest_ready,
-            'rule_based': rule_result,
-            'isolation_forest': iso_result,
-            'transformer': transformer_result,
-            'ensemble': {
-                'score': ensemble_score,
-                'votes': votes,
-                'weights': weights,
-                'active_models': sum(1 for w in weights.values() if w > 0.0),
-                'total_weight': total_weight
-            },
-            'log_data': log_data
-        }
+        return self._detect_log_data(log_data, session_key, flags=flags)
