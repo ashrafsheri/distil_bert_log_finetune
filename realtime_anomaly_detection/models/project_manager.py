@@ -14,6 +14,10 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 import pickle
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectPhase(Enum):
@@ -37,6 +41,13 @@ class ProjectConfig:
     warmup_threshold: int = 10000  # Number of logs before student training
     current_log_count: int = 0
     phase: str = ProjectPhase.WARMUP.value
+    baseline_eligible_count: int = 0
+    total_received_count: int = 0
+    parse_failure_count: int = 0
+    observed_hours: List[int] = field(default_factory=list)
+    data_quality_incident_open: bool = False
+    student_training_blockers: List[str] = field(default_factory=list)
+    calibration_threshold: float = 0.5
     
     # Timestamps
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -67,6 +78,13 @@ class ProjectConfig:
             'warmup_threshold': self.warmup_threshold,
             'current_log_count': self.current_log_count,
             'phase': self.phase,
+            'baseline_eligible_count': self.baseline_eligible_count,
+            'total_received_count': self.total_received_count,
+            'parse_failure_count': self.parse_failure_count,
+            'observed_hours': self.observed_hours,
+            'data_quality_incident_open': self.data_quality_incident_open,
+            'student_training_blockers': self.student_training_blockers,
+            'calibration_threshold': self.calibration_threshold,
             'created_at': self.created_at,
             'last_activity': self.last_activity,
             'student_trained_at': self.student_trained_at,
@@ -89,6 +107,13 @@ class ProjectConfig:
             warmup_threshold=data.get('warmup_threshold', 10000),
             current_log_count=data.get('current_log_count', 0),
             phase=data.get('phase', ProjectPhase.WARMUP.value),
+            baseline_eligible_count=data.get('baseline_eligible_count', 0),
+            total_received_count=data.get('total_received_count', 0),
+            parse_failure_count=data.get('parse_failure_count', 0),
+            observed_hours=data.get('observed_hours', []),
+            data_quality_incident_open=data.get('data_quality_incident_open', False),
+            student_training_blockers=data.get('student_training_blockers', []),
+            calibration_threshold=data.get('calibration_threshold', 0.5),
             created_at=data.get('created_at', datetime.now().isoformat()),
             last_activity=data.get('last_activity', datetime.now().isoformat()),
             student_trained_at=data.get('student_trained_at'),
@@ -154,6 +179,43 @@ class ProjectManager:
     def _hash_api_key(self, api_key: str) -> str:
         """Hash an API key for comparison"""
         return hashlib.sha256(api_key.encode()).hexdigest()
+
+    def ensure_project(
+        self,
+        project_id: str,
+        project_name: str,
+        warmup_threshold: int = 10000,
+        metadata: Optional[Dict] = None,
+    ) -> ProjectConfig:
+        """Ensure a backend-owned project exists in detector storage."""
+        with self._lock:
+            project = self.projects.get(project_id)
+            if project is None:
+                api_key = f"internal-{project_id}"
+                api_key_hash = self._hash_api_key(api_key)
+                project_dir = self.storage_dir / project_id
+                project_dir.mkdir(parents=True, exist_ok=True)
+                project = ProjectConfig(
+                    project_id=project_id,
+                    project_name=project_name,
+                    api_key=api_key,
+                    api_key_hash=api_key_hash,
+                    warmup_threshold=warmup_threshold,
+                    es_index_pattern=f"logs-{project_id}",
+                    metadata=metadata or {},
+                )
+                self.projects[project_id] = project
+                self.api_key_to_project[api_key_hash] = project_id
+                logger.info("Registered backend project in detector: %s", project_id)
+            else:
+                project.project_name = project_name
+                project.warmup_threshold = warmup_threshold
+                if metadata:
+                    project.metadata.update(metadata)
+                project.last_activity = datetime.now().isoformat()
+
+            self._save_projects()
+            return project
     
     def create_project(
         self,
@@ -178,7 +240,7 @@ class ProjectManager:
             api_key, api_key_hash = self._generate_api_key()
             
             # Create project directory
-            project_dir = self.storage_dir / 'projects' / project_id
+            project_dir = self.storage_dir / project_id
             project_dir.mkdir(parents=True, exist_ok=True)
             
             # Create project config
@@ -247,12 +309,55 @@ class ProjectManager:
             
             project.current_log_count += count
             project.last_activity = datetime.now().isoformat()
-            
-            # Check if warmup threshold reached
-            if (project.phase == ProjectPhase.WARMUP.value and 
-                project.current_log_count >= project.warmup_threshold):
-                self._trigger_student_training(project_id)
-            
+            self._save_projects()
+            return project
+
+    def record_ingest_stats(
+        self,
+        project_id: str,
+        total_records: int,
+        parse_failures: int = 0,
+        baseline_eligible: int = 0,
+        observed_hours: Optional[List[int]] = None,
+        data_quality_incident_open: Optional[bool] = None,
+    ) -> Optional[ProjectConfig]:
+        """Record ingest quality metrics used for student promotion gates."""
+        with self._lock:
+            project = self.projects.get(project_id)
+            if not project:
+                return None
+
+            project.total_received_count += max(total_records, 0)
+            project.parse_failure_count += max(parse_failures, 0)
+            project.baseline_eligible_count += max(baseline_eligible, 0)
+            if observed_hours:
+                merged_hours = set(project.observed_hours)
+                merged_hours.update(int(hour) for hour in observed_hours if hour is not None)
+                project.observed_hours = sorted(hour for hour in merged_hours if 0 <= hour <= 23)
+            if data_quality_incident_open is not None:
+                project.data_quality_incident_open = data_quality_incident_open
+            project.last_activity = datetime.now().isoformat()
+            self._save_projects()
+            return project
+
+    def update_calibration_threshold(self, project_id: str, threshold: float) -> Optional[ProjectConfig]:
+        with self._lock:
+            project = self.projects.get(project_id)
+            if not project:
+                return None
+            project.calibration_threshold = threshold
+            self._save_projects()
+            return project
+
+    def set_student_training_blockers(self, project_id: str, blockers: List[str]) -> Optional[ProjectConfig]:
+        with self._lock:
+            project = self.projects.get(project_id)
+            if not project:
+                return None
+            project.student_training_blockers = blockers
+            if blockers and project.phase == ProjectPhase.TRAINING.value:
+                project.phase = ProjectPhase.WARMUP.value
+            self._save_projects()
             return project
     
     def update_training_stats(
@@ -347,7 +452,15 @@ class ProjectManager:
                     'warmup_progress': min(100, (p.current_log_count / p.warmup_threshold) * 100),
                     'created_at': p.created_at,
                     'last_activity': p.last_activity,
-                    'has_student_model': p.student_model_path is not None
+                    'has_student_model': p.student_model_path is not None,
+                    'baseline_eligible_count': p.baseline_eligible_count,
+                    'parse_failure_rate': (
+                        p.parse_failure_count / p.total_received_count
+                        if p.total_received_count else 0.0
+                    ),
+                    'observed_hours': p.observed_hours,
+                    'student_training_blockers': p.student_training_blockers,
+                    'calibration_threshold': p.calibration_threshold,
                 }
                 for p in self.projects.values()
             ]
@@ -364,7 +477,7 @@ class ProjectManager:
                 del self.api_key_to_project[project.api_key_hash]
             
             # Remove project directory
-            project_dir = self.storage_dir / 'projects' / project_id
+            project_dir = self.storage_dir / project_id
             if project_dir.exists():
                 import shutil
                 shutil.rmtree(project_dir)
@@ -484,4 +597,4 @@ class ProjectManager:
     
     def get_project_storage_path(self, project_id: str) -> Path:
         """Get the storage path for a specific project"""
-        return self.storage_dir / 'projects' / project_id
+        return self.storage_dir / project_id

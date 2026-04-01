@@ -22,6 +22,7 @@ from app.utils.firebase_auth import get_current_user, validate_api_key
 from app.utils.permissions import check_permission
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils.database import get_db
+from app.utils.runtime_metrics import runtime_metrics
 
 
 router = APIRouter()
@@ -509,11 +510,18 @@ async def receive_fluent_bit_logs(
     try:
         # Generate internal batch ID for tracking
         batch_id = str(uuid.uuid4())
+        runtime_metrics.increment("ingest_batches_total")
 
         # Fetch project to get log_type
         project = await _get_project_record(project_id, db)
         log_type = project.log_type  # Get the log type (apache or nginx)
         logger.info("Processing Fluent Bit logs with parser=%s", log_type)
+        await anomaly_detection_service.register_or_update_project(
+            project_id=project.id,
+            project_name=project.name,
+            warmup_threshold=project.warmup_threshold or 10000,
+            metadata={"log_type": log_type, "org_id": project.org_id},
+        )
 
         # Parse the raw request body
         body = await request.body()
@@ -521,53 +529,211 @@ async def receive_fluent_bit_logs(
         logger.info("Received Fluent Bit payload length=%s bytes", len(body))
         
         request_data = LogService.parse_fluent_bit_request(body)
+        runtime_metrics.increment("ingest_records_total", len(request_data))
         logger.info(
             "Parsed Fluent Bit payload type=%s count=%s",
             type(request_data).__name__,
             len(request_data) if hasattr(request_data, "__len__") else "N/A",
         )
         
-        # Extract raw logs from records
-        raw_logs = LogService.extract_raw_logs_from_records(request_data)
-        logger.info("Extracted %s raw logs from Fluent Bit payload", len(raw_logs))
-
-        if not raw_logs:
+        candidates = LogService.extract_log_candidates(request_data)
+        if not candidates:
             raise HTTPException(status_code=400, detail="No valid logs found in request")
-        
-        logger.info(f"Processing {len(raw_logs)} logs from Fluent Bit")
-        
-        # Process logs through anomaly detection
-        anomaly_results = await anomaly_detection_service.detect_batch_logs(
-            log_lines=raw_logs,
-            session_id=f"fluent_bit_{batch_id}"
-        )
-        
-        if anomaly_results is None:
-            logger.warning("Anomaly detection failed, processing logs without detection")
-            anomaly_results = _build_default_anomaly_results(raw_logs)
 
-        parsed_logs_data = _parse_logs_for_storage(raw_logs, log_parser_service, log_type)
-        unique_ips = _collect_unique_ips(parsed_logs_data)
+        structured_events: list[dict[str, Any]] = []
+        processed_logs: list[dict[str, Any]] = []
+
+        for candidate in candidates:
+            raw_log = candidate.get("raw_log")
+            event_time = log_parser_service.normalize_record_timestamp(candidate.get("event_time"))
+            extraction_error = candidate.get("extraction_error")
+
+            if not raw_log:
+                runtime_metrics.increment("parse_failures_total")
+                processed_logs.append(
+                    LogService.format_parse_failure_for_storage(
+                        raw_log=None,
+                        batch_id=batch_id,
+                        org_id=project_id,
+                        event_time=event_time,
+                        parse_error=extraction_error or "missing_raw_log",
+                        source_record=candidate.get("record"),
+                    )
+                )
+                continue
+
+            parsed_log, parse_error = log_parser_service.parse_log_with_error(
+                raw_log,
+                log_type,
+                fallback_event_time=event_time,
+            )
+
+            if parsed_log is None:
+                runtime_metrics.increment("parse_failures_total")
+                processed_logs.append(
+                    LogService.format_parse_failure_for_storage(
+                        raw_log=raw_log,
+                        batch_id=batch_id,
+                        org_id=project_id,
+                        event_time=event_time,
+                        parse_error=parse_error or extraction_error or "parse_failed",
+                        source_record=candidate.get("record"),
+                    )
+                )
+                continue
+
+            session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
+            structured_events.append(
+                {
+                    "parsed_log": parsed_log,
+                    "raw_log": raw_log,
+                    "session_key": session_key,
+                    "session_key_hash": LogService.build_session_key_hash(session_key),
+                    "project_id": project_id,
+                    "log_type": log_type,
+                    "event_time": parsed_log.get("timestamp", event_time),
+                }
+            )
+
+        logger.info(
+            "Prepared %s structured events and %s parse failures from Fluent Bit payload",
+            len(structured_events),
+            len(processed_logs),
+        )
+
+        observed_hours = []
+        for event in structured_events:
+            try:
+                observed_hours.append(
+                    datetime.fromisoformat(event["event_time"].replace("Z", "+00:00")).hour
+                )
+            except Exception:
+                continue
+
+        parse_failures = sum(1 for log in processed_logs if log.get("parse_status") == "failed")
+        project_quality_status = await anomaly_detection_service.report_project_ingest_stats(
+            project_id=project.id,
+            total_records=len(candidates),
+            parse_failures=parse_failures,
+            baseline_eligible=len(structured_events),
+            observed_hours=observed_hours,
+            data_quality_incident_open=(
+                (parse_failures / len(candidates)) > 0.05 if candidates else False
+            ),
+        )
+
+        if not structured_events and not processed_logs:
+            raise HTTPException(status_code=400, detail="No valid logs found in request")
+
+        detection_results = await anomaly_detection_service.detect_batch_structured_logs(
+            events=[
+                {
+                    "project_id": event["project_id"],
+                    "project_name": project.name,
+                    "warmup_threshold": project.warmup_threshold or 10000,
+                    "session_key": event["session_key"],
+                    "log_type": log_type,
+                    "event_time": event["event_time"],
+                    "normalized_event": event["parsed_log"].get("normalized_event"),
+                    "raw_log": event["raw_log"],
+                    "parsed_fields": {
+                        "ip_address": event["parsed_log"].get("ip_address"),
+                        "method": event["parsed_log"].get("method"),
+                        "path": event["parsed_log"].get("path"),
+                        "protocol": event["parsed_log"].get("protocol"),
+                        "status_code": event["parsed_log"].get("status_code"),
+                        "size": event["parsed_log"].get("size"),
+                        "auth_user": event["parsed_log"].get("auth_user"),
+                        "referer": event["parsed_log"].get("referer"),
+                        "user_agent": event["parsed_log"].get("user_agent"),
+                        "session_key_hash": event["session_key_hash"],
+                    },
+                    "metadata": {"log_type": log_type, "org_id": project.org_id},
+                }
+                for event in structured_events
+            ]
+        )
+
+        if detection_results is None:
+            runtime_metrics.increment("detector_failures_total", len(structured_events))
+            detection_results = [
+                {
+                    "is_anomaly": False,
+                    "anomaly_score": 0.0,
+                    "details": {},
+                    "detection_status": "failed",
+                    "detection_error": "detector_unavailable",
+                    "model_version": "adaptive-v2",
+                    "feature_schema_version": "access-log-v1",
+                }
+                for _ in structured_events
+            ]
+
+        unique_ips = {
+            event["parsed_log"].get("ip_address")
+            for event in structured_events
+            if event["parsed_log"].get("ip_address")
+        }
         
         # Query IP table for status overrides
         ip_status_map = await LogService.get_ip_status_map(unique_ips, project_id, db)
         
-        # Process parsed logs into formatted logs for storage
-        processed_logs = await LogService.process_parsed_logs_batch(
-            parsed_logs_data, anomaly_results, ip_status_map, batch_id, project_id
-        )
+        for index, event in enumerate(structured_events):
+            anomaly_result = detection_results[index] if index < len(detection_results) else {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "details": {},
+                "detection_status": "failed",
+                "detection_error": "missing_detection_result",
+                "model_version": "adaptive-v2",
+                "feature_schema_version": "access-log-v1",
+            }
+
+            detection_status = anomaly_result.get("detection_status", "scored")
+            if detection_status != "scored":
+                runtime_metrics.increment("detector_failures_total")
+
+            processed_logs.append(
+                LogService.format_log_for_storage(
+                    event["parsed_log"],
+                    event["raw_log"],
+                    anomaly_result,
+                    ip_status_map,
+                    batch_id,
+                    project_id,
+                    session_key_hash=event["session_key_hash"],
+                    parse_status="parsed",
+                    parse_error=None,
+                    detection_status=detection_status,
+                    detection_error=anomaly_result.get("detection_error"),
+                )
+            )
         
         # Store processed logs in Elasticsearch
         if processed_logs:
             storage_success = await elasticsearch_service.store_logs_batch(processed_logs)
             if not storage_success:
                 logger.error("Failed to store logs in Elasticsearch")
+                runtime_metrics.increment("storage_failures_total")
+                response = LogSerializer.serialize_fluent_bit_response(
+                    message="Logs processed but storage is degraded",
+                    batch_id=batch_id,
+                    processed_count=len(processed_logs),
+                    anomalies_detected=sum(1 for log in processed_logs if log.get("infected", False)),
+                    status="degraded",
+                )
+                return response
             
             # Send logs to WebSocket connections for real-time updates (filtered by project_id)
             await LogService.send_logs_to_websocket(processed_logs, org_id=project_id)
             
             # Increment project log count for warmup tracking
-            await LogService.increment_org_log_count(project_id, len(processed_logs), db)
+            model_phase = None
+            if detection_results:
+                model_phase = detection_results[0].get("phase")
+            elif isinstance(project_quality_status, dict):
+                model_phase = project_quality_status.get("phase")
+            await LogService.increment_org_log_count(project_id, len(processed_logs), db, model_phase=model_phase)
         
         processed_count = len(processed_logs)
         anomalies_detected = sum(1 for log in processed_logs if log.get("infected", False))

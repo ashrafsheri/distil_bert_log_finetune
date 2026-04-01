@@ -14,6 +14,7 @@ from app.api.v1.router import api_router
 from app.controllers.websocket_controller import router as websocket_router
 from app.utils.database import init_db, close_db
 from app.utils.firebase_auth import initialize_firebase_admin
+from app.utils.runtime_metrics import runtime_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,13 @@ app.include_router(websocket_router, prefix="/ws")
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Docker health checks"""
-    return {"status": "healthy"}
+    return {"status": "healthy", "metrics": runtime_metrics.snapshot()}
+
+
+@app.get("/metrics")
+async def metrics():
+    """Lightweight runtime metrics endpoint."""
+    return runtime_metrics.snapshot()
 
 
 if __name__ == "__main__":

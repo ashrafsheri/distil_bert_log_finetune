@@ -31,6 +31,10 @@ spec:
               value: "1"
             - name: MODEL_DIR
               value: /app/artifacts/ensemble_model_export
+            - name: ADAPTIVE_STATE_DIR
+              value: /app/logs/adaptive_state
+            - name: STORAGE_DIR
+              value: /app/data/multi_tenant
             - name: LOG_LEVEL
               value: INFO
             - name: ANOMALY_SERVICE_PORT
@@ -39,6 +43,10 @@ spec:
             - name: model-artifacts
               mountPath: /app/artifacts/ensemble_model_export
               readOnly: true
+            - name: anomaly-state
+              mountPath: /app/logs
+            - name: anomaly-state
+              mountPath: /app/data
           resources:
             requests:
               cpu: 500m
@@ -70,3 +78,6 @@ spec:
         - name: model-artifacts
           persistentVolumeClaim:
             claimName: model-artifacts-pvc
+        - name: anomaly-state
+          persistentVolumeClaim:
+            claimName: anomaly-state-pvc
