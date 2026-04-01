@@ -17,6 +17,9 @@ from app.utils.runtime_metrics import runtime_metrics
 logger = logging.getLogger(__name__)
 ORG_ID_KEYWORD = "org_id.keyword"
 INFECTED_COUNT_AGG = "infected_count"
+PARSE_FAILURE_COUNT_AGG = "parse_failure_count"
+DETECTION_FAILURE_COUNT_AGG = "detection_failure_count"
+INCIDENT_COUNT_AGG = "incident_count"
 
 class ElasticsearchService:
     """
@@ -101,6 +104,23 @@ class ElasticsearchService:
     @staticmethod
     def _extract_infected_count(response: Dict) -> int:
         return response.get("aggregations", {}).get(INFECTED_COUNT_AGG, {}).get("doc_count", 0)
+
+    @staticmethod
+    def _extract_parse_failure_count(response: Dict) -> int:
+        return response.get("aggregations", {}).get(PARSE_FAILURE_COUNT_AGG, {}).get("doc_count", 0)
+
+    @staticmethod
+    def _extract_detection_failure_count(response: Dict) -> int:
+        return response.get("aggregations", {}).get(DETECTION_FAILURE_COUNT_AGG, {}).get("doc_count", 0)
+
+    @staticmethod
+    def _extract_incident_count(response: Dict) -> int:
+        return int(
+            response.get("aggregations", {})
+            .get(INCIDENT_COUNT_AGG, {})
+            .get("incident_ids", {})
+            .get("value", 0)
+        )
 
 
     async def store_log(self, log_data: Dict) -> bool:
@@ -211,6 +231,26 @@ class ElasticsearchService:
                         "filter": {
                             "term": {"infected": True}
                         }
+                    },
+                    PARSE_FAILURE_COUNT_AGG: {
+                        "filter": {
+                            "term": {"parse_status": "failed"}
+                        }
+                    },
+                    DETECTION_FAILURE_COUNT_AGG: {
+                        "filter": {
+                            "term": {"detection_status": "failed"}
+                        }
+                    },
+                    INCIDENT_COUNT_AGG: {
+                        "filter": {
+                            "term": {"infected": True}
+                        },
+                        "aggs": {
+                            "incident_ids": {
+                                "cardinality": {"field": "incident_id"}
+                            }
+                        }
                     }
                 },
                 "sort": [{"event_time": {"order": "desc", "unmapped_type": "date"}}],
@@ -233,12 +273,18 @@ class ElasticsearchService:
             # Get accurate total count
             total = self._extract_total_hits(response)
             infected_count = self._extract_infected_count(response)
+            parse_failure_count = self._extract_parse_failure_count(response)
+            detection_failure_count = self._extract_detection_failure_count(response)
+            incident_count = self._extract_incident_count(response)
             logger.info("Total logs from ES: %s, infected logs: %s", total, infected_count)
             
             return {
                 "logs": logs,
                 "total": total,
                 "infected_count": infected_count,
+                "parse_failure_count": parse_failure_count,
+                "detection_failure_count": detection_failure_count,
+                "incident_count": incident_count,
                 "offset": offset,
                 "limit": limit
             }
@@ -255,6 +301,9 @@ class ElasticsearchService:
         api: Optional[str] = None,
         status_code: Optional[int] = None,
         infected: Optional[bool] = None,
+        parse_status: Optional[str] = None,
+        detection_status: Optional[str] = None,
+        incident_id: Optional[str] = None,
         from_datetime: Optional[str] = None,
         to_datetime: Optional[str] = None,
         limit: int = 100,
@@ -283,6 +332,12 @@ class ElasticsearchService:
                 must_clauses.append({"term": {"status_code": status_code}})
             if infected is not None:
                 must_clauses.append({"term": {"infected": infected}})
+            if parse_status:
+                must_clauses.append({"term": {"parse_status": parse_status}})
+            if detection_status:
+                must_clauses.append({"term": {"detection_status": detection_status}})
+            if incident_id:
+                must_clauses.append({"term": {"incident_id": incident_id}})
 
             range_clause: Dict = {}
             if from_datetime or to_datetime:
@@ -308,6 +363,26 @@ class ElasticsearchService:
                         "filter": {
                             "term": {"infected": True}
                         }
+                    },
+                    PARSE_FAILURE_COUNT_AGG: {
+                        "filter": {
+                            "term": {"parse_status": "failed"}
+                        }
+                    },
+                    DETECTION_FAILURE_COUNT_AGG: {
+                        "filter": {
+                            "term": {"detection_status": "failed"}
+                        }
+                    },
+                    INCIDENT_COUNT_AGG: {
+                        "filter": {
+                            "term": {"infected": True}
+                        },
+                        "aggs": {
+                            "incident_ids": {
+                                "cardinality": {"field": "incident_id"}
+                            }
+                        }
                     }
                 },
                 "sort": [{"event_time": {"order": "desc", "unmapped_type": "date"}}],
@@ -328,11 +403,17 @@ class ElasticsearchService:
 
             total = self._extract_total_hits(response)
             infected_count = self._extract_infected_count(response)
+            parse_failure_count = self._extract_parse_failure_count(response)
+            detection_failure_count = self._extract_detection_failure_count(response)
+            incident_count = self._extract_incident_count(response)
 
             return {
                 "logs": logs,
                 "total": total,
                 "infected_count": infected_count,
+                "parse_failure_count": parse_failure_count,
+                "detection_failure_count": detection_failure_count,
+                "incident_count": incident_count,
                 "offset": offset,
                 "limit": limit,
             }

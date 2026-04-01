@@ -686,6 +686,8 @@ class LogService:
         """
         return {
             "timestamp": log.get("timestamp", ""),
+            "eventTime": log.get("event_time") or log.get("timestamp", ""),
+            "ingestTime": log.get("ingest_time") or log.get("created_at", ""),
             "ipAddress": log.get("ip_address", ""),
             "apiAccessed": log.get("api_accessed", ""),
             "statusCode": log.get("status_code", 0),
@@ -693,7 +695,19 @@ class LogService:
             "anomaly_score": log.get("anomaly_score", 0.0),
             "anomaly_details": log.get("anomaly_details", {}),
             "parseStatus": log.get("parse_status", "parsed"),
+            "parseError": log.get("parse_error"),
             "detectionStatus": log.get("detection_status", "scored"),
+            "detectionError": log.get("detection_error"),
+            "incidentId": log.get("incident_id"),
+            "incidentType": log.get("incident_type"),
+            "normalizedTemplate": log.get("normalized_template"),
+            "sessionKeyHash": log.get("session_key_hash"),
+            "modelVersion": log.get("model_version"),
+            "featureSchemaVersion": log.get("feature_schema_version"),
+            "detectorPhase": log.get("detector_phase"),
+            "modelType": log.get("model_type"),
+            "rawAnomalyScore": log.get("raw_anomaly_score"),
+            "calibration": log.get("calibration", {}),
         }
 
     @staticmethod

@@ -249,3 +249,22 @@ class AnomalyDetectionService:
         except Exception as e:
             logger.error(f"Error reporting project ingest stats: {e}")
             return None
+
+    async def get_project_health(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch detailed project detector health for backend dashboards."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/internal/projects/{project_id}/status"
+                )
+                if response.status_code == 200:
+                    return response.json()
+                logger.error(
+                    "Project health lookup failed with status %s: %s",
+                    response.status_code,
+                    response.text,
+                )
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching project health from detector: {e}")
+            return None

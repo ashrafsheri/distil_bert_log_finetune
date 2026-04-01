@@ -19,23 +19,51 @@ class AnomalyDetails(BaseModel):
 class LogEntry(BaseModel):
     """Log entry model matching frontend interface"""
     timestamp: str
+    eventTime: Optional[str] = None
+    ingestTime: Optional[str] = None
     ipAddress: str
     apiAccessed: str
     statusCode: int
     infected: bool
     anomaly_score: Optional[float] = None
     anomaly_details: Optional[AnomalyDetails] = None
-    org_id : Optional[str] = None
+    org_id: Optional[str] = None
+    parseStatus: Optional[str] = None
+    parseError: Optional[str] = None
+    detectionStatus: Optional[str] = None
+    detectionError: Optional[str] = None
+    incidentId: Optional[str] = None
+    incidentType: Optional[str] = None
+    normalizedTemplate: Optional[str] = None
+    sessionKeyHash: Optional[str] = None
+    modelVersion: Optional[str] = None
+    featureSchemaVersion: Optional[str] = None
+    detectorPhase: Optional[str] = None
+    modelType: Optional[str] = None
+    rawAnomalyScore: Optional[float] = None
+    calibration: Optional[Dict[str, Any]] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "timestamp": "12:04 7 Oct 2025",
+                "eventTime": "2025-10-07T12:04:00Z",
+                "ingestTime": "2025-10-07T12:04:01Z",
                 "ipAddress": "201.12.12.24",
                 "apiAccessed": "/api/v1/fetch",
                 "statusCode": 200,
                 "infected": False,
                 "anomaly_score": 0.25,
+                "parseStatus": "parsed",
+                "detectionStatus": "scored",
+                "incidentId": "proj-1:/login:203.0.113.4:2025-10-07T12:00:00Z",
+                "normalizedTemplate": "GET /api/v1/fetch HTTP/1.1 200",
+                "modelVersion": "multi-tenant-v1",
+                "featureSchemaVersion": "access-log-v1",
+                "detectorPhase": "warmup",
+                "modelType": "teacher",
+                "rawAnomalyScore": 0.31,
+                "calibration": {"threshold": 0.58, "calibrated_score": 0.25},
                 "anomaly_details": {
                     "rule_based": {"is_attack": False, "confidence": 0.0},
                     "isolation_forest": {"is_anomaly": 0, "score": 0.3},
@@ -69,6 +97,9 @@ class LogEntryResponse(BaseModel):
     infected_count: int
     safe_count: int
     threat_rate: float
+    parse_failure_count: int = 0
+    detection_failure_count: int = 0
+    incident_count: int = 0
 
 
 class WebSocketMessage(BaseModel):

@@ -72,6 +72,24 @@ class ProjectSummary(BaseModel):
     model_status: Optional[str] = None
 
 
+class ProjectHealthSummary(BaseModel):
+    """Detailed project detector health for dashboards."""
+    project_id: str
+    project_name: str
+    phase: str
+    log_count: int
+    warmup_threshold: int
+    warmup_progress: float
+    has_student_model: bool
+    baseline_eligible_count: int
+    parse_failure_rate: float
+    observed_hours: list[int]
+    student_training_blockers: list[str]
+    calibration_threshold: Optional[float] = None
+    created_at: str
+    last_activity: str
+
+
 class RegenerateApiKeyRequest(BaseModel):
     """Request model for regenerating project API key"""
     project_id: str

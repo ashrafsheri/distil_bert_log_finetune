@@ -17,6 +17,23 @@ export interface ProjectSummary {
   model_status?: string;
 }
 
+export interface ProjectHealthSummary {
+  project_id: string;
+  project_name: string;
+  phase: string;
+  log_count: number;
+  warmup_threshold: number;
+  warmup_progress: number;
+  has_student_model: boolean;
+  baseline_eligible_count: number;
+  parse_failure_rate: number;
+  observed_hours: number[];
+  student_training_blockers: string[];
+  calibration_threshold?: number | null;
+  created_at: string;
+  last_activity: string;
+}
+
 export interface CreateProjectRequest {
   name: string;
   org_id: string;
@@ -101,6 +118,11 @@ export class ProjectService {
    */
   async getProject(projectId: string): Promise<ProjectSummary> {
     const response = await apiService.get<ProjectSummary>(`/api/v1/projects/${projectId}`);
+    return response.data;
+  }
+
+  async getProjectHealth(projectId: string): Promise<ProjectHealthSummary> {
+    const response = await apiService.get<ProjectHealthSummary>(`/api/v1/projects/${projectId}/health`);
     return response.data;
   }
 

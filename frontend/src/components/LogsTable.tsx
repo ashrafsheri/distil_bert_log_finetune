@@ -1,9 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { getStatusIcon } from '../utils/helpers';
+import { LogEntry } from '../services/logService';
+
+type DecisionState = 'threat' | 'parse_failed' | 'detection_failed' | 'clean';
+
+const getDecisionState = (log: LogEntry): DecisionState => {
+  if (log.parseStatus === 'failed') return 'parse_failed';
+  if (log.detectionStatus === 'failed') return 'detection_failed';
+  if (log.infected) return 'threat';
+  return 'clean';
+};
 
 // Helper function to calculate status badge color
-const getStatusColor = (infected: boolean, statusCode: number): string => {
-  if (infected) return 'var(--vt-error)';
+const getStatusColor = (decisionState: DecisionState, statusCode: number): string => {
+  if (decisionState === 'threat') return 'var(--vt-error)';
+  if (decisionState === 'parse_failed') return 'var(--vt-accent)';
+  if (decisionState === 'detection_failed') return 'var(--vt-warning)';
   if (statusCode >= 200 && statusCode < 300) return 'var(--vt-success)';
   if (statusCode >= 400) return 'var(--vt-warning)';
   return 'var(--vt-muted)';
@@ -11,7 +23,7 @@ const getStatusColor = (infected: boolean, statusCode: number): string => {
 
 // Helper function to calculate row classes
 const getRowClasses = (
-  infected: boolean,
+  decisionState: DecisionState,
   expandedRow: number | null,
   index: number,
   isFocused: boolean,
@@ -20,7 +32,9 @@ const getRowClasses = (
 ): string => {
   const classes = [
     'group hover:bg-vt-primary/5 transition-all duration-200',
-    infected ? 'bg-vt-error/10 border-l-4 border-l-vt-error' : '',
+    decisionState === 'threat' ? 'bg-vt-error/10 border-l-4 border-l-vt-error' : '',
+    decisionState === 'parse_failed' ? 'bg-vt-accent/10 border-l-4 border-l-vt-accent' : '',
+    decisionState === 'detection_failed' ? 'bg-vt-warning/10 border-l-4 border-l-vt-warning' : '',
     expandedRow === index ? 'bg-vt-primary/5' : '',
     isFocused ? 'ring-2 ring-vt-warning/40 bg-vt-warning/5' : '',
     highlightTransformerTrail && isTransformerAnomaly ? 'shadow-inner shadow-vt-warning/20' : '',
@@ -29,21 +43,55 @@ const getRowClasses = (
 };
 
 // Helper function to get progress bar gradient
-const getProgressGradient = (infected: boolean): string => {
-  return infected 
-    ? 'linear-gradient(90deg, rgba(248,113,113,1) 0%, rgba(239,68,68,1) 100%)' 
-    : 'linear-gradient(90deg, rgba(45,212,191,1) 0%, rgba(13,148,136,1) 100%)';
+const getProgressGradient = (decisionState: DecisionState): string => {
+  if (decisionState === 'threat') {
+    return 'linear-gradient(90deg, rgba(248,113,113,1) 0%, rgba(239,68,68,1) 100%)';
+  }
+  if (decisionState === 'parse_failed') {
+    return 'linear-gradient(90deg, rgba(34,211,238,1) 0%, rgba(14,165,233,1) 100%)';
+  }
+  if (decisionState === 'detection_failed') {
+    return 'linear-gradient(90deg, rgba(251,191,36,1) 0%, rgba(245,158,11,1) 100%)';
+  }
+  return 'linear-gradient(90deg, rgba(45,212,191,1) 0%, rgba(13,148,136,1) 100%)';
 };
 
 // Helper function to get activity card class
 const getActivityCardClass = (
   isCurrentLog: boolean,
-  infected: boolean,
+  decisionState: DecisionState,
   activityTransformer: boolean
 ): string => {
   if (isCurrentLog) return 'border-vt-primary/50 bg-vt-primary/10';
-  if (infected || activityTransformer) return 'border-vt-error/40 bg-vt-error/10';
+  if (decisionState === 'threat' || activityTransformer) return 'border-vt-error/40 bg-vt-error/10';
+  if (decisionState === 'parse_failed') return 'border-vt-accent/40 bg-vt-accent/10';
+  if (decisionState === 'detection_failed') return 'border-vt-warning/40 bg-vt-warning/10';
   return 'border-vt-muted/20 bg-vt-muted/5';
+};
+
+const getDecisionBadge = (decisionState: DecisionState) => {
+  if (decisionState === 'threat') {
+    return {
+      label: 'Threat Detected',
+      className: 'bg-vt-error/20 text-vt-error border border-vt-error/30',
+    };
+  }
+  if (decisionState === 'parse_failed') {
+    return {
+      label: 'Parse Failed',
+      className: 'bg-vt-accent/20 text-vt-accent border border-vt-accent/30',
+    };
+  }
+  if (decisionState === 'detection_failed') {
+    return {
+      label: 'Detection Failed',
+      className: 'bg-vt-warning/20 text-vt-warning border border-vt-warning/30',
+    };
+  }
+  return {
+    label: 'Not Flagged',
+    className: 'bg-vt-success/20 text-vt-success border border-vt-success/30',
+  };
 };
 
 // Helper function to calculate threshold percentage above
@@ -184,10 +232,11 @@ const renderLogRow = (
   const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
   const transformerSequenceLength = log.anomaly_details?.transformer?.sequence_length ?? 0;
   const transformerContext = log.anomaly_details?.transformer?.context;
+  const decisionState = getDecisionState(log);
   const isFocused = props.focusedIp ? log.ipAddress === props.focusedIp : false;
   const relatedActivity = props.trailLookup.get(log.ipAddress) ?? [];
   const rowClasses = getRowClasses(
-    log.infected,
+    decisionState,
     props.expandedRow,
     index,
     isFocused,
@@ -195,54 +244,8 @@ const renderLogRow = (
     isTransformerAnomaly
   );
 
-  return { isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
+  return { decisionState, isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
 };
-
-export interface AnomalyDetails {
-  rule_based?: {
-    is_attack: boolean;
-    attack_types?: string[];
-    confidence: number;
-  };
-  isolation_forest?: {
-    is_anomaly: number;
-    score: number;
-    status?: string;
-  };
-  transformer?: {
-    is_anomaly: number;
-    score: number;
-    threshold?: number;
-    sequence_length?: number;
-    context?: string;
-    status?: string;
-  };
-  ensemble?: {
-    score: number;
-    votes?: {
-      rule: number;
-      iso: number;
-      transformer: number;
-    };
-    weights?: {
-      rule: number;
-      iso: number;
-      transformer: number;
-    };
-  };
-  transformer_ready?: boolean;
-  logs_processed?: number;
-}
-
-export interface LogEntry {
-  timestamp: string;
-  ipAddress: string;
-  apiAccessed: string;
-  statusCode: number;
-  infected: boolean;
-  anomaly_score?: number;
-  anomaly_details?: AnomalyDetails;
-}
 
 interface LogsTableProps {
   logs: LogEntry[];
@@ -344,7 +347,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                 Risk Score
               </th>
               <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
-                Threat
+                Decision
               </th>
               <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
                 Actions
@@ -365,8 +368,14 @@ const LogsTable: React.FC<LogsTableProps> = ({
                 handleCorrectLog,
               });
               
-              const { transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
+              const { decisionState, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
+              const decisionBadge = getDecisionBadge(decisionState);
               const rowKey = `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-${log.statusCode}`;
+              const anomalyDetails = log.anomaly_details;
+              const ruleBased = anomalyDetails?.rule_based;
+              const isolationForest = anomalyDetails?.isolation_forest;
+              const transformer = anomalyDetails?.transformer;
+              const ensemble = anomalyDetails?.ensemble;
 
               return (
                 <React.Fragment key={rowKey}>
@@ -378,9 +387,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
                       </svg>
                       <div 
                         className="text-xs sm:text-sm font-mono"
-                        style={{ color: log.infected ? 'var(--vt-error)' : 'var(--vt-text)' }}
+                        style={{ color: getStatusColor(decisionState, log.statusCode) }}
                       >
-                        {log.timestamp}
+                        {log.eventTime || log.timestamp}
                       </div>
                     </div>
                   </td>
@@ -391,7 +400,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                       </svg>
                       <div 
                         className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-vt-blue/40"
-                        style={{ color: log.infected ? 'var(--vt-error)' : 'var(--vt-text)' }}
+                        style={{ color: getStatusColor(decisionState, log.statusCode) }}
                       >
                         {log.ipAddress}
                       </div>
@@ -405,10 +414,22 @@ const LogsTable: React.FC<LogsTableProps> = ({
                   <td className="px-3 sm:px-4 lg:px-6 py-4 max-w-xs">
                     <div 
                       className="text-xs sm:text-sm font-mono break-all line-clamp-2 group-hover:line-clamp-none transition-all"
-                      style={{ color: log.infected ? 'var(--vt-error)' : 'var(--vt-muted)' }}
+                      style={{ color: decisionState === 'threat' ? 'var(--vt-error)' : 'var(--vt-muted)' }}
                       title={log.apiAccessed}
                     >
                       {log.apiAccessed}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wide">
+                      {log.incidentId && (
+                        <span className="rounded-full bg-vt-primary/10 px-2 py-1 text-vt-primary">
+                          Incident {log.incidentId.slice(0, 16)}
+                        </span>
+                      )}
+                      {log.normalizedTemplate && (
+                        <span className="rounded-full bg-vt-muted/10 px-2 py-1 text-vt-muted">
+                          Template
+                        </span>
+                      )}
                     </div>
                     {(highlightTransformerTrail && (transformerSequenceLength > 0 || transformerContext)) && (
                       <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-vt-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-vt-primary">
@@ -423,9 +444,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
                     <span 
                       className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-semibold"
                       style={{ 
-                        backgroundColor: log.infected ? 'rgba(248, 113, 113, 0.18)' : 'rgba(79, 141, 249, 0.18)',
-                        color: getStatusColor(log.infected, log.statusCode),
-                        border: `1px solid ${log.infected ? 'rgba(248, 113, 113, 0.32)' : 'rgba(79, 141, 249, 0.28)'}`
+                        backgroundColor: decisionState === 'threat' ? 'rgba(248, 113, 113, 0.18)' : decisionState === 'parse_failed' ? 'rgba(34, 211, 238, 0.18)' : decisionState === 'detection_failed' ? 'rgba(251, 191, 36, 0.18)' : 'rgba(79, 141, 249, 0.18)',
+                        color: getStatusColor(decisionState, log.statusCode),
+                        border: `1px solid ${decisionState === 'threat' ? 'rgba(248, 113, 113, 0.32)' : decisionState === 'parse_failed' ? 'rgba(34,211,238,0.32)' : decisionState === 'detection_failed' ? 'rgba(251,191,36,0.32)' : 'rgba(79, 141, 249, 0.28)'}`
                       }}
                     >
                       {getStatusIcon(log.statusCode)}
@@ -439,49 +460,23 @@ const LogsTable: React.FC<LogsTableProps> = ({
                           className="h-full rounded-full transition-all duration-500 shadow-sm"
                           style={{
                             width: `${Math.min((log.anomaly_score || 0) * 100, 100)}%`,
-                            background: getProgressGradient(log.infected),
+                            background: getProgressGradient(decisionState),
                           }}
                         ></div>
                       </div>
                       <span 
                         className="text-xs font-mono font-semibold min-w-[3rem] text-right px-2 py-1 rounded bg-vt-blue/30 flex-shrink-0"
-                        style={{ color: log.infected ? 'var(--vt-error)' : 'var(--vt-success)' }}
+                        style={{ color: decisionState === 'clean' ? 'var(--vt-success)' : getStatusColor(decisionState, log.statusCode) }}
                       >
                         {((log.anomaly_score || 0) * 100).toFixed(1)}%
                       </span>
                     </div>
                   </td>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
-                    {log.infected ? (
-                      <span 
-                        className="inline-flex items-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
-                        style={{ 
-                          backgroundColor: 'rgba(248, 113, 113, 0.16)', 
-                          color: 'var(--vt-error)',
-                          border: '1px solid rgba(248, 113, 113, 0.32)'
-                        }}
-                      >
-                        <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span className="hidden sm:inline">Threat Detected</span>
-                        <span className="sm:hidden">Threat</span>
-                      </span>
-                    ) : (
-                      <span 
-                        className="inline-flex items-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
-                        style={{ 
-                          backgroundColor: 'rgba(34, 211, 166, 0.18)', 
-                          color: 'var(--vt-success)',
-                          border: '1px solid rgba(34, 211, 166, 0.32)'
-                        }}
-                      >
-                        <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        Safe
-                      </span>
-                    )}
+                    <span className={`inline-flex items-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${decisionBadge.className}`}>
+                      <span className="hidden sm:inline">{decisionBadge.label}</span>
+                      <span className="sm:hidden">{decisionState === 'threat' ? 'Threat' : decisionState === 'parse_failed' ? 'Parse' : decisionState === 'detection_failed' ? 'Detect' : 'Clean'}</span>
+                    </span>
                   </td>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
                     <ActionButtons
@@ -497,18 +492,46 @@ const LogsTable: React.FC<LogsTableProps> = ({
                     />
                   </td>
                 </tr>
-                {expandedRow === index && log.anomaly_details && (
+                {expandedRow === index && (
                   <tr className="bg-gradient-to-r from-vt-blue/20 to-transparent animate-slide-down">
                     <td colSpan={7} className="px-3 sm:px-4 lg:px-6 py-6">
                       <div className="space-y-6">
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-1 h-6 bg-gradient-to-b from-vt-primary to-vt-success rounded-full"></div>
-                          <h4 className="text-lg font-bold text-vt-light">Ensemble Model Analysis</h4>
-                          {log.anomaly_details.logs_processed && (
+                          <h4 className="text-lg font-bold text-vt-light">Detection Details</h4>
+                          {anomalyDetails?.logs_processed && (
                             <span className="ml-auto text-xs text-vt-muted px-3 py-1 glass rounded-lg">
-                              Total Logs Processed: {log.anomaly_details.logs_processed.toLocaleString()}
+                              Total Logs Processed: {anomalyDetails.logs_processed.toLocaleString()}
                             </span>
                           )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                          <div className="glass rounded-xl p-4 border border-vt-primary/20">
+                            <div className="text-xs text-vt-muted mb-1">Decision State</div>
+                            <div className="text-sm font-semibold text-vt-light">{decisionBadge.label}</div>
+                            <div className="text-xs text-vt-muted mt-2">Incident</div>
+                            <div className="font-mono text-xs text-vt-primary break-all">{log.incidentId || 'None'}</div>
+                          </div>
+                          <div className="glass rounded-xl p-4 border border-vt-primary/20">
+                            <div className="text-xs text-vt-muted mb-1">Parse / Detect</div>
+                            <div className="text-sm font-semibold text-vt-light">{log.parseStatus || 'unknown'} / {log.detectionStatus || 'unknown'}</div>
+                            {(log.parseError || log.detectionError) && (
+                              <div className="text-xs text-vt-warning mt-2 break-all">{log.parseError || log.detectionError}</div>
+                            )}
+                          </div>
+                          <div className="glass rounded-xl p-4 border border-vt-primary/20">
+                            <div className="text-xs text-vt-muted mb-1">Model Path</div>
+                            <div className="text-sm font-semibold text-vt-light">{log.modelType || 'unknown'} / {log.detectorPhase || 'unknown'}</div>
+                            <div className="text-xs text-vt-muted mt-2">Version</div>
+                            <div className="font-mono text-xs text-vt-primary break-all">{log.modelVersion || 'unknown'}</div>
+                          </div>
+                          <div className="glass rounded-xl p-4 border border-vt-primary/20">
+                            <div className="text-xs text-vt-muted mb-1">Template</div>
+                            <div className="font-mono text-xs text-vt-light break-all">{log.normalizedTemplate || 'N/A'}</div>
+                            <div className="text-xs text-vt-muted mt-2">Raw Score</div>
+                            <div className="text-sm font-semibold text-vt-light">{((log.rawAnomalyScore ?? log.anomaly_score ?? 0) * 100).toFixed(1)}%</div>
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -524,36 +547,36 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <h5 className="text-xs font-bold text-vt-light uppercase tracking-wide">Rule-Based</h5>
                               </div>
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm ${
-                                log.anomaly_details.rule_based?.is_attack 
+                                ruleBased?.is_attack 
                                   ? 'bg-vt-error/20 text-vt-error border border-vt-error/30' 
                                   : 'bg-vt-success/20 text-vt-success border border-vt-success/30'
                               }`}>
-                                {log.anomaly_details.rule_based?.is_attack ? '⚠ Attack' : '✓ Clean'}
+                                {ruleBased?.is_attack ? '⚠ Attack' : '✓ Clean'}
                               </span>
                             </div>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-vt-muted">Confidence</span>
                                 <span className="text-vt-light font-mono font-semibold">
-                                  {((log.anomaly_details.rule_based?.confidence || 0) * 100).toFixed(1)}%
+                                  {((ruleBased?.confidence || 0) * 100).toFixed(1)}%
                                 </span>
                               </div>
                               <div className="w-full bg-vt-muted/20 rounded-full h-2 overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all duration-500"
                                   style={{
-                                    width: `${(log.anomaly_details.rule_based?.confidence || 0) * 100}%`,
-                                    background: log.anomaly_details.rule_based?.is_attack 
+                                    width: `${(ruleBased?.confidence || 0) * 100}%`,
+                                    background: ruleBased?.is_attack 
                                       ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                       : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
                                   }}
                                 ></div>
                               </div>
-                              {log.anomaly_details.rule_based?.attack_types && log.anomaly_details.rule_based.attack_types.length > 0 && (
+                              {ruleBased?.attack_types && ruleBased.attack_types.length > 0 && (
                                 <div className="pt-3 border-t border-vt-muted/20">
                                   <span className="text-xs font-semibold text-vt-muted mb-2 block">Detected Attacks</span>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {log.anomaly_details.rule_based.attack_types.map((type: string) => (
+                                    {ruleBased.attack_types.map((type: string) => (
                                       <span 
                                         key={`${log.timestamp}-${log.ipAddress}-${type}`}
                                         className="px-2.5 py-1 bg-vt-error/20 text-vt-error rounded-lg text-xs font-semibold border border-vt-error/30"
@@ -579,34 +602,34 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <h5 className="text-xs font-bold text-vt-light uppercase tracking-wide">Isolation Forest</h5>
                               </div>
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm ${
-                                log.anomaly_details.isolation_forest?.is_anomaly === 1
+                                isolationForest?.is_anomaly === 1
                                   ? 'bg-vt-error/20 text-vt-error border border-vt-error/30' 
                                   : 'bg-vt-success/20 text-vt-success border border-vt-success/30'
                               }`}>
-                                {log.anomaly_details.isolation_forest?.is_anomaly === 1 ? '⚠ Anomaly' : '✓ Normal'}
+                                {isolationForest?.is_anomaly === 1 ? '⚠ Anomaly' : '✓ Normal'}
                               </span>
                             </div>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-vt-muted">Score</span>
                                 <span className="text-vt-light font-mono font-semibold">
-                                  {(log.anomaly_details.isolation_forest?.score || 0).toFixed(3)}
+                                  {(isolationForest?.score || 0).toFixed(3)}
                                 </span>
                               </div>
                               <div className="w-full bg-vt-muted/20 rounded-full h-2 overflow-hidden border border-vt-muted/30">
                                 <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm"
                                   style={{
-                                    width: `${Math.min((log.anomaly_details.isolation_forest?.score || 0) * 20, 100)}%`,
-                                    background: log.anomaly_details.isolation_forest?.is_anomaly === 1 
+                                    width: `${Math.min((isolationForest?.score || 0) * 20, 100)}%`,
+                                    background: isolationForest?.is_anomaly === 1 
                                       ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                       : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
                                   }}
                                 ></div>
                               </div>
-                              {log.anomaly_details.isolation_forest?.status && (
+                              {isolationForest?.status && (
                                 <div className="pt-2">
-                                  <span className="text-xs text-vt-muted">Status: {log.anomaly_details.isolation_forest.status}</span>
+                                  <span className="text-xs text-vt-muted">Status: {isolationForest.status}</span>
                                 </div>
                               )}
                             </div>
@@ -624,25 +647,25 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <h5 className="text-xs font-bold text-vt-light uppercase tracking-wide">Transformer</h5>
                               </div>
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm ${
-                                log.anomaly_details.transformer?.is_anomaly === 1
+                                transformer?.is_anomaly === 1
                                   ? 'bg-vt-error/20 text-vt-error border border-vt-error/30' 
                                   : 'bg-vt-success/20 text-vt-success border border-vt-success/30'
                               }`}>
-                                {log.anomaly_details.transformer?.is_anomaly === 1 ? '⚠ Anomaly' : '✓ Normal'}
+                                {transformer?.is_anomaly === 1 ? '⚠ Anomaly' : '✓ Normal'}
                               </span>
                             </div>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-vt-muted">NLL Score</span>
                                 <span className="text-vt-light font-mono font-semibold">
-                                  {(log.anomaly_details.transformer?.score || 0).toFixed(3)}
+                                  {(transformer?.score || 0).toFixed(3)}
                                 </span>
                               </div>
-                              {log.anomaly_details.transformer?.threshold && (
+                              {transformer?.threshold && (
                                 <div className="flex justify-between items-center text-sm">
                                   <span className="text-vt-muted">Threshold</span>
                                   <span className="text-vt-light font-mono font-semibold">
-                                    {log.anomaly_details.transformer.threshold.toFixed(3)}
+                                    {transformer.threshold.toFixed(3)}
                                   </span>
                                 </div>
                               )}
@@ -650,32 +673,32 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm"
                                   style={{
-                                    width: `${Math.min((log.anomaly_details.transformer?.score || 0) * 10, 100)}%`,
-                                    background: log.anomaly_details.transformer?.is_anomaly === 1 
+                                    width: `${Math.min((transformer?.score || 0) * 10, 100)}%`,
+                                    background: transformer?.is_anomaly === 1 
                                       ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                       : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
                                   }}
                                 ></div>
                               </div>
-                              {(log.anomaly_details.transformer?.sequence_length || log.anomaly_details.transformer?.context) && (
+                              {(transformer?.sequence_length || transformer?.context) && (
                                 <div className="pt-3 border-t border-vt-muted/20 space-y-2">
-                                  {log.anomaly_details.transformer.sequence_length && (
+                                  {transformer?.sequence_length && (
                                     <div className="flex justify-between items-center text-xs">
                                       <span className="text-vt-muted">Sequence Length</span>
-                                      <span className="text-vt-light font-mono">{log.anomaly_details.transformer.sequence_length}</span>
+                                      <span className="text-vt-light font-mono">{transformer.sequence_length}</span>
                                     </div>
                                   )}
-                                  {log.anomaly_details.transformer.context && (
+                                  {transformer?.context && (
                                     <div className="flex justify-between items-center text-xs">
                                       <span className="text-vt-muted">Context</span>
-                                      <span className="text-vt-primary font-semibold">{log.anomaly_details.transformer.context}</span>
+                                      <span className="text-vt-primary font-semibold">{transformer.context}</span>
                                     </div>
                                   )}
                                 </div>
                               )}
-                              {log.anomaly_details.transformer?.status && (
+                              {transformer?.status && (
                                 <div className="pt-2">
-                                  <span className="text-xs text-vt-muted">Status: {log.anomaly_details.transformer.status}</span>
+                                  <span className="text-xs text-vt-muted">Status: {transformer.status}</span>
                                 </div>
                               )}
                             </div>
@@ -683,7 +706,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                         </div>
 
                         {/* Ensemble Voting */}
-                        {log.anomaly_details.ensemble && (
+                        {ensemble && (
                           <div className="glass-strong rounded-xl p-4 sm:p-6 border border-vt-primary/40 shadow-lg">
                             <div className="flex items-center gap-3 mb-5">
                               <div className="w-10 h-10 bg-gradient-to-br from-vt-primary to-vt-success rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
@@ -701,7 +724,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                     <div
                                       className="h-full rounded-full transition-all duration-500 shadow-sm"
                                       style={{
-                                        width: `${(log.anomaly_details.ensemble.score * 100)}%`,
+                                        width: `${(ensemble.score * 100)}%`,
                                         background: log.infected 
                                           ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                           : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
@@ -709,25 +732,25 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                     ></div>
                                   </div>
                                   <span className="text-lg font-mono font-bold flex-shrink-0" style={{ color: log.infected ? '#e94560' : '#10B981' }}>
-                                    {(log.anomaly_details.ensemble.score * 100).toFixed(1)}%
+                                    {(ensemble.score * 100).toFixed(1)}%
                                   </span>
                                 </div>
                               </div>
-                              {log.anomaly_details.ensemble.votes && (
+                              {ensemble.votes && (
                                 <div>
                                   <span className="text-xs font-semibold text-vt-muted mb-3 block">Model Voting</span>
                                   <div className="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div className="glass rounded-lg px-2 sm:px-3 py-2 text-center border border-vt-primary/30">
                                       <div className="text-xs text-vt-muted mb-1">Rule</div>
-                                      <div className="text-base sm:text-lg font-bold text-vt-primary">{log.anomaly_details.ensemble.votes.rule}</div>
+                                      <div className="text-base sm:text-lg font-bold text-vt-primary">{ensemble.votes.rule}</div>
                                     </div>
                                     <div className="glass rounded-lg px-2 sm:px-3 py-2 text-center border border-vt-warning/30">
                                       <div className="text-xs text-vt-muted mb-1">ISO</div>
-                                      <div className="text-base sm:text-lg font-bold text-vt-warning">{(log.anomaly_details.ensemble.votes.iso || 0).toFixed(2)}</div>
+                                      <div className="text-base sm:text-lg font-bold text-vt-warning">{(ensemble.votes.iso || 0).toFixed(2)}</div>
                                     </div>
                                     <div className="glass rounded-lg px-2 sm:px-3 py-2 text-center border border-vt-success/30">
                                       <div className="text-xs text-vt-muted mb-1">Trans</div>
-                                      <div className="text-base sm:text-lg font-bold text-vt-success">{(log.anomaly_details.ensemble.votes.transformer || 0).toFixed(2)}</div>
+                                      <div className="text-base sm:text-lg font-bold text-vt-success">{(ensemble.votes.transformer || 0).toFixed(2)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -737,7 +760,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                         )}
 
                         {/* Transformer Deep Dive - Only show if transformer detected anomaly */}
-                        {log.anomaly_details.transformer?.is_anomaly === 1 && log.anomaly_details.transformer_ready && (
+                        {transformer?.is_anomaly === 1 && anomalyDetails?.transformer_ready && (
                           <div className="glass-strong rounded-xl p-4 sm:p-6 border border-vt-error/40 shadow-lg bg-vt-error/5">
                             <div className="flex items-center gap-3 mb-5">
                               <div className="w-10 h-10 bg-gradient-to-br from-vt-error to-vt-warning rounded-xl flex items-center justify-center shadow-md flex-shrink-0 animate-pulse">
@@ -755,7 +778,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                               <div className="glass rounded-lg p-4 border border-vt-error/30">
                                 <div className="text-xs text-vt-muted mb-1">Anomaly Score</div>
                                 <div className="text-2xl font-bold text-vt-error font-mono">
-                                  {(log.anomaly_details.transformer.score || 0).toFixed(3)}
+                                  {(transformer.score || 0).toFixed(3)}
                                 </div>
                                 <div className="text-xs text-vt-muted mt-1">NLL Value</div>
                               </div>
@@ -763,12 +786,12 @@ const LogsTable: React.FC<LogsTableProps> = ({
                               <div className="glass rounded-lg p-4 border border-vt-warning/30">
                                 <div className="text-xs text-vt-muted mb-1">Threshold</div>
                                 <div className="text-2xl font-bold text-vt-warning font-mono">
-                                  {(log.anomaly_details.transformer.threshold || 0).toFixed(3)}
+                                  {(transformer.threshold || 0).toFixed(3)}
                                 </div>
                                 <div className="text-xs text-vt-muted mt-1">
                                   {calculateThresholdPercentage(
-                                    log.anomaly_details.transformer.score || 0,
-                                    log.anomaly_details.transformer.threshold || 0
+                                    transformer.score || 0,
+                                    transformer.threshold || 0
                                   )}
                                 </div>
                               </div>
@@ -776,7 +799,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                               <div className="glass rounded-lg p-4 border border-vt-primary/30">
                                 <div className="text-xs text-vt-muted mb-1">Sequence Length</div>
                                 <div className="text-2xl font-bold text-vt-primary font-mono">
-                                  {log.anomaly_details.transformer.sequence_length || 0}
+                                  {transformer.sequence_length || 0}
                                 </div>
                                 <div className="text-xs text-vt-muted mt-1">Log Templates</div>
                               </div>
@@ -784,10 +807,10 @@ const LogsTable: React.FC<LogsTableProps> = ({
                               <div className="glass rounded-lg p-4 border border-vt-success/30">
                                 <div className="text-xs text-vt-muted mb-1">Context Type</div>
                                 <div className="text-base font-bold text-vt-success uppercase tracking-wide mt-2">
-                                  {log.anomaly_details.transformer.context || 'N/A'}
+                                  {transformer.context || 'N/A'}
                                 </div>
                                 <div className="text-xs text-vt-muted mt-1">
-                                  {log.anomaly_details.transformer.sequence_length === 1 ? 'Single Log' : 'Sequential Batch'}
+                                  {transformer.sequence_length === 1 ? 'Single Log' : 'Sequential Batch'}
                                 </div>
                               </div>
                             </div>
@@ -800,9 +823,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div className="text-xs text-vt-light leading-relaxed">
                                   <strong className="text-vt-primary">Why flagged:</strong> The transformer model analyzes the sequence of recent log templates from this IP address. 
                                   A high NLL score (above threshold) indicates this log's pattern is unusual compared to training data, suggesting potential attack behavior or anomalous access patterns.
-                                  {log.anomaly_details.transformer.sequence_length && log.anomaly_details.transformer.sequence_length > 1 && (
+                                  {transformer.sequence_length && transformer.sequence_length > 1 && (
                                     <span className="block mt-2">
-                                      <strong className="text-vt-warning">Batch Context:</strong> Analyzed within a sequence of {log.anomaly_details.transformer.sequence_length} logs, 
+                                      <strong className="text-vt-warning">Batch Context:</strong> Analyzed within a sequence of {transformer.sequence_length} logs, 
                                       providing deeper contextual understanding than single-log analysis.
                                     </span>
                                   )}
@@ -825,12 +848,13 @@ const LogsTable: React.FC<LogsTableProps> = ({
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {relatedActivity.slice(0, 6).map((activity, idx) => {
                               const activityTransformer = activity.anomaly_details?.transformer?.is_anomaly === 1;
+                              const activityDecision = getDecisionState(activity);
                               const isCurrentLog =
                                 activity.timestamp === log.timestamp &&
                                 activity.apiAccessed === log.apiAccessed &&
                                 activity.statusCode === log.statusCode;
                               
-                              const cardClass = getActivityCardClass(isCurrentLog, activity.infected, activityTransformer);
+                              const cardClass = getActivityCardClass(isCurrentLog, activityDecision, activityTransformer);
                               
                               return (
                                 <div
@@ -839,13 +863,13 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 >
                                   <div className="flex items-center justify-between gap-2">
                                     <span className="text-[11px] font-mono text-vt-muted">{activity.timestamp}</span>
-                                    <span className={`text-[11px] font-semibold ${activity.infected ? 'text-vt-error' : 'text-vt-muted'}`}>
+                                    <span className="text-[11px] font-semibold" style={{ color: getStatusColor(activityDecision, activity.statusCode) }}>
                                       {activity.statusCode}
                                     </span>
                                   </div>
                                   <div className="mt-1 text-xs text-vt-light font-mono break-all">{activity.apiAccessed}</div>
                                   <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-wide">
-                                    {activity.infected && (
+                                    {activityDecision === 'threat' && (
                                       <span className="inline-flex items-center gap-1 text-vt-error">
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
@@ -861,6 +885,8 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                         Transformer
                                       </span>
                                     )}
+                                    {activityDecision === 'parse_failed' && <span className="text-vt-accent">Parse Failed</span>}
+                                    {activityDecision === 'detection_failed' && <span className="text-vt-warning">Detection Failed</span>}
                                     <span className="text-vt-muted">{((activity.anomaly_score || 0) * 100).toFixed(1)}%</span>
                                   </div>
                                 </div>

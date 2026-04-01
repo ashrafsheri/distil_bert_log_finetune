@@ -28,12 +28,29 @@ class LogSerializer:
 
             log_entry = LogEntry(
                 timestamp=log_data.get("timestamp", ""),
+                eventTime=log_data.get("event_time") or log_data.get("timestamp"),
+                ingestTime=log_data.get("ingest_time") or log_data.get("created_at"),
                 ipAddress=log_data.get("ip_address", ""),
                 apiAccessed=log_data.get("api_accessed", ""),
                 statusCode=log_data.get("status_code", 0),
                 infected=log_data.get("infected", False),
                 anomaly_score=log_data.get("anomaly_score"),
-                anomaly_details=anomaly_details_obj
+                anomaly_details=anomaly_details_obj,
+                org_id=log_data.get("org_id"),
+                parseStatus=log_data.get("parse_status"),
+                parseError=log_data.get("parse_error"),
+                detectionStatus=log_data.get("detection_status"),
+                detectionError=log_data.get("detection_error"),
+                incidentId=log_data.get("incident_id"),
+                incidentType=log_data.get("incident_type"),
+                normalizedTemplate=log_data.get("normalized_template"),
+                sessionKeyHash=log_data.get("session_key_hash"),
+                modelVersion=log_data.get("model_version"),
+                featureSchemaVersion=log_data.get("feature_schema_version"),
+                detectorPhase=log_data.get("detector_phase"),
+                modelType=log_data.get("model_type"),
+                rawAnomalyScore=log_data.get("raw_anomaly_score"),
+                calibration=log_data.get("calibration"),
             )
             logs.append(log_entry)
         return logs
@@ -43,6 +60,9 @@ class LogSerializer:
         logs_data: List[Dict[str, Any]],
         total_count: int,
         infected_count: int | None = None,
+        parse_failure_count: int = 0,
+        detection_failure_count: int = 0,
+        incident_count: int = 0,
     ) -> LogEntryResponse:
         """Build LogEntryResponse from raw Elasticsearch data"""
         logs = LogSerializer.convert_elasticsearch_logs_to_entries(logs_data)
@@ -59,6 +79,9 @@ class LogSerializer:
             infected_count=aggregate_infected_count,
             safe_count=safe_count,
             threat_rate=threat_rate,
+            parse_failure_count=parse_failure_count,
+            detection_failure_count=detection_failure_count,
+            incident_count=incident_count,
         )
 
     @staticmethod

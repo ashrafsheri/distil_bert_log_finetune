@@ -6,6 +6,7 @@ on:
     paths:
       - backend/**
       - frontend/**
+      - k8s/**
       - realtime_anomaly_detection/**
       - .github/workflows/**
 

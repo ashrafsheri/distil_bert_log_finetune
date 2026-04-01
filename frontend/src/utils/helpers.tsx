@@ -1,4 +1,4 @@
-import { LogEntry } from '../components/LogsTable';
+import { LogEntry } from '../services/logService';
 
 export const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
