@@ -125,7 +125,7 @@ async def websocket_endpoint(
     
     try:
         # Verify Firebase token
-        user_info = await verify_firebase_token(token)
+        user_info = verify_firebase_token(token)
         logger.info("WebSocket authentication succeeded")
     except HTTPException as e:
         logger.warning("WebSocket connection rejected: invalid token")

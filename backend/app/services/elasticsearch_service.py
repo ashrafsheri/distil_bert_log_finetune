@@ -16,6 +16,7 @@ from app.utils.runtime_metrics import runtime_metrics
 
 logger = logging.getLogger(__name__)
 ORG_ID_KEYWORD = "org_id.keyword"
+PROJECT_ID_KEYWORD = "project_id.keyword"
 INFECTED_COUNT_AGG = "infected_count"
 PARSE_FAILURE_COUNT_AGG = "parse_failure_count"
 DETECTION_FAILURE_COUNT_AGG = "detection_failure_count"
@@ -199,12 +200,19 @@ class ElasticsearchService:
             return False
 
 
-    async def get_logs(self, org_id: Optional[str], limit: int = 100, offset: int = 0) -> Dict:
+    async def get_logs(
+        self,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict:
         """
         Retrieve logs from Elasticsearch
         
         Args:
             org_id: Organization ID to filter logs
+            project_id: Project ID to filter logs
             limit: Maximum number of logs to return
             offset: Number of logs to skip
             
@@ -219,6 +227,8 @@ class ElasticsearchService:
             must_clauses = []
             if org_id:
                 must_clauses.append({"term": {ORG_ID_KEYWORD: org_id}})
+            if project_id:
+                must_clauses.append({"term": {PROJECT_ID_KEYWORD: project_id}})
             
             query = {
                 "query": {
@@ -248,7 +258,7 @@ class ElasticsearchService:
                         },
                         "aggs": {
                             "incident_ids": {
-                                "cardinality": {"field": "incident_id"}
+                                "cardinality": {"field": "incident_id.keyword"}
                             }
                         }
                     }
@@ -296,7 +306,8 @@ class ElasticsearchService:
 
     async def search_logs(
         self,
-        org_id: str,
+        org_id: Optional[str] = None,
+        project_id: Optional[str] = None,
         ip: Optional[str] = None,
         api: Optional[str] = None,
         status_code: Optional[int] = None,
@@ -322,7 +333,12 @@ class ElasticsearchService:
             return {"logs": [], "total": 0, "infected_count": 0, "offset": offset, "limit": limit}
 
         try:
-            must_clauses: List[Dict] = [{"term": {ORG_ID_KEYWORD: org_id}}]
+            must_clauses: List[Dict] = []
+
+            if org_id:
+                must_clauses.append({"term": {ORG_ID_KEYWORD: org_id}})
+            if project_id:
+                must_clauses.append({"term": {PROJECT_ID_KEYWORD: project_id}})
 
             if ip:
                 must_clauses.append({"term": {"ip_address": ip}})
@@ -380,7 +396,7 @@ class ElasticsearchService:
                         },
                         "aggs": {
                             "incident_ids": {
-                                "cardinality": {"field": "incident_id"}
+                                "cardinality": {"field": "incident_id.keyword"}
                             }
                         }
                     }
