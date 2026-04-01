@@ -61,7 +61,7 @@ async def _resolve_log_scope(
     db: AsyncSession,
     *,
     missing_org_detail: str,
-) -> str | None:
+) -> tuple[str | None, str | None]:
     from app.services.project_service import ProjectService
 
     project_service = ProjectService()
@@ -78,15 +78,15 @@ async def _resolve_log_scope(
         project = await project_service.get_project_by_id(project_id, db)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        return project_id
+        return project.org_id, project_id
 
     if current_user.get("role") == "admin":
-        return None
+        return None, None
 
     org_id = current_user.get("org_id")
     if not org_id:
         raise HTTPException(status_code=403, detail=missing_org_detail)
-    return org_id
+    return org_id, None
 
 
 def _build_search_window(from_date: str | None, to_date: str | None) -> tuple[str | None, str | None]:
@@ -174,7 +174,7 @@ async def _resolve_report_scope(
     request: GenerateReportRequest,
     current_user: dict[str, Any],
     db: AsyncSession,
-) -> tuple[str | None, str, str | None]:
+) -> tuple[str | None, str | None, str, str | None]:
     from app.services.project_service import ProjectService
 
     project_service = ProjectService()
@@ -200,7 +200,7 @@ async def _resolve_report_scope(
                 detail="You don't have permission to generate a report for this project"
             )
 
-        return request.project_id, "project", project.name
+        return project.org_id, request.project_id, "project", project.name
 
     org_id = current_user.get("org_id")
     if not org_id and current_user.get("role") != "admin":
@@ -208,7 +208,7 @@ async def _resolve_report_scope(
             status_code=403,
             detail="Please select a project or ensure your account belongs to an organization"
         )
-    return org_id, "organization", None
+    return org_id, None, "organization", None
 
 @router.get(
     "/fetch",
@@ -239,7 +239,7 @@ async def fetch_logs(
         LogEntryResponse: List of logs with WebSocket ID for real-time updates
     """
     try:
-        org_id_filter = await _resolve_log_scope(
+        org_id_filter, project_id_filter = await _resolve_log_scope(
             current_user,
             project_id,
             db,
@@ -252,7 +252,12 @@ async def fetch_logs(
         logger.info("Fetching logs with limit=%s offset=%s", safe_limit, safe_offset)
         
         # Fetch logs from Elasticsearch with pagination
-        result = await elasticsearch_service.get_logs(org_id=org_id_filter, limit=safe_limit, offset=safe_offset)
+        result = await elasticsearch_service.get_logs(
+            org_id=org_id_filter,
+            project_id=project_id_filter,
+            limit=safe_limit,
+            offset=safe_offset,
+        )
         logger.info("Fetched %s logs", len(result.get("logs", [])))
         
         return LogSerializer.build_log_response(
@@ -303,7 +308,7 @@ async def search_logs(
     Only accessible to admin and manager roles (enforced via RBAC).
     """
     try:
-        org_id_filter = await _resolve_log_scope(
+        org_id_filter, project_id_filter = await _resolve_log_scope(
             current_user,
             project_id,
             db,
@@ -317,6 +322,7 @@ async def search_logs(
         safe_offset = max(offset, 0)
         result = await elasticsearch_service.search_logs(
             org_id=org_id_filter,
+            project_id=project_id_filter,
             ip=ip,
             api=api,
             status_code=status_code,
@@ -375,7 +381,7 @@ async def export_logs_to_csv(
     Supports the same filters as search endpoint.
     """
     try:
-        org_id_filter = await _resolve_log_scope(
+        org_id_filter, project_id_filter = await _resolve_log_scope(
             current_user,
             project_id,
             db,
@@ -388,6 +394,7 @@ async def export_logs_to_csv(
         # Get all matching logs (up to 10000 for export)
         result = await elasticsearch_service.search_logs(
             org_id=org_id_filter,
+            project_id=project_id_filter,
             ip=ip,
             api=api,
             status_code=status_code,
@@ -572,7 +579,8 @@ async def receive_fluent_bit_logs(
                     LogService.format_parse_failure_for_storage(
                         raw_log=None,
                         batch_id=batch_id,
-                        org_id=project_id,
+                        org_id=project.org_id,
+                        project_id=project.id,
                         event_time=event_time,
                         parse_error=extraction_error or "missing_raw_log",
                         source_record=candidate.get("record"),
@@ -592,7 +600,8 @@ async def receive_fluent_bit_logs(
                     LogService.format_parse_failure_for_storage(
                         raw_log=raw_log,
                         batch_id=batch_id,
-                        org_id=project_id,
+                        org_id=project.org_id,
+                        project_id=project.id,
                         event_time=event_time,
                         parse_error=parse_error or extraction_error or "parse_failed",
                         source_record=candidate.get("record"),
@@ -694,7 +703,7 @@ async def receive_fluent_bit_logs(
         }
         
         # Query IP table for status overrides
-        ip_status_map = await LogService.get_ip_status_map(unique_ips, project_id, db)
+        ip_status_map = await LogService.get_ip_status_map(unique_ips, project.org_id, db)
         
         for index, event in enumerate(structured_events):
             anomaly_result = detection_results[index] if index < len(detection_results) else {
@@ -718,7 +727,8 @@ async def receive_fluent_bit_logs(
                     anomaly_result,
                     ip_status_map,
                     batch_id,
-                    project_id,
+                    project.org_id,
+                    project.id,
                     session_key_hash=event["session_key_hash"],
                     parse_status="parsed",
                     parse_error=None,
@@ -743,7 +753,7 @@ async def receive_fluent_bit_logs(
                 return response
             
             # Send logs to WebSocket connections for real-time updates (filtered by project_id)
-            await LogService.send_logs_to_websocket(processed_logs, org_id=project_id, project_id=project_id)
+            await LogService.send_logs_to_websocket(processed_logs, org_id=project.org_id, project_id=project.id)
             
             # Increment project log count for warmup tracking
             model_phase = None
@@ -815,7 +825,7 @@ async def generate_security_report(
             )
 
         _validate_report_window(start_dt, end_dt)
-        filter_id, report_scope, project_name = await _resolve_report_scope(
+        org_id_filter, project_id_filter, report_scope, project_name = await _resolve_report_scope(
             request,
             current_user,
             db,
@@ -826,7 +836,8 @@ async def generate_security_report(
         # Generate PDF report
         pdf_buffer = await report_service.generate_security_report(
             elasticsearch_service=elasticsearch_service,
-            org_id=filter_id,
+            org_id=org_id_filter,
+            project_id=project_id_filter,
             start_time=start_dt,
             end_time=end_dt,
             user_uid=current_user.get("uid")
@@ -834,7 +845,7 @@ async def generate_security_report(
 
         # Build a descriptive filename
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        scope_label = project_name or filter_id or "all"
+        scope_label = project_name or project_id_filter or org_id_filter or "all"
         filename = f"security_report_{scope_label}_{timestamp}.pdf"
 
         logger.info("Successfully generated report: %s", filename)

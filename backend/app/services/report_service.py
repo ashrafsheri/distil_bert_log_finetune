@@ -74,7 +74,8 @@ class ReportService:
     async def generate_security_report(
         self,
         elasticsearch_service,
-        org_id: str,
+        org_id: Optional[str],
+        project_id: Optional[str],
         start_time: datetime,
         end_time: datetime,
         user_uid: Optional[str] = None
@@ -85,6 +86,7 @@ class ReportService:
         Args:
             elasticsearch_service: Elasticsearch service instance
             org_id: Organization ID
+            project_id: Project ID
             start_time: Start datetime for the report
             end_time: End datetime for the report
             user_uid: User UID (for dummy data generation if needed)
@@ -92,6 +94,7 @@ class ReportService:
         Returns:
             BytesIO object containing the PDF
         """
+
         # Calculate duration in hours
         duration = end_time - start_time
         duration_hours = int(duration.total_seconds() / 3600)
@@ -100,6 +103,7 @@ class ReportService:
         logs_data = await self._fetch_logs_data(
             elasticsearch_service,
             org_id,
+            project_id,
             start_time,
             end_time
         )
@@ -141,7 +145,8 @@ class ReportService:
     async def _fetch_logs_data(
         self,
         elasticsearch_service,
-        org_id: str,
+        org_id: Optional[str],
+        project_id: Optional[str],
         start_time: datetime,
         end_time: datetime
     ) -> List[Dict[str, Any]]:
@@ -150,6 +155,7 @@ class ReportService:
             # Query Elasticsearch for logs in the time range
             result = await elasticsearch_service.search_logs(
                 org_id=org_id,
+                project_id=project_id,
                 from_datetime=start_time.isoformat(),
                 to_datetime=end_time.isoformat(),
                 limit=10000  # Adjust based on expected volume

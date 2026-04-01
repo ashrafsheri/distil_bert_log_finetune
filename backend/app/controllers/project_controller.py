@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 from app.models.project import (
-    ProjectCreate, ProjectResponse, ProjectSummary, ProjectHealthSummary, ProjectUpdate,
+    ProjectCreate, ProjectResponse, ProjectSummary, ProjectUpdate,
     RegenerateApiKeyRequest, RegenerateApiKeyResponse,
     UpdateLogTypeRequest, UpdateLogTypeResponse
 )
@@ -19,7 +19,6 @@ from app.models.project_member import (
 )
 from app.services.project_service import ProjectService
 from app.services.project_member_service import ProjectMemberService
-from app.services.anomaly_detection_service import AnomalyDetectionService
 from app.utils.database import get_db
 from app.utils.firebase_auth import get_current_user
 from app.utils.permissions import check_permission
@@ -53,11 +52,6 @@ PROJECT_GET_RESPONSES = {
     403: {"description": PROJECT_ACCESS_DENIED},
     404: {"description": PROJECT_NOT_FOUND},
     500: {"description": "Failed to retrieve project"},
-}
-PROJECT_HEALTH_RESPONSES = {
-    403: {"description": PROJECT_ACCESS_DENIED},
-    404: {"description": PROJECT_NOT_FOUND},
-    500: {"description": "Failed to retrieve project health"},
 }
 PROJECT_UPDATE_RESPONSES = {
     403: {"description": PROJECT_UPDATE_DENIED},
@@ -303,41 +297,6 @@ async def get_project(
     except Exception as e:
         logger.error(f"Error getting project: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve project")
-
-
-@router.get("/{project_id}/health", response_model=ProjectHealthSummary, responses=PROJECT_HEALTH_RESPONSES)
-async def get_project_health(
-    project_id: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}", "GET"))],
-    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
-    anomaly_detection_service: Annotated[AnomalyDetectionService, Depends(lambda: AnomalyDetectionService())],
-):
-    """Get detailed detector health for a project."""
-    try:
-        project = await project_service.get_project_by_id(project_id, db)
-        if not project:
-            raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-
-        role = await project_service.check_user_project_access(current_user["uid"], project_id, db)
-        is_admin = current_user.get("role") == "admin"
-        is_manager_in_org = (
-            current_user.get("role") == "manager" and
-            current_user.get("org_id") == project.org_id
-        )
-        if not (role or is_admin or is_manager_in_org):
-            raise HTTPException(status_code=403, detail=PROJECT_ACCESS_DENIED)
-
-        health = await anomaly_detection_service.get_project_health(project_id)
-        if not health:
-            raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-
-        return ProjectHealthSummary(**health)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting project health: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve project health")
 
 
 @router.put("/{project_id}", responses=PROJECT_UPDATE_RESPONSES)

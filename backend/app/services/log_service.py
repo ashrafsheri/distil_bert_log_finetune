@@ -559,6 +559,7 @@ class LogService:
         ip_status_map: Dict[str, bool],
         batch_id: str,
         org_id: str,
+        project_id: str,
         session_key_hash: Optional[str] = None,
         parse_status: str = "parsed",
         parse_error: Optional[str] = None,
@@ -610,7 +611,7 @@ class LogService:
             "batch_id": batch_id,
             "source": "fluent_bit",
             "org_id": org_id,
-            "project_id": org_id,
+            "project_id": project_id,
             "parse_status": parse_status,
             "parse_error": parse_error,
             "detection_status": detection_status,
@@ -635,6 +636,7 @@ class LogService:
         raw_log: Optional[str],
         batch_id: str,
         org_id: str,
+        project_id: str,
         event_time: str,
         parse_error: str,
         source_record: Any,
@@ -653,7 +655,7 @@ class LogService:
             "batch_id": batch_id,
             "source": "fluent_bit",
             "org_id": org_id,
-            "project_id": org_id,
+            "project_id": project_id,
             "parse_status": "failed",
             "parse_error": parse_error,
             "detection_status": "skipped",
@@ -793,7 +795,8 @@ class LogService:
         anomaly_results: List[Dict[str, Any]],
         ip_status_map: Dict[str, bool],
         batch_id: str,
-        org_id: str
+        org_id: str,
+        project_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Process a batch of parsed logs into formatted logs for storage.
@@ -804,6 +807,7 @@ class LogService:
             ip_status_map: IP status override map
             batch_id: Batch identifier
             org_id: Organization ID
+            project_id: Project ID
 
         Returns:
             List of formatted logs for storage
@@ -824,7 +828,13 @@ class LogService:
                 }
 
                 formatted_log = LogService.format_log_for_storage(
-                    parsed_log, raw_log, anomaly_result, ip_status_map, batch_id, org_id
+                    parsed_log,
+                    raw_log,
+                    anomaly_result,
+                    ip_status_map,
+                    batch_id,
+                    org_id,
+                    project_id or org_id,
                 )
 
                 processed_logs.append(formatted_log)
@@ -854,7 +864,7 @@ class LogService:
             try:
                 # Get org_id from log if not explicitly provided
                 log_org_id = org_id or log.get("org_id")
-                log_project_id = project_id or log.get("org_id")
+                log_project_id = project_id or log.get("project_id")
                 websocket_log = LogService.convert_log_for_websocket(log)
                 await send_log_update(websocket_log, org_id=log_org_id, project_id=log_project_id)
                 logger.debug(f"Sent log to WebSocket: {websocket_log}")
