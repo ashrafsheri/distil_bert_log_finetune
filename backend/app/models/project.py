@@ -5,7 +5,7 @@ Projects belong to organizations
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 import secrets
 
@@ -113,6 +113,20 @@ class ProjectHealthSummary(BaseModel):
     reservoir_counts: dict[str, int] = Field(default_factory=dict)
     created_at: str
     last_activity: str
+
+
+class EndpointManifestSeedRequest(BaseModel):
+    """Request model for seeding a project with an external endpoint manifest."""
+    manifest: Dict[str, Any]
+
+
+class EndpointManifestSeedResponse(BaseModel):
+    """Response model for endpoint manifest seeding."""
+    project_id: str
+    seeded_endpoint_count: int
+    service_name: Optional[str] = None
+    framework: Optional[str] = None
+    message: str
 
 
 class RegenerateApiKeyRequest(BaseModel):

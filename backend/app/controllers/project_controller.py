@@ -3,7 +3,7 @@ Project Controller
 Handles project-related API endpoints
 """
 
-from typing import Annotated, List
+from typing import Annotated, List, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ import logging
 
 from app.models.project import (
     ProjectCreate, ProjectHealthSummary, ProjectResponse, ProjectSummary, ProjectUpdate,
+    EndpointManifestSeedRequest, EndpointManifestSeedResponse,
     RegenerateApiKeyRequest, RegenerateApiKeyResponse,
     UpdateLogTypeRequest, UpdateLogTypeResponse
 )
@@ -101,10 +102,21 @@ PROJECT_AVAILABLE_MEMBERS_RESPONSES = {
     404: {"description": PROJECT_NOT_FOUND},
     500: {"description": PROJECT_AVAILABLE_MEMBERS_FAILED},
 }
+PROJECT_MANIFEST_SEED_RESPONSES = {
+    400: {"description": "Manifest payload is invalid"},
+    403: {"description": PROJECT_UPDATE_DENIED},
+    404: {"description": PROJECT_NOT_FOUND},
+    502: {"description": "Failed to seed manifest into detector"},
+}
 
 
 def get_anomaly_detection_service() -> AnomalyDetectionService:
     return AnomalyDetectionService()
+
+
+def _count_manifest_endpoints(manifest: dict[str, Any]) -> int:
+    endpoints = manifest.get("endpoints", [])
+    return len(endpoints) if isinstance(endpoints, list) else 0
 
 
 # ==================== Project Management ====================
@@ -350,6 +362,62 @@ async def get_project_health(
     except Exception as e:
         logger.error(f"Error getting project health: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve project")
+
+
+@router.post(
+    "/{project_id}/seed-endpoint-manifest",
+    response_model=EndpointManifestSeedResponse,
+    responses=PROJECT_MANIFEST_SEED_RESPONSES,
+)
+async def seed_endpoint_manifest(
+    project_id: str,
+    request: EndpointManifestSeedRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
+    anomaly_detection_service: Annotated[AnomalyDetectionService, Depends(get_anomaly_detection_service)],
+):
+    """Seed a project in the detector with an extracted endpoint manifest."""
+    project = await project_service.get_project_by_id(project_id, db)
+    if not project:
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+
+    if current_user.get("role") != "admin":
+        role = await project_service.check_user_project_access(current_user["uid"], project_id, db)
+        is_manager_in_org = (
+            current_user.get("role") == "manager"
+            and current_user.get("org_id") == project.org_id
+        )
+        has_project_permission = role in ["project_admin", "owner"]
+        if not (is_manager_in_org or has_project_permission):
+            raise HTTPException(status_code=403, detail=PROJECT_UPDATE_DENIED)
+
+    manifest = request.manifest or {}
+    seeded_endpoint_count = _count_manifest_endpoints(manifest)
+    if seeded_endpoint_count <= 0:
+        raise HTTPException(status_code=400, detail="Manifest must contain a non-empty endpoints array")
+
+    detector_response = await anomaly_detection_service.register_or_update_project(
+        project_id=project.id,
+        project_name=project.name,
+        warmup_threshold=project.warmup_threshold or 10000,
+        metadata={
+            "log_type": project.log_type,
+            "org_id": project.org_id,
+            "traffic_profile": getattr(project, "traffic_profile", "standard") or "standard",
+            "endpoint_manifest": manifest,
+        },
+    )
+    if detector_response is None:
+        raise HTTPException(status_code=502, detail="Failed to seed manifest into detector")
+
+    return EndpointManifestSeedResponse(
+        project_id=project.id,
+        seeded_endpoint_count=seeded_endpoint_count,
+        service_name=manifest.get("service_name"),
+        framework=manifest.get("framework"),
+        message="Endpoint manifest seeded into detector",
+    )
 
 
 @router.put("/{project_id}", responses=PROJECT_UPDATE_RESPONSES)

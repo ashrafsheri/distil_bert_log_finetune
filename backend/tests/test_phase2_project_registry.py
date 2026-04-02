@@ -6,7 +6,6 @@ import os
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection" / "models"))
 
@@ -76,3 +75,41 @@ def test_project_manager_persists_low_traffic_threshold_metadata(tmp_path: Path)
     assert updated.threshold_source == "holdout_calibration"
     assert updated.calibration_sample_count == 40
     assert updated.score_normalization_version == "hybrid-v1"
+
+
+def test_detector_endpoint_manifest_matches_known_routes_and_internal_probes(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-manifest",
+        project_name="Manifest Seeded",
+        warmup_threshold=1000,
+        metadata={
+            "endpoint_manifest": {
+                "service_name": "billing-api",
+                "framework": "fastapi",
+                "endpoints": [
+                    {"method": "GET", "path_template": "/health", "classification": "internal_probe", "baseline_eligible": False},
+                    {"method": "GET", "path_template": "/api/v1/orders/{order_id}", "classification": "user_traffic", "baseline_eligible": True},
+                ],
+            }
+        },
+    )
+    project = detector.project_manager.get_project("proj-manifest")
+    assert project is not None
+
+    manifest_match = detector._match_endpoint_manifest(project, "GET", "/api/v1/orders/123")
+    assert manifest_match is not None
+    assert manifest_match["path_template"] == "/api/v1/orders/{order_id}"
+    assert manifest_match["classification"] == "user_traffic"
+
+    probe_match = detector._match_endpoint_manifest(project, "GET", "/health")
+    assert probe_match is not None
+    assert probe_match["classification"] == "internal_probe"

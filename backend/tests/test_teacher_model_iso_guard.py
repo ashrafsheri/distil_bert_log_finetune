@@ -93,3 +93,18 @@ def test_teacher_rule_hits_are_not_diluted_by_unavailable_models(tmp_path: Path)
     assert result["is_anomaly"] is True
     assert result["anomaly_score"] >= 0.95
     assert result["transformer"]["status"] == "insufficient_context"
+
+
+def test_teacher_transformer_reports_insufficient_signal_for_unknown_dominated_sequence(tmp_path: Path) -> None:
+    model = _build_minimal_teacher(tmp_path)
+
+    result = model.detect(
+        log_data={"path": "/new/endpoint", "method": "GET", "status": 200},
+        sequence=[model.unknown_id, model.unknown_id, model.unknown_id, 0],
+        session_stats={},
+        features=None,
+    )
+
+    assert result["unknown_template_ratio"] >= 0.75
+    assert result["transformer"]["status"] == "insufficient_signal"
+    assert result["transformer"]["score"] == 0.0

@@ -431,6 +431,80 @@ class MultiTenantDetector:
         message = f"{log_data['method']} {log_data['path']} {log_data['protocol']} {log_data['status']}"
         return self.normalizer.normalize(message)
 
+    @staticmethod
+    def _path_without_query(path: str) -> str:
+        return (path or "/").split("?", 1)[0] or "/"
+
+    @staticmethod
+    def _path_template_to_regex(path_template: str) -> re.Pattern[str]:
+        normalized = path_template if path_template.startswith("/") else f"/{path_template}"
+        if normalized == "/":
+            return re.compile(r"^/$")
+
+        pattern_parts: List[str] = []
+        for segment in normalized.strip("/").split("/"):
+            if segment in {"*", "**"}:
+                pattern_parts.append(".*")
+                break
+            if (
+                segment.startswith(":")
+                or (segment.startswith("{") and segment.endswith("}"))
+                or (segment.startswith("<") and segment.endswith(">"))
+            ):
+                pattern_parts.append(r"[^/]+")
+            else:
+                pattern_parts.append(re.escape(segment))
+        return re.compile(r"^/" + "/".join(pattern_parts) + r"$")
+
+    def _endpoint_manifest_entries(self, project: ProjectConfig) -> List[Dict[str, Any]]:
+        manifest = (project.metadata or {}).get("endpoint_manifest") or {}
+        if not isinstance(manifest, dict):
+            return []
+        endpoints = manifest.get("endpoints", [])
+        if not isinstance(endpoints, list):
+            return []
+        return [entry for entry in endpoints if isinstance(entry, dict) and entry.get("path_template")]
+
+    def _match_endpoint_manifest(
+        self,
+        project: ProjectConfig,
+        method: str,
+        path: str,
+    ) -> Optional[Dict[str, Any]]:
+        request_method = (method or "GET").upper()
+        request_path = self._path_without_query(path)
+        for entry in self._endpoint_manifest_entries(project):
+            entry_method = str(entry.get("method", "ANY")).upper()
+            if entry_method not in {"ANY", "*", request_method}:
+                continue
+            template = str(entry.get("path_template"))
+            if self._path_template_to_regex(template).match(request_path):
+                classification = entry.get("classification") or (
+                    "internal_probe" if entry.get("baseline_eligible") is False else "user_traffic"
+                )
+                return {
+                    "path_template": template if template.startswith("/") else f"/{template}",
+                    "classification": classification,
+                    "baseline_eligible": bool(entry.get("baseline_eligible", classification == "user_traffic")),
+                    "entry": entry,
+                }
+        return None
+
+    def _normalize_template_with_manifest(
+        self,
+        log_data: Dict[str, Any],
+        manifest_match: Optional[Dict[str, Any]],
+    ) -> str:
+        if not manifest_match:
+            return self.normalize_template(log_data)
+        message = (
+            f"{log_data.get('method', 'GET')} "
+            f"{manifest_match['path_template']} "
+            f"{log_data.get('protocol', 'HTTP/1.1')} "
+            f"{log_data.get('status', 0)}"
+        )
+        return self.normalizer.normalize(message)
+
     def _profile_settings_for_project(self, project: ProjectConfig) -> Dict[str, Any]:
         profile = project.traffic_profile if project.traffic_profile in self.profile_settings else "standard"
         settings = dict(self.profile_settings[profile])
@@ -778,14 +852,22 @@ class MultiTenantDetector:
             project_id, session_id, log_data
         )
         
+        manifest_match = self._match_endpoint_manifest(project, log_data.get('method', 'GET'), log_data.get('path', '/'))
+        traffic_class = "user_traffic"
+        baseline_eligible = True
+        if manifest_match and manifest_match.get("classification") == "internal_probe":
+            traffic_class = "internal_probe"
+            baseline_eligible = False
+        elif manifest_match and manifest_match.get("baseline_eligible") is False:
+            baseline_eligible = False
+
         # Extract template and features
-        normalized_template = self.normalize_template(log_data)
+        normalized_template = self._normalize_template_with_manifest(log_data, manifest_match)
         features = self.extract_features(log_data, session_stats)
         
         # Increment log count
         self.project_manager.increment_log_count(project_id)
         
-        baseline_eligible = True
         split_name = self._split_name_for_position(project.clean_baseline_count + 1, project.warmup_threshold)
 
         # Route to appropriate model based on phase
@@ -803,7 +885,7 @@ class MultiTenantDetector:
             )
             
             # Collect training data during warmup
-            if project.phase == ProjectPhase.WARMUP.value and split_name == "train":
+            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible and split_name == "train":
                 self._collect_training_data(
                     project_id, normalized_template, session_id, features
                 )
@@ -813,7 +895,7 @@ class MultiTenantDetector:
                 self._maybe_trigger_student_training(project_id)
         decision = self._compose_final_decision(
             project=project,
-            traffic_class="user_traffic",
+            traffic_class=traffic_class,
             baseline_eligible=baseline_eligible,
             raw_result=result,
         )
@@ -831,7 +913,7 @@ class MultiTenantDetector:
             if decision['is_anomaly']:
                 decision['decision_reason'] = "behavioral_anomaly"
         result.update(decision)
-        result['calibration'] = {'project_threshold': calibrated_threshold, 'baseline_eligible': True}
+        result['calibration'] = {'project_threshold': calibrated_threshold, 'baseline_eligible': baseline_eligible}
         incident = self._build_incident(
             project_id,
             log_data,
@@ -870,12 +952,14 @@ class MultiTenantDetector:
         result['model_version'] = self.model_version
         result['feature_schema_version'] = self.feature_schema_version
         result['student_training_blockers'] = project.student_training_blockers
-        result['traffic_class'] = "user_traffic"
-        result['baseline_eligible'] = True
+        result['traffic_class'] = traffic_class
+        result['baseline_eligible'] = baseline_eligible
         result['threshold_source'] = project.threshold_source
         result['threshold_fitted_at'] = project.threshold_fitted_at
         result['calibration_sample_count'] = project.calibration_sample_count
         result['score_normalization_version'] = project.score_normalization_version
+        result['endpoint_manifest_match'] = bool(manifest_match)
+        result['endpoint_manifest_class'] = manifest_match.get("classification") if manifest_match else None
 
         return result
 
@@ -926,7 +1010,10 @@ class MultiTenantDetector:
         }
 
         flags = flags or {}
+        manifest_match = self._match_endpoint_manifest(project, method, path)
         traffic_class = traffic_class or "user_traffic"
+        if traffic_class == "user_traffic" and manifest_match and manifest_match.get("classification") == "internal_probe":
+            traffic_class = "internal_probe"
         baseline_eligible = bool(
             traffic_class == "user_traffic"
             and not any(
@@ -942,8 +1029,10 @@ class MultiTenantDetector:
                 )
             )
         )
+        if baseline_eligible and manifest_match and manifest_match.get("baseline_eligible") is False:
+            baseline_eligible = False
         session, session_stats = self._get_or_create_session(project_id, session_key, log_data)
-        normalized_template = normalized_event or self.normalize_template(log_data)
+        normalized_template = normalized_event or self._normalize_template_with_manifest(log_data, manifest_match)
         features = self.extract_features(log_data, session_stats)
         self.project_manager.increment_log_count(project_id)
 
@@ -1025,6 +1114,8 @@ class MultiTenantDetector:
         result['threshold_fitted_at'] = project.threshold_fitted_at
         result['calibration_sample_count'] = project.calibration_sample_count
         result['score_normalization_version'] = project.score_normalization_version
+        result['endpoint_manifest_match'] = bool(manifest_match)
+        result['endpoint_manifest_class'] = manifest_match.get("classification") if manifest_match else None
         return result
     
     def _get_or_create_session(
