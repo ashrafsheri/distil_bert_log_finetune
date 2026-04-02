@@ -705,6 +705,11 @@ class MultiTenantDetector:
         }
         active_scores = [score for score in normalized_scores.values() if score is not None]
         anomaly_score = float(sum(active_scores) / len(active_scores)) if active_scores else 0.0
+        active_behavioral_signals = [
+            bool(iso_result.get("is_anomaly")) if iso_result.get("status") == "active" else False,
+            bool(transformer_result.get("is_anomaly")) if transformer_result.get("status") == "active" else False,
+        ]
+        upstream_behavioral_anomaly = bool(raw_result.get("is_anomaly")) or any(active_behavioral_signals)
 
         final_decision = "not_flagged"
         decision_reason = "behavioral_normal"
@@ -727,7 +732,7 @@ class MultiTenantDetector:
             is_anomaly = True
         else:
             threshold = project.calibration_threshold
-            if anomaly_score >= threshold:
+            if upstream_behavioral_anomaly and anomaly_score >= threshold:
                 final_decision = "threat_detected"
                 decision_reason = "behavioral_anomaly"
                 is_anomaly = True

@@ -334,3 +334,81 @@ def test_warmup_can_continue_collecting_if_features_after_threshold(tmp_path: Pa
     student = detector.students.get(project.project_id)
     assert student is not None
     assert len(student.training_features) == 1
+
+
+def test_final_decision_does_not_flag_when_all_behavioral_components_are_normal(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-no-fp",
+        project_name="No False Positive",
+        warmup_threshold=1000,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    project = detector.project_manager.get_project("proj-no-fp")
+    assert project is not None
+    project.calibration_threshold = 0.45
+
+    decision = detector._compose_final_decision(
+        project=project,
+        traffic_class="user_traffic",
+        baseline_eligible=True,
+        raw_result={
+            "is_anomaly": False,
+            "rule_based": {"is_attack": False, "confidence": 0.0},
+            "isolation_forest": {"status": "active", "is_anomaly": 0, "score": 0.5, "threshold": 1.0},
+            "transformer": {"status": "active", "is_anomaly": 0, "score": 2.485, "threshold": 2.573},
+            "anomaly_score": 0.0,
+            "unknown_template_ratio": 0.0,
+        },
+    )
+
+    assert decision["final_decision"] == "not_flagged"
+    assert decision["decision_reason"] == "behavioral_normal"
+    assert decision["is_anomaly"] is False
+
+
+def test_final_decision_flags_when_behavioral_component_is_active_anomaly(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-real-anomaly",
+        project_name="Real Anomaly",
+        warmup_threshold=1000,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    project = detector.project_manager.get_project("proj-real-anomaly")
+    assert project is not None
+    project.calibration_threshold = 0.45
+
+    decision = detector._compose_final_decision(
+        project=project,
+        traffic_class="user_traffic",
+        baseline_eligible=True,
+        raw_result={
+            "is_anomaly": True,
+            "rule_based": {"is_attack": False, "confidence": 0.0},
+            "isolation_forest": {"status": "active", "is_anomaly": 1, "score": 1.5, "threshold": 1.0},
+            "transformer": {"status": "active", "is_anomaly": 0, "score": 2.0, "threshold": 2.573},
+            "anomaly_score": 0.6,
+            "unknown_template_ratio": 0.0,
+        },
+    )
+
+    assert decision["final_decision"] == "threat_detected"
+    assert decision["decision_reason"] == "behavioral_anomaly"
+    assert decision["is_anomaly"] is True
