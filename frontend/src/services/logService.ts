@@ -28,11 +28,12 @@ export interface LogAnomalyDetails {
   };
   transformer?: {
     is_anomaly: number;
-    score: number;
+    score: number | null;
     threshold?: number;
     sequence_length?: number;
     context?: string;
     status?: string;
+    error?: string;
   };
   ensemble?: {
     score: number;

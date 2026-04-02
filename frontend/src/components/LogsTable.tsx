@@ -94,11 +94,26 @@ const getDecisionBadge = (decisionState: DecisionState) => {
   };
 };
 
-const getTransformerBadge = (transformer: LogEntry['anomaly_details'] extends undefined ? never : NonNullable<LogEntry['anomaly_details']>['transformer']) => {
+const getTransformerBadge = (
+  transformer: LogEntry['anomaly_details'] extends undefined ? never : NonNullable<LogEntry['anomaly_details']>['transformer'],
+  options?: { isWarmupTeacher?: boolean }
+) => {
+  if (transformer?.status === 'error') {
+    return {
+      label: 'Scoring Error',
+      className: 'bg-vt-accent/20 text-vt-accent border border-vt-accent/30',
+    };
+  }
   if (transformer?.status === 'insufficient_signal') {
     return {
       label: 'Low Signal',
       className: 'bg-vt-warning/20 text-vt-warning border border-vt-warning/30',
+    };
+  }
+  if (options?.isWarmupTeacher) {
+    return {
+      label: 'Low Confidence',
+      className: 'bg-vt-primary/20 text-vt-primary border border-vt-primary/30',
     };
   }
   if (transformer?.is_anomaly === 1) {
@@ -395,9 +410,18 @@ const LogsTable: React.FC<LogsTableProps> = ({
               const isolationForest = anomalyDetails?.isolation_forest;
               const transformer = anomalyDetails?.transformer;
               const ensemble = anomalyDetails?.ensemble;
-              const transformerBadge = getTransformerBadge(transformer);
+              const isWarmupTeacher = log.detectorPhase === 'warmup' && log.modelType === 'teacher';
+              const transformerBadge = getTransformerBadge(transformer, { isWarmupTeacher });
               const unknownTemplateRatio = log.unknownTemplateRatio;
               const transformerSuppressed = transformer?.status === 'insufficient_signal';
+              const transformerErrored = transformer?.status === 'error';
+              const transformerScoreText = transformerSuppressed
+                ? 'Suppressed'
+                : transformerErrored
+                  ? 'Unavailable'
+                  : typeof transformer?.score === 'number'
+                    ? transformer.score.toFixed(3)
+                    : 'N/A';
 
               return (
                 <React.Fragment key={rowKey}>
@@ -676,9 +700,11 @@ const LogsTable: React.FC<LogsTableProps> = ({
                             </div>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center text-sm">
-                                <span className="text-vt-muted">{transformerSuppressed ? 'Transformer Score' : 'NLL Score'}</span>
+                                <span className="text-vt-muted">
+                                  {transformerSuppressed ? 'Transformer Score' : isWarmupTeacher ? 'Warmup Teacher Score' : 'NLL Score'}
+                                </span>
                                 <span className="text-vt-light font-mono font-semibold">
-                                  {transformerSuppressed ? 'Suppressed' : (transformer?.score || 0).toFixed(3)}
+                                  {transformerScoreText}
                                 </span>
                               </div>
                               {transformer?.threshold && (
@@ -693,13 +719,20 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm"
                                   style={{
-                                    width: transformerSuppressed ? '0%' : `${Math.min((transformer?.score || 0) * 10, 100)}%`,
+                                    width: (transformerSuppressed || transformerErrored || typeof transformer?.score !== 'number')
+                                      ? '0%'
+                                      : `${Math.min(transformer.score * 10, 100)}%`,
                                     background: transformer?.is_anomaly === 1 
                                       ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                       : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
                                   }}
                                 ></div>
                               </div>
+                              {isWarmupTeacher && (
+                                <div className="rounded-lg border border-vt-primary/30 bg-vt-primary/10 px-3 py-2 text-xs text-vt-primary">
+                                  This score is coming from the shared teacher during warmup. Treat it as low-confidence until the project student model is trained.
+                                </div>
+                              )}
                               {(transformer?.sequence_length || transformer?.context) && (
                                 <div className="pt-3 border-t border-vt-muted/20 space-y-2">
                                   {transformer?.sequence_length && (
@@ -729,6 +762,11 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                   {transformerSuppressed && (
                                     <div className="rounded-lg border border-vt-warning/30 bg-vt-warning/10 px-3 py-2 text-xs text-vt-warning">
                                       Sequence is dominated by unseen templates. The transformer output is being suppressed because it is not reliable for this event yet.
+                                    </div>
+                                  )}
+                                  {transformerErrored && (
+                                    <div className="rounded-lg border border-vt-accent/30 bg-vt-accent/10 px-3 py-2 text-xs text-vt-accent">
+                                      Transformer scoring failed for this event{transformer?.error ? `: ${transformer.error}` : '.'}
                                     </div>
                                   )}
                                 </div>
