@@ -45,7 +45,7 @@ def _load_manifest(path: Path) -> list[ManifestEndpoint]:
         if not isinstance(entry, dict):
             continue
         path_template = str(entry.get("path_template") or "").strip()
-        if not path_template or "${" in path_template:
+        if not path_template or "${" in path_template or any(ch.isspace() for ch in path_template):
             continue
         endpoints.append(
             ManifestEndpoint(
@@ -207,6 +207,8 @@ def _render_path(endpoint: ManifestEndpoint, explicit_params: dict[str, str], di
         if not replacement:
             return None
         rendered = re.sub(rf":{placeholder}\b|{{{placeholder}}}|<{placeholder}>", parse.quote(str(replacement)), rendered)
+    if any(ch.isspace() for ch in rendered):
+        return None
     return rendered
 
 
