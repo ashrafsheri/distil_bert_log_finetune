@@ -24,6 +24,7 @@ spec:
       containers:
         - name: anomaly-detection
           image: ghcr.io/OWNER/anomaly-detection:main
+          imagePullPolicy: Always
           ports:
             - containerPort: 8001
           env:
