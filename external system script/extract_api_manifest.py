@@ -130,7 +130,10 @@ def upload_manifest(seed_url: str, token: str | None, manifest: dict) -> dict:
     body = json.dumps({"manifest": manifest}).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if token:
-        headers["Authorization"] = f"Bearer {token}"
+        cleaned_token = token.strip()
+        if cleaned_token.lower().startswith("bearer "):
+            cleaned_token = cleaned_token[7:].strip()
+        headers["Authorization"] = f"Bearer {cleaned_token}"
     req = request.Request(seed_url, data=body, headers=headers, method="POST")
     with request.urlopen(req, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
