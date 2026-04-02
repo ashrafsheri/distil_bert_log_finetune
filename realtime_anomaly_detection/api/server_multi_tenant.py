@@ -30,6 +30,8 @@ from models.runtime_metrics import runtime_metrics
 
 
 logger = logging.getLogger(__name__)
+# Deployment note: keep a touched source line here for workflow-trigger commits when
+# image rebuilds are needed without changing detector behavior.
 
 
 # ============================================================================
