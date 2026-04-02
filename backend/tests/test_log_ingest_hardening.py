@@ -72,6 +72,14 @@ def test_should_skip_detection_for_health_checks() -> None:
     assert should_skip is True
     assert reason == "health_check_skipped"
 
+    should_skip, reason = LogService.should_skip_detection({"path": "/socket.io/?EIO=4&transport=polling"})
+    assert should_skip is True
+    assert reason == "transport_noise_skipped"
+
+    should_skip, reason = LogService.should_skip_detection({"path": "/storage/v1/object/sign/foo/bar.png?token=abc"})
+    assert should_skip is True
+    assert reason == "signed_asset_skipped"
+
     should_skip, reason = LogService.should_skip_detection({"path": "/orders"})
     assert should_skip is False
     assert reason is None
@@ -101,3 +109,26 @@ def test_classify_traffic_marks_probe_and_known_attack_flags() -> None:
     assert attack["traffic_class"] == "user_traffic"
     assert attack["baseline_eligible"] is False
     assert attack["flags"]["rule_hit"] is True
+
+
+def test_classify_traffic_excludes_transport_and_signed_asset_noise() -> None:
+    transport = LogService.classify_traffic(
+        parsed_log={"path": "/socket.io/?EIO=4&transport=polling", "timestamp": "2026-04-01T12:00:00+00:00"},
+        source_record={"path": "/socket.io/?EIO=4&transport=polling"},
+        raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /socket.io/?EIO=4&transport=polling HTTP/1.1" 200 0',
+        event_time="2026-04-01T12:00:00+00:00",
+    )
+    signed_asset = LogService.classify_traffic(
+        parsed_log={"path": "/storage/v1/object/sign/a/b.png?token=abc", "timestamp": "2026-04-01T12:00:00+00:00"},
+        source_record={"path": "/storage/v1/object/sign/a/b.png?token=abc"},
+        raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /storage/v1/object/sign/a/b.png?token=abc HTTP/1.1" 200 0',
+        event_time="2026-04-01T12:00:00+00:00",
+    )
+
+    assert transport["traffic_class"] == "transport_noise"
+    assert transport["baseline_eligible"] is False
+    assert transport["detection_status"] == "skipped"
+
+    assert signed_asset["traffic_class"] == "signed_asset_access"
+    assert signed_asset["baseline_eligible"] is False
+    assert signed_asset["detection_status"] == "skipped"

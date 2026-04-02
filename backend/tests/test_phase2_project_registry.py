@@ -113,3 +113,49 @@ def test_detector_endpoint_manifest_matches_known_routes_and_internal_probes(tmp
     probe_match = detector._match_endpoint_manifest(project, "GET", "/health")
     assert probe_match is not None
     assert probe_match["classification"] == "internal_probe"
+
+
+def test_detector_skips_transport_and_signed_asset_paths(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+
+    transport_policy = detector._classify_path_policy("/socket.io/?EIO=4&transport=polling&t=abc")
+    signed_asset_policy = detector._classify_path_policy("/storage/v1/object/sign/admin-assets/banner.png?token=abc")
+    normal_policy = detector._classify_path_policy("/communities/123/products")
+
+    assert transport_policy is not None
+    assert transport_policy["traffic_class"] == "transport_noise"
+    assert transport_policy["baseline_eligible"] is False
+
+    assert signed_asset_policy is not None
+    assert signed_asset_policy["traffic_class"] == "signed_asset_access"
+    assert signed_asset_policy["baseline_eligible"] is False
+
+    assert normal_policy is None
+
+
+def test_detector_canonicalizes_volatile_paths(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+
+    canonical = detector._canonicalize_path(
+        "/storage/v1/object/sign/admin-assets/banners/28537468-a3ec-4f88-9ad8-db49fc9cd0ff/file.png?token=verylongvalue&expires=123"
+    )
+
+    assert "<UUID>" in canonical
+    assert "token=<FILTERED>" in canonical
+    assert "expires=<FILTERED>" in canonical

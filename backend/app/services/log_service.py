@@ -51,6 +51,8 @@ class LogService:
         re.compile(r"(?:\bunion\b.+\bselect\b|\bor\b\s*['\"]?1['\"]?\s*=\s*['\"]?1|\bsleep\s*\(|\bbenchmark\s*\()", re.IGNORECASE),
         re.compile(r"(?:<script|javascript:|onerror=|onload=)", re.IGNORECASE),
     )
+    TRANSPORT_NOISE_PREFIXES = ("/socket.io/",)
+    SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
     MAX_FUTURE_EVENT_SECONDS = int(os.getenv("LOG_EVENT_MAX_FUTURE_SECONDS", "300"))
     MAX_PAST_EVENT_SECONDS = int(os.getenv("LOG_EVENT_MAX_PAST_SECONDS", str(7 * 24 * 3600)))
     
@@ -291,6 +293,10 @@ class LogService:
         path = (parsed_log.get("path") or "").strip().lower()
         if path in LogService.DETECTION_SKIP_PATHS:
             return True, "health_check_skipped"
+        if path.startswith(LogService.TRANSPORT_NOISE_PREFIXES):
+            return True, "transport_noise_skipped"
+        if path.startswith(LogService.SIGNED_ASSET_PREFIXES):
+            return True, "signed_asset_skipped"
         return False, None
 
     @staticmethod
@@ -344,7 +350,7 @@ class LogService:
                 flags["manual_malicious_override"] = True
 
         should_skip, skip_reason = LogService.should_skip_detection(parsed_log)
-        if should_skip:
+        if should_skip and skip_reason == "health_check_skipped":
             flags["internal_probe"] = True
 
         parsed_event_time = LogService._parse_event_datetime(event_time or parsed_log.get("timestamp"))
@@ -358,6 +364,14 @@ class LogService:
             traffic_class = "internal_probe"
             detection_status = "skipped"
             decision_reason = skip_reason or "internal_probe_skipped"
+        elif skip_reason == "transport_noise_skipped":
+            traffic_class = "transport_noise"
+            detection_status = "skipped"
+            decision_reason = "transport_noise_skipped"
+        elif skip_reason == "signed_asset_skipped":
+            traffic_class = "signed_asset_access"
+            detection_status = "skipped"
+            decision_reason = "signed_asset_skipped"
         elif flags["late_or_invalid_event"]:
             traffic_class = "data_quality_late_event"
             detection_status = "skipped"
