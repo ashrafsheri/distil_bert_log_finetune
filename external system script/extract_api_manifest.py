@@ -15,6 +15,8 @@ from urllib import request
 
 HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")
 PROBE_PATHS = {"/health", "/healthz", "/ready", "/readyz", "/live", "/livez", "/metrics"}
+TRANSPORT_NOISE_PREFIXES = ("/socket.io/",)
+SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
 
 
 @dataclass(frozen=True)
@@ -25,12 +27,23 @@ class Endpoint:
 
     def to_manifest_entry(self) -> dict:
         normalized_path = self.path_template if self.path_template.startswith("/") else f"/{self.path_template}"
-        classification = "internal_probe" if normalized_path in PROBE_PATHS else "user_traffic"
+        classification = "user_traffic"
+        baseline_eligible = True
+        lowered = normalized_path.lower()
+        if normalized_path in PROBE_PATHS:
+            classification = "internal_probe"
+            baseline_eligible = False
+        elif lowered.startswith(TRANSPORT_NOISE_PREFIXES):
+            classification = "transport_noise"
+            baseline_eligible = False
+        elif lowered.startswith(SIGNED_ASSET_PREFIXES):
+            classification = "signed_asset_access"
+            baseline_eligible = False
         return {
             "method": self.method,
             "path_template": normalized_path,
             "classification": classification,
-            "baseline_eligible": classification == "user_traffic",
+            "baseline_eligible": baseline_eligible,
         }
 
 
@@ -40,6 +53,15 @@ def _iter_source_files(source_root: Path) -> Iterable[Path]:
             continue
         if path.suffix.lower() in {".py", ".js", ".ts", ".tsx", ".mjs", ".cjs"}:
             yield path
+
+
+def _is_supported_template(path_template: str) -> bool:
+    normalized = (path_template or "").strip()
+    if not normalized:
+        return False
+    if "${" in normalized:
+        return False
+    return True
 
 
 def _join_paths(prefix: str, path: str) -> str:
@@ -109,6 +131,8 @@ def build_manifest(source_root: Path, service_name: str) -> dict:
             else _extract_express_routes(file_path)
         )
         for endpoint in extracted:
+            if not _is_supported_template(endpoint.path_template):
+                continue
             endpoints[(endpoint.method, endpoint.path_template)] = endpoint
 
     manifest_entries = [

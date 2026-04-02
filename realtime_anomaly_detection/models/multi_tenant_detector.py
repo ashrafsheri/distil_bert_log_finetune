@@ -25,6 +25,28 @@ from .runtime_metrics import runtime_metrics
 
 
 logger = logging.getLogger(__name__)
+UUID_SEGMENT_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+LONG_HEX_SEGMENT_RE = re.compile(r"^[0-9a-f]{16,}$", re.IGNORECASE)
+MANIFEST_INVALID_MARKERS = ("${",)
+TRANSPORT_NOISE_PREFIXES = ("/socket.io/",)
+SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
+VOLATILE_QUERY_KEYS = {
+    "token",
+    "expires",
+    "signature",
+    "sig",
+    "x-amz-signature",
+    "x-amz-credential",
+    "x-amz-date",
+    "x-amz-security-token",
+    "sid",
+    "t",
+    "transport",
+    "eio",
+}
 
 
 class MultiTenantDetector:
@@ -428,12 +450,72 @@ class MultiTenantDetector:
     
     def normalize_template(self, log_data: Dict) -> str:
         """Normalize log to template"""
-        message = f"{log_data['method']} {log_data['path']} {log_data['protocol']} {log_data['status']}"
+        canonical_path = self._canonicalize_path(log_data.get("path", "/"))
+        message = f"{log_data['method']} {canonical_path} {log_data['protocol']} {log_data['status']}"
         return self.normalizer.normalize(message)
 
     @staticmethod
     def _path_without_query(path: str) -> str:
         return (path or "/").split("?", 1)[0] or "/"
+
+    @staticmethod
+    def _strip_query_value(query: str) -> str:
+        if not query:
+            return ""
+        kept_parts: List[str] = []
+        for raw_part in query.split("&"):
+            key, sep, value = raw_part.partition("=")
+            key_name = key.strip().lower()
+            if not key_name:
+                continue
+            if key_name in VOLATILE_QUERY_KEYS:
+                kept_parts.append(f"{key}=<FILTERED>" if sep else f"{key}=<FILTERED>")
+                continue
+            if len(value) > 64:
+                kept_parts.append(f"{key}=<LONG>")
+                continue
+            kept_parts.append(raw_part)
+        return "&".join(kept_parts)
+
+    @staticmethod
+    def _canonicalize_path(path: str) -> str:
+        raw_path = (path or "/").strip() or "/"
+        base_path, sep, query = raw_path.partition("?")
+        normalized_segments: List[str] = []
+        for segment in base_path.split("/"):
+            if not segment:
+                normalized_segments.append("")
+                continue
+            lowered = segment.lower()
+            if UUID_SEGMENT_RE.match(segment):
+                normalized_segments.append("<UUID>")
+            elif LONG_HEX_SEGMENT_RE.match(segment):
+                normalized_segments.append("<HEX>")
+            elif len(segment) > 96:
+                normalized_segments.append("<LONG>")
+            else:
+                normalized_segments.append(lowered if lowered in {"socket.io"} else segment)
+        normalized_path = "/".join(normalized_segments) or "/"
+        normalized_path = normalized_path if normalized_path.startswith("/") else f"/{normalized_path}"
+        cleaned_query = MultiTenantDetector._strip_query_value(query) if sep else ""
+        return f"{normalized_path}?{cleaned_query}" if cleaned_query else normalized_path
+
+    @staticmethod
+    def _classify_path_policy(path: str) -> Optional[Dict[str, Any]]:
+        normalized_path = (path or "/").strip().lower()
+        if normalized_path.startswith(TRANSPORT_NOISE_PREFIXES):
+            return {
+                "traffic_class": "transport_noise",
+                "baseline_eligible": False,
+                "decision_reason": "transport_noise_skipped",
+            }
+        if normalized_path.startswith(SIGNED_ASSET_PREFIXES):
+            return {
+                "traffic_class": "signed_asset_access",
+                "baseline_eligible": False,
+                "decision_reason": "signed_asset_skipped",
+            }
+        return None
 
     @staticmethod
     def _path_template_to_regex(path_template: str) -> re.Pattern[str]:
@@ -463,7 +545,15 @@ class MultiTenantDetector:
         endpoints = manifest.get("endpoints", [])
         if not isinstance(endpoints, list):
             return []
-        return [entry for entry in endpoints if isinstance(entry, dict) and entry.get("path_template")]
+        filtered_entries: List[Dict[str, Any]] = []
+        for entry in endpoints:
+            if not isinstance(entry, dict):
+                continue
+            path_template = str(entry.get("path_template") or "").strip()
+            if not path_template or any(marker in path_template for marker in MANIFEST_INVALID_MARKERS):
+                continue
+            filtered_entries.append(entry)
+        return filtered_entries
 
     def _match_endpoint_manifest(
         self,
@@ -499,7 +589,7 @@ class MultiTenantDetector:
             return self.normalize_template(log_data)
         message = (
             f"{log_data.get('method', 'GET')} "
-            f"{manifest_match['path_template']} "
+            f"{self._canonicalize_path(manifest_match['path_template'])} "
             f"{log_data.get('protocol', 'HTTP/1.1')} "
             f"{log_data.get('status', 0)}"
         )
@@ -579,9 +669,16 @@ class MultiTenantDetector:
         decision_reason = "behavioral_normal"
         is_anomaly = False
 
-        if traffic_class in {"internal_probe", "data_quality_late_event"}:
+        if traffic_class in {"internal_probe", "data_quality_late_event", "transport_noise", "signed_asset_access"}:
             final_decision = "skipped"
-            decision_reason = "internal_probe_skipped" if traffic_class == "internal_probe" else "late_event_skipped"
+            if traffic_class == "internal_probe":
+                decision_reason = "internal_probe_skipped"
+            elif traffic_class == "data_quality_late_event":
+                decision_reason = "late_event_skipped"
+            elif traffic_class == "transport_noise":
+                decision_reason = "transport_noise_skipped"
+            else:
+                decision_reason = "signed_asset_skipped"
         elif policy_score > 0:
             final_decision = "threat_detected"
             decision_reason = "known_attack_policy"
@@ -853,12 +950,13 @@ class MultiTenantDetector:
         )
         
         manifest_match = self._match_endpoint_manifest(project, log_data.get('method', 'GET'), log_data.get('path', '/'))
-        traffic_class = "user_traffic"
-        baseline_eligible = True
-        if manifest_match and manifest_match.get("classification") == "internal_probe":
+        path_policy = self._classify_path_policy(log_data.get("path", "/"))
+        traffic_class = path_policy["traffic_class"] if path_policy else "user_traffic"
+        baseline_eligible = bool(path_policy["baseline_eligible"]) if path_policy else True
+        if not path_policy and manifest_match and manifest_match.get("classification") == "internal_probe":
             traffic_class = "internal_probe"
             baseline_eligible = False
-        elif manifest_match and manifest_match.get("baseline_eligible") is False:
+        elif not path_policy and manifest_match and manifest_match.get("baseline_eligible") is False:
             baseline_eligible = False
 
         # Extract template and features
@@ -1011,8 +1109,10 @@ class MultiTenantDetector:
 
         flags = flags or {}
         manifest_match = self._match_endpoint_manifest(project, method, path)
-        traffic_class = traffic_class or "user_traffic"
-        if traffic_class == "user_traffic" and manifest_match and manifest_match.get("classification") == "internal_probe":
+        path_policy = self._classify_path_policy(path)
+        if not traffic_class:
+            traffic_class = path_policy["traffic_class"] if path_policy else "user_traffic"
+        if traffic_class == "user_traffic" and not path_policy and manifest_match and manifest_match.get("classification") == "internal_probe":
             traffic_class = "internal_probe"
         baseline_eligible = bool(
             traffic_class == "user_traffic"
@@ -1029,6 +1129,8 @@ class MultiTenantDetector:
                 )
             )
         )
+        if path_policy:
+            baseline_eligible = bool(path_policy["baseline_eligible"])
         if baseline_eligible and manifest_match and manifest_match.get("baseline_eligible") is False:
             baseline_eligible = False
         session, session_stats = self._get_or_create_session(project_id, session_key, log_data)

@@ -637,7 +637,12 @@ async def receive_fluent_bit_logs(
                 detection_context["detection_status"] = "skipped"
             seen_record_hashes.add(record_hash)
 
-            if detection_context["traffic_class"] in {"internal_probe", "data_quality_late_event"}:
+            if detection_context["traffic_class"] in {
+                "internal_probe",
+                "data_quality_late_event",
+                "transport_noise",
+                "signed_asset_access",
+            }:
                 session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
                 detection_error = (
                     "internal_probe_skipped"
