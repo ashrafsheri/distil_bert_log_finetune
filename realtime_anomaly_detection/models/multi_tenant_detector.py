@@ -967,19 +967,20 @@ class MultiTenantDetector:
         self.project_manager.increment_log_count(project_id)
         
         split_name = self._split_name_for_position(project.clean_baseline_count + 1, project.warmup_threshold)
+        manifest_known = bool(manifest_match and manifest_match.get("classification") == "user_traffic")
 
         # Route to appropriate model based on phase
         if project.phase == ProjectPhase.ACTIVE.value and project_id in self.students:
             # Use student model
             result = self._detect_with_student(
                 project_id, log_data, normalized_template,
-                session, session_stats, features
+                session, session_stats, features, manifest_known=manifest_known
             )
         else:
             # Use teacher model (warmup or training phase)
             result = self._detect_with_teacher(
                 project_id, log_data, normalized_template,
-                session, session_stats, features
+                session, session_stats, features, manifest_known=manifest_known
             )
             
             # Collect training data during warmup
@@ -1140,11 +1141,28 @@ class MultiTenantDetector:
 
         clean_position = project.clean_baseline_count + int((metadata or {}).get("clean_baseline_offset", 1 if baseline_eligible else 0))
         split_name = self._split_name_for_position(clean_position, project.warmup_threshold)
+        manifest_known = bool(manifest_match and manifest_match.get("classification") == "user_traffic")
 
         if project.phase == ProjectPhase.ACTIVE.value and project_id in self.students:
-            result = self._detect_with_student(project_id, log_data, normalized_template, session, session_stats, features)
+            result = self._detect_with_student(
+                project_id,
+                log_data,
+                normalized_template,
+                session,
+                session_stats,
+                features,
+                manifest_known=manifest_known,
+            )
         else:
-            result = self._detect_with_teacher(project_id, log_data, normalized_template, session, session_stats, features)
+            result = self._detect_with_teacher(
+                project_id,
+                log_data,
+                normalized_template,
+                session,
+                session_stats,
+                features,
+                manifest_known=manifest_known,
+            )
             if project.phase == ProjectPhase.WARMUP.value and baseline_eligible and split_name == "train":
                 self._collect_training_data(project_id, normalized_template, session_key, features)
             if project.phase == ProjectPhase.TRAINING.value:
@@ -1243,11 +1261,17 @@ class MultiTenantDetector:
             if session_id not in self.project_sessions[project_id]:
                 self.project_sessions[project_id][session_id] = {
                     'templates': deque(maxlen=self.window_size),
+                    'known_template_flags': deque(maxlen=self.window_size),
                     'request_count': 0,
                     'error_count': 0,
                     'unique_paths': set(),
                     'last_seen': now,
                 }
+            else:
+                self.project_sessions[project_id][session_id].setdefault(
+                    'known_template_flags',
+                    deque(maxlen=self.window_size),
+                )
 
             if len(self.project_sessions[project_id]) > self.max_sessions_per_project:
                 oldest_sessions = sorted(
@@ -1286,7 +1310,8 @@ class MultiTenantDetector:
         normalized_template: str,
         session: Dict,
         session_stats: Dict,
-        features: np.ndarray
+        features: np.ndarray,
+        manifest_known: bool = False,
     ) -> Dict:
         """Perform detection using teacher model"""
         # Get template ID from teacher vocabulary
@@ -1294,10 +1319,18 @@ class MultiTenantDetector:
         
         # Update session templates
         session['templates'].append(template_id)
+        session['known_template_flags'].append(bool(manifest_known))
         sequence = list(session['templates'])
+        known_template_mask = list(session['known_template_flags'])
         
         # Perform detection
-        result = self.teacher.detect(log_data, sequence, session_stats, features)
+        result = self.teacher.detect(
+            log_data,
+            sequence,
+            session_stats,
+            features,
+            known_template_mask=known_template_mask,
+        )
         result['using_model'] = 'teacher'
         result['log_data'] = log_data
         result['model_version'] = self.model_version
@@ -1311,7 +1344,8 @@ class MultiTenantDetector:
         normalized_template: str,
         session: Dict,
         session_stats: Dict,
-        features: np.ndarray
+        features: np.ndarray,
+        manifest_known: bool = False,
     ) -> Dict:
         """Perform detection using student model"""
         student = self.students[project_id]
@@ -1321,10 +1355,18 @@ class MultiTenantDetector:
         
         # Update session templates
         session['templates'].append(template_id)
+        session['known_template_flags'].append(bool(manifest_known))
         sequence = list(session['templates'])
+        known_template_mask = list(session['known_template_flags'])
         
         # Perform detection
-        result = student.detect(log_data, sequence, session_stats, features)
+        result = student.detect(
+            log_data,
+            sequence,
+            session_stats,
+            features,
+            known_template_mask=known_template_mask,
+        )
         result['using_model'] = 'student'
         result['log_data'] = log_data
         result['model_version'] = self.model_version

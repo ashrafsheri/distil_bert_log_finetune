@@ -645,7 +645,8 @@ class StudentModel:
         log_data: Dict,
         sequence: List[int],
         session_stats: Dict,
-        features: Optional[np.ndarray] = None
+        features: Optional[np.ndarray] = None,
+        known_template_mask: Optional[List[bool]] = None,
     ) -> Dict:
         """
         Perform anomaly detection using student model.
@@ -669,11 +670,20 @@ class StudentModel:
         )
         
         # 2. Transformer detection
-        unknown_template_ratio = (
-            sum(1 for tid in sequence if tid == self.unknown_id) / len(sequence)
-            if sequence and self.unknown_id is not None
-            else 0.0
-        )
+        if sequence and self.unknown_id is not None:
+            protected_mask = list(known_template_mask or [])
+            if len(protected_mask) < len(sequence):
+                protected_mask.extend([False] * (len(sequence) - len(protected_mask)))
+            unknown_template_ratio = (
+                sum(
+                    1
+                    for idx, tid in enumerate(sequence)
+                    if tid == self.unknown_id and not protected_mask[idx]
+                )
+                / len(sequence)
+            )
+        else:
+            unknown_template_ratio = 0.0
         transformer_context = 'single_log' if len(sequence) <= 1 else f'{len(sequence)}_logs'
         transformer_result = {
             'is_anomaly': 0,

@@ -159,3 +159,47 @@ def test_detector_canonicalizes_volatile_paths(tmp_path: Path) -> None:
     assert "<UUID>" in canonical
     assert "token=<FILTERED>" in canonical
     assert "expires=<FILTERED>" in canonical
+
+
+def test_manifest_seeded_teacher_sequence_is_not_treated_as_unknown(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+        window_size=20,
+    )
+    detector.ensure_project(
+        project_id="proj-seeded-chat",
+        project_name="Seeded Chat",
+        warmup_threshold=1000,
+        metadata={
+            "endpoint_manifest": {
+                "service_name": "barterease-backend",
+                "framework": "express",
+                "endpoints": [
+                    {
+                        "method": "GET",
+                        "path_template": "/chat/conversations",
+                        "classification": "user_traffic",
+                        "baseline_eligible": True,
+                    }
+                ],
+            }
+        },
+    )
+    project = detector.project_manager.get_project("proj-seeded-chat")
+    assert project is not None
+
+    result = None
+    log_line = '135.125.182.34 - - [03/Apr/2026:02:53:33 +0000] "GET /chat/conversations HTTP/1.1" 200 512 "-" "okhttp/4.12.0"'
+    for _ in range(3):
+        result = detector.detect_single_log(project.api_key, log_line, session_id="chat-seq-1")
+
+    assert result is not None
+    assert result["endpoint_manifest_match"] is True
+    assert result["unknown_template_ratio"] == 0.0
+    assert result["transformer"]["status"] != "insufficient_signal"
