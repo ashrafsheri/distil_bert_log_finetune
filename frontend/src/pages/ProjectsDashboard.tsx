@@ -23,6 +23,7 @@ const ProjectsDashboard: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [projectCreationResult, setProjectCreationResult] = useState<CreateProjectResponse | null>(null);
   const [regeneratingKeyFor, setRegeneratingKeyFor] = useState<string | null>(null);
+  const [optimizingWarmupFor, setOptimizingWarmupFor] = useState<string | null>(null);
   const [showLogTypeModal, setShowLogTypeModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectSummary | null>(null);
   const [newLogType, setNewLogType] = useState<'apache' | 'nginx'>('apache');
@@ -168,6 +169,26 @@ const ProjectsDashboard: React.FC = () => {
 
   const handleViewProject = (projectId: string) => {
     navigate(`/dashboard/${projectId}`);
+  };
+
+  const handleOptimizeWarmup = async (project: ProjectSummary) => {
+    const health = projectHealth[project.id];
+    if (!health) return;
+
+    try {
+      setOptimizingWarmupFor(project.id);
+      setError(null);
+      await projectService.updateProject(project.id, {
+        traffic_profile: 'low_traffic',
+        warmup_threshold: Math.min(health.warmup_threshold || 1000, 1000),
+      });
+      await loadData();
+    } catch (err) {
+      console.error('Error optimizing warmup:', err);
+      setError(err instanceof Error ? err.message : 'Failed to optimize project warmup');
+    } finally {
+      setOptimizingWarmupFor(null);
+    }
   };
 
   const handleChangeLogType = (project: ProjectSummary) => {
@@ -457,6 +478,11 @@ const ProjectsDashboard: React.FC = () => {
                                 Blockers: {projectHealth[project.id].student_training_blockers.join(', ')}
                               </div>
                             )}
+                            {projectHealth[project.id].phase === 'warmup' && projectHealth[project.id].traffic_profile !== 'low_traffic' && (
+                              <div className="text-vt-primary">
+                                This project is still on the standard warmup lane. Switching to low-traffic lowers the target to 1,000 clean logs and relaxes activation gates.
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>
@@ -505,6 +531,21 @@ const ProjectsDashboard: React.FC = () => {
                             >
                               Change Log Type
                             </Button>
+                          )}
+                          {(isAdmin || isManager) && (
+                            projectHealth[project.id]
+                            && projectHealth[project.id].phase === 'warmup'
+                            && !projectHealth[project.id].has_student_model
+                            && (
+                              <Button
+                                onClick={() => handleOptimizeWarmup(project)}
+                                size="sm"
+                                disabled={optimizingWarmupFor === project.id}
+                                className="bg-vt-primary hover:bg-vt-primary/80 px-4 py-2"
+                              >
+                                {optimizingWarmupFor === project.id ? 'Optimizing...' : 'Optimize Warmup'}
+                              </Button>
+                            )
                           )}
                           {(isAdmin || isManager) && (
                             <Button
