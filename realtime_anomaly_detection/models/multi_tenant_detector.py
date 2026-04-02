@@ -252,6 +252,9 @@ class MultiTenantDetector:
                 project.parse_failure_count / project.total_received_count
                 if project.total_received_count else 0.0
             ),
+            'recent_parse_failure_rate': self._recent_parse_failure_rate(project) or 0.0,
+            'recent_parse_failure_sample_count': project.recent_total_received_count,
+            'effective_parse_failure_rate': self._effective_parse_failure_rate(project),
             'observed_hours': project.observed_hours,
             'student_training_blockers': project.student_training_blockers,
             'distinct_template_count': project.distinct_template_count,
@@ -601,6 +604,44 @@ class MultiTenantDetector:
         settings["profile"] = profile
         return settings
 
+    def _recent_parse_failure_rate(self, project: ProjectConfig) -> Optional[float]:
+        if project.recent_total_received_count <= 0:
+            return None
+        return project.recent_parse_failure_count / project.recent_total_received_count
+
+    def _effective_parse_failure_rate(self, project: ProjectConfig) -> float:
+        recent_rate = self._recent_parse_failure_rate(project)
+        min_recent_samples = int(os.getenv("MULTI_TENANT_RECENT_PARSE_FAILURE_MIN_SAMPLES", "250"))
+        if recent_rate is not None and project.recent_total_received_count >= min_recent_samples:
+            return recent_rate
+        if project.total_received_count <= 0:
+            return 0.0
+        return project.parse_failure_count / project.total_received_count
+
+    def _should_collect_warmup_training_sample(
+        self,
+        project_id: str,
+        project: ProjectConfig,
+        *,
+        baseline_eligible: bool,
+        split_name: str,
+    ) -> bool:
+        if project.phase != ProjectPhase.WARMUP.value or not baseline_eligible:
+            return False
+        if split_name == "train":
+            return True
+        student = self.students.get(project_id)
+        profile_settings = self._profile_settings_for_project(project)
+        training_sequence_count = len(student.training_sequences) if student else 0
+        training_feature_count = len(student.training_features) if student else 0
+        return (
+            project.clean_baseline_count >= project.warmup_threshold
+            and (
+                training_sequence_count < profile_settings["min_training_sequences"]
+                or training_feature_count < profile_settings["min_if_feature_rows"]
+            )
+        )
+
     def _split_name_for_position(self, position: int, warmup_threshold: int) -> str:
         if warmup_threshold <= 0:
             return "train"
@@ -719,10 +760,7 @@ class MultiTenantDetector:
             blockers.append("insufficient_time_coverage")
         if project.distinct_template_count < profile_settings["min_distinct_templates"]:
             blockers.append("insufficient_distinct_templates")
-        parse_failure_rate = (
-            project.parse_failure_count / project.total_received_count
-            if project.total_received_count else 0.0
-        )
+        parse_failure_rate = self._effective_parse_failure_rate(project)
         if parse_failure_rate > self.max_parse_failure_rate:
             blockers.append("parse_failure_rate_too_high")
         if project.data_quality_incident_open:
@@ -983,8 +1021,13 @@ class MultiTenantDetector:
                 session, session_stats, features, manifest_known=manifest_known
             )
             
-            # Collect training data during warmup
-            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible and split_name == "train":
+            # Keep collecting warmup data until student training gates are satisfied.
+            if self._should_collect_warmup_training_sample(
+                project_id,
+                project,
+                baseline_eligible=baseline_eligible,
+                split_name=split_name,
+            ):
                 self._collect_training_data(
                     project_id, normalized_template, session_id, features
                 )
@@ -1163,7 +1206,12 @@ class MultiTenantDetector:
                 features,
                 manifest_known=manifest_known,
             )
-            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible and split_name == "train":
+            if self._should_collect_warmup_training_sample(
+                project_id,
+                project,
+                baseline_eligible=baseline_eligible,
+                split_name=split_name,
+            ):
                 self._collect_training_data(project_id, normalized_template, session_key, features)
             if project.phase == ProjectPhase.TRAINING.value:
                 self._maybe_trigger_student_training(project_id)
