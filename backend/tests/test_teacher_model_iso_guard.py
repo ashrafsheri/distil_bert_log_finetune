@@ -73,3 +73,23 @@ def test_teacher_detect_reports_not_fitted_for_unfitted_isolation_forest(tmp_pat
     )
 
     assert result["isolation_forest"]["status"] == "not_fitted"
+
+
+def test_teacher_rule_hits_are_not_diluted_by_unavailable_models(tmp_path: Path) -> None:
+    model = _build_minimal_teacher(tmp_path)
+
+    result = model.detect(
+        log_data={
+            "path": "/index.php?lang=../../../../../../usr/local/lib/php/pearcmd&+config-create+/&/bin/sh",
+            "method": "GET",
+            "status": 404,
+        },
+        sequence=[0],
+        session_stats={},
+        features=np.zeros((1, 11), dtype=np.float64),
+    )
+
+    assert result["rule_based"]["is_attack"] is True
+    assert result["is_anomaly"] is True
+    assert result["anomaly_score"] >= 0.95
+    assert result["transformer"]["status"] == "insufficient_context"

@@ -65,3 +65,13 @@ def test_format_parse_failure_for_storage_captures_failure_fields() -> None:
     assert doc["detection_error"] == "parse_failed"
     assert doc["session_key_hash"]
     assert doc["event_time"] == "2026-03-31T10:00:00+00:00"
+
+
+def test_should_skip_detection_for_health_checks() -> None:
+    should_skip, reason = LogService.should_skip_detection({"path": "/health"})
+    assert should_skip is True
+    assert reason == "health_check_skipped"
+
+    should_skip, reason = LogService.should_skip_detection({"path": "/orders"})
+    assert should_skip is False
+    assert reason is None

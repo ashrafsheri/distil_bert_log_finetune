@@ -609,6 +609,43 @@ async def receive_fluent_bit_logs(
                 )
                 continue
 
+            should_skip_detection, skip_reason = LogService.should_skip_detection(parsed_log)
+            if should_skip_detection:
+                session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
+                processed_logs.append(
+                    LogService.format_log_for_storage(
+                        parsed_log,
+                        raw_log,
+                        {
+                            "is_anomaly": False,
+                            "anomaly_score": 0.0,
+                            "raw_anomaly_score": 0.0,
+                            "details": {
+                                "rule_based": {},
+                                "isolation_forest": {"status": "skipped"},
+                                "transformer": {"status": "skipped"},
+                                "ensemble": {"score": 0.0, "active_models": 0},
+                            },
+                            "detection_status": "skipped",
+                            "detection_error": skip_reason,
+                            "model_version": "student-teacher-v1",
+                            "feature_schema_version": "access-log-v2",
+                            "phase": "skipped",
+                            "model_type": None,
+                        },
+                        {},
+                        batch_id,
+                        project.org_id,
+                        project.id,
+                        session_key_hash=LogService.build_session_key_hash(session_key),
+                        parse_status="parsed",
+                        parse_error=None,
+                        detection_status="skipped",
+                        detection_error=skip_reason,
+                    )
+                )
+                continue
+
             session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
             structured_events.append(
                 {

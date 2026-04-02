@@ -481,12 +481,20 @@ class TeacherModel:
         )
         
         # 2. Transformer detection
-        transformer_score = self.calculate_transformer_score(sequence)
         transformer_result = {
-            'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
-            'score': float(transformer_score),
-            'threshold': float(self.transformer_threshold)
+            'is_anomaly': 0,
+            'score': 0.0,
+            'threshold': float(self.transformer_threshold),
+            'status': 'insufficient_context'
         }
+        if len(sequence) >= 3:
+            transformer_score = self.calculate_transformer_score(sequence)
+            transformer_result = {
+                'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
+                'score': float(transformer_score),
+                'threshold': float(self.transformer_threshold),
+                'status': 'active'
+            }
         
         # 3. Isolation Forest detection
         iso_result = {'is_anomaly': 0, 'score': 0.0, 'status': 'not_available'}
@@ -510,26 +518,35 @@ class TeacherModel:
         # 4. Ensemble voting
         votes = []
         weights = []
-        
-        # Rule-based
+        vote_names = []
+
         if rule_result.get('is_attack'):
+            confidence = float(rule_result.get('confidence', 0.5))
             votes.append(1)
-            weights.append(rule_result.get('confidence', 0.5))
-        else:
-            votes.append(0)
-            weights.append(0.2)
-        
-        # Isolation Forest
-        votes.append(iso_result.get('is_anomaly', 0))
-        weights.append(0.5)
-        
-        # Transformer
-        votes.append(transformer_result['is_anomaly'])
-        weights.append(0.7)
-        
+            weights.append(max(confidence, 1.0))
+            vote_names.append('rule')
+
+        if iso_result.get('status') == 'active':
+            votes.append(iso_result.get('is_anomaly', 0))
+            weights.append(0.5)
+            vote_names.append('iso')
+
+        if transformer_result.get('status') == 'active':
+            votes.append(transformer_result['is_anomaly'])
+            weights.append(0.7)
+            vote_names.append('transformer')
+
         total_weight = sum(weights)
-        ensemble_score = sum(v * w for v, w in zip(votes, weights)) / total_weight
+        ensemble_score = (
+            sum(v * w for v, w in zip(votes, weights)) / total_weight
+            if total_weight > 0
+            else 0.0
+        )
         is_anomaly = ensemble_score > 0.5
+
+        if rule_result.get('is_attack'):
+            ensemble_score = max(ensemble_score, float(rule_result.get('confidence', 1.0)), 0.95)
+            is_anomaly = True
         
         return {
             'is_anomaly': is_anomaly,
@@ -540,8 +557,9 @@ class TeacherModel:
             'transformer': transformer_result,
             'ensemble': {
                 'score': ensemble_score,
-                'votes': dict(zip(['rule', 'iso', 'transformer'], votes)),
-                'weights': dict(zip(['rule', 'iso', 'transformer'], weights))
+                'votes': dict(zip(vote_names, votes)),
+                'weights': dict(zip(vote_names, weights)),
+                'active_models': len(weights),
             }
         }
     
