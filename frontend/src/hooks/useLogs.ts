@@ -40,6 +40,29 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
   const [pendingThreatCount, setPendingThreatCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const isStreamPausedRef = useRef(false);
+  const seenLogKeysRef = useRef<Set<string>>(new Set());
+  const seenIncidentIdsRef = useRef<Set<string>>(new Set());
+
+  const getLogKey = useCallback((log: LogEntry): string => {
+    return [
+      log.eventTime || '',
+      log.timestamp || '',
+      log.ipAddress || '',
+      log.apiAccessed || '',
+      String(log.statusCode ?? ''),
+      log.parseStatus || '',
+      log.detectionStatus || '',
+    ].join('|');
+  }, []);
+
+  const rebuildSeenRefs = useCallback((items: LogEntry[]) => {
+    seenLogKeysRef.current = new Set(items.map(getLogKey));
+    seenIncidentIdsRef.current = new Set(
+      items
+        .map(item => item.incidentId)
+        .filter((incidentId): incidentId is string => Boolean(incidentId))
+    );
+  }, [getLogKey]);
 
   const resolveLogTimestamp = useCallback((log: LogEntry): Date => {
     const candidate = log.eventTime || log.timestamp || log.ingestTime;
@@ -67,6 +90,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
       
       if (Array.isArray(data.logs)) {
         setLogs(data.logs);
+        rebuildSeenRefs(data.logs);
         
         // Set counts from backend response
         setTotalCount(data.total_count || 0);
@@ -157,6 +181,11 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
             // Handle wrapped WebSocket message format
             if (message?.type === 'log_update' && message.data) {
               const newLog = message.data;
+              const logKey = getLogKey(newLog);
+              if (seenLogKeysRef.current.has(logKey)) {
+                return;
+              }
+              seenLogKeysRef.current.add(logKey);
               
               // Update logs array
               if (isStreamPausedRef.current) {
@@ -176,11 +205,17 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               if (newLog.detectionStatus === 'failed') {
                 setDetectionFailureCount(prev => prev + 1);
               }
-              if (newLog.infected && newLog.incidentId) {
+              if (newLog.infected && newLog.incidentId && !seenIncidentIdsRef.current.has(newLog.incidentId)) {
+                seenIncidentIdsRef.current.add(newLog.incidentId);
                 setIncidentCount(prev => prev + 1);
               }
             } else if (message && typeof message === 'object' && message.ipAddress) {
               // Handle direct log format (fallback)
+              const logKey = getLogKey(message);
+              if (seenLogKeysRef.current.has(logKey)) {
+                return;
+              }
+              seenLogKeysRef.current.add(logKey);
               
               // Update logs array
               if (isStreamPausedRef.current) {
@@ -200,7 +235,8 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               if (message.detectionStatus === 'failed') {
                 setDetectionFailureCount(prev => prev + 1);
               }
-              if (message.infected && message.incidentId) {
+              if (message.infected && message.incidentId && !seenIncidentIdsRef.current.has(message.incidentId)) {
+                seenIncidentIdsRef.current.add(message.incidentId);
                 setIncidentCount(prev => prev + 1);
               }
             }
