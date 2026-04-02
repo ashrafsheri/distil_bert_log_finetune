@@ -4,7 +4,7 @@ Defines the structure for project data in the system
 Projects belong to organizations
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime
 import secrets
@@ -81,11 +81,23 @@ class ProjectHealthSummary(BaseModel):
     warmup_threshold: int
     warmup_progress: float
     has_student_model: bool
+    traffic_profile: str = "standard"
     baseline_eligible_count: int
+    clean_baseline_count: int = 0
+    dirty_excluded_count: int = 0
+    probe_skipped_count: int = 0
     parse_failure_rate: float
     observed_hours: list[int]
     student_training_blockers: list[str]
+    distinct_template_count: int = 0
     calibration_threshold: Optional[float] = None
+    threshold_source: Optional[str] = None
+    threshold_fitted_at: Optional[str] = None
+    calibration_sample_count: int = 0
+    score_normalization_version: Optional[str] = None
+    teacher_last_updated_at: Optional[str] = None
+    teacher_freshness: Optional[str] = None
+    reservoir_counts: dict[str, int] = Field(default_factory=dict)
     created_at: str
     last_activity: str
 

@@ -67,6 +67,9 @@ export interface LogEntry {
   detectionError?: string | null;
   incidentId?: string | null;
   incidentType?: string | null;
+  incidentGroupedEventCount?: number | null;
+  incidentReason?: string | null;
+  topContributingSignals?: string[] | null;
   normalizedTemplate?: string | null;
   sessionKeyHash?: string | null;
   modelVersion?: string | null;
@@ -75,6 +78,17 @@ export interface LogEntry {
   modelType?: string | null;
   rawAnomalyScore?: number | null;
   calibration?: Record<string, unknown> | null;
+  trafficClass?: string | null;
+  baselineEligible?: boolean | null;
+  decisionReason?: string | null;
+  policyScore?: number | null;
+  finalDecision?: string | null;
+  componentStatus?: Record<string, unknown> | null;
+  thresholdSource?: string | null;
+  thresholdFittedAt?: string | null;
+  calibrationSampleCount?: number | null;
+  scoreNormalizationVersion?: string | null;
+  unknownTemplateRatio?: number | null;
 }
 
 export interface LogSearchResponse {
@@ -87,6 +101,7 @@ export interface LogSearchResponse {
   parse_failure_count: number;
   detection_failure_count: number;
   incident_count: number;
+  skipped_count: number;
 }
 
 export const logService = {

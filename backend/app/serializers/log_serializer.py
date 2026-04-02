@@ -43,6 +43,9 @@ class LogSerializer:
                 detectionError=log_data.get("detection_error"),
                 incidentId=log_data.get("incident_id"),
                 incidentType=log_data.get("incident_type"),
+                incidentGroupedEventCount=log_data.get("incident_grouped_event_count"),
+                incidentReason=log_data.get("incident_reason"),
+                topContributingSignals=log_data.get("top_contributing_signals"),
                 normalizedTemplate=log_data.get("normalized_template"),
                 sessionKeyHash=log_data.get("session_key_hash"),
                 modelVersion=log_data.get("model_version"),
@@ -51,6 +54,17 @@ class LogSerializer:
                 modelType=log_data.get("model_type"),
                 rawAnomalyScore=log_data.get("raw_anomaly_score"),
                 calibration=log_data.get("calibration"),
+                trafficClass=log_data.get("traffic_class"),
+                baselineEligible=log_data.get("baseline_eligible"),
+                decisionReason=log_data.get("decision_reason"),
+                policyScore=log_data.get("policy_score"),
+                finalDecision=log_data.get("final_decision"),
+                componentStatus=log_data.get("component_status"),
+                thresholdSource=log_data.get("threshold_source"),
+                thresholdFittedAt=log_data.get("threshold_fitted_at"),
+                calibrationSampleCount=log_data.get("calibration_sample_count"),
+                scoreNormalizationVersion=log_data.get("score_normalization_version"),
+                unknownTemplateRatio=log_data.get("unknown_template_ratio"),
             )
             logs.append(log_entry)
         return logs
@@ -63,6 +77,7 @@ class LogSerializer:
         parse_failure_count: int = 0,
         detection_failure_count: int = 0,
         incident_count: int = 0,
+        skipped_count: int = 0,
     ) -> LogEntryResponse:
         """Build LogEntryResponse from raw Elasticsearch data"""
         logs = LogSerializer.convert_elasticsearch_logs_to_entries(logs_data)
@@ -82,6 +97,7 @@ class LogSerializer:
             parse_failure_count=parse_failure_count,
             detection_failure_count=detection_failure_count,
             incident_count=incident_count,
+            skipped_count=skipped_count,
         )
 
     @staticmethod

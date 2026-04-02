@@ -36,7 +36,7 @@ import os
 import sys
 import tempfile
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -256,6 +256,22 @@ class ProjectReplayStats:
         }
 
 
+def summarize_category_counts(records: Sequence[Dict[str, Any]], *, keys: Sequence[str]) -> List[Dict[str, Any]]:
+    counter: Counter[str] = Counter()
+    for record in records:
+        parts: List[str] = []
+        for key in keys:
+            value = record.get(key)
+            if value is None or value == "":
+                value = "unknown"
+            parts.append(f"{key}={value}")
+        counter[" | ".join(parts)] += 1
+    return [
+        {"category": category, "count": count}
+        for category, count in counter.most_common()
+    ]
+
+
 class EventLoader:
     def __init__(self, default_log_type: str, default_warmup_threshold: int) -> None:
         self.parser = LogParserService()
@@ -358,7 +374,11 @@ class EventLoader:
                     flags=flags,
                     label=label,
                     label_incident_id=str(label_incident_id) if label_incident_id else None,
-                    metadata={"org_id": record.get("org_id"), "source": record.get("source", "backtest")},
+                    metadata={
+                        "org_id": record.get("org_id"),
+                        "source": record.get("source", "backtest"),
+                        "traffic_profile": record.get("traffic_profile", "standard"),
+                    },
                 )
             )
 
@@ -582,8 +602,13 @@ def replay_detector(
                 "project_id": event.project_id,
                 "predicted": predicted,
                 "anomaly_score": result.get("anomaly_score", 0.0),
+                "policy_score": result.get("policy_score", 0.0),
                 "phase": result.get("phase"),
                 "model_type": result.get("model_type") or result.get("using_model"),
+                "decision_reason": result.get("decision_reason"),
+                "final_decision": result.get("final_decision"),
+                "traffic_class": result.get("traffic_class"),
+                "incident_type": result.get("incident_type"),
                 "label": event.label,
                 "predicted_incident_id": predicted_incident_id,
                 "label_incident_id": label_incident_id,
@@ -593,6 +618,9 @@ def replay_detector(
 
     duration = time.perf_counter() - start
     eval_rows = [row for row in replay_rows if row["eval"]]
+    false_positive_rows = [row for row in eval_rows if row.get("label") is False and row.get("predicted")]
+    false_negative_rows = [row for row in eval_rows if row.get("label") is True and not row.get("predicted")]
+    predicted_rows = [row for row in eval_rows if row.get("predicted")]
     return {
         "detector": adapter_name,
         "duration_seconds": round(duration, 3),
@@ -602,6 +630,20 @@ def replay_detector(
         "incident_metrics": compute_incident_metrics(eval_rows),
         "projects_seen": sorted({row["project_id"] for row in replay_rows}),
         "avg_events_per_second": round(len(replay_rows) / duration, 2) if duration else None,
+        "alert_volume": {
+            "predicted_alerts": len(predicted_rows),
+            "alert_rate": round((len(predicted_rows) / len(eval_rows)) * 100, 2) if eval_rows else 0.0,
+            "alerts_by_project": dict(Counter(row["project_id"] for row in predicted_rows)),
+            "alerts_by_reason": dict(Counter((row.get("decision_reason") or "unknown") for row in predicted_rows)),
+        },
+        "false_positive_categories": summarize_category_counts(
+            false_positive_rows,
+            keys=("decision_reason", "incident_type", "traffic_class"),
+        ),
+        "false_negative_categories": summarize_category_counts(
+            false_negative_rows,
+            keys=("decision_reason", "final_decision"),
+        ),
         "final_project_blockers": {
             row["project_id"]: row["student_training_blockers"]
             for row in eval_rows[-50:]

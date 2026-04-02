@@ -75,3 +75,29 @@ def test_should_skip_detection_for_health_checks() -> None:
     should_skip, reason = LogService.should_skip_detection({"path": "/orders"})
     assert should_skip is False
     assert reason is None
+
+
+def test_classify_traffic_marks_probe_and_known_attack_flags() -> None:
+    probe = LogService.classify_traffic(
+        parsed_log={"path": "/health", "timestamp": "2026-04-01T12:00:00+00:00"},
+        source_record={"path": "/health"},
+        raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /health HTTP/1.1" 200 0',
+        event_time="2026-04-01T12:00:00+00:00",
+    )
+    attack = LogService.classify_traffic(
+        parsed_log={
+            "path": "/index.php?lang=../../../../../../etc/passwd",
+            "timestamp": "2026-04-01T12:00:00+00:00",
+        },
+        source_record={"tag": "edge"},
+        raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /index.php?lang=../../../../../../etc/passwd HTTP/1.1" 404 0',
+        event_time="2026-04-01T12:00:00+00:00",
+    )
+
+    assert probe["traffic_class"] == "internal_probe"
+    assert probe["baseline_eligible"] is False
+    assert probe["flags"]["internal_probe"] is True
+
+    assert attack["traffic_class"] == "user_traffic"
+    assert attack["baseline_eligible"] is False
+    assert attack["flags"]["rule_hit"] is True

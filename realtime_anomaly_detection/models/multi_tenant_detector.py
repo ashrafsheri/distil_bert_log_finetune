@@ -86,6 +86,7 @@ class MultiTenantDetector:
         # Session windows per project (project_id -> {session_id -> deque})
         self.project_sessions: Dict[str, Dict[str, Dict]] = {}
         self.project_score_windows: Dict[str, deque] = {}
+        self.project_score_buffers: Dict[str, Dict[str, deque]] = {}
         self.incident_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
         self.session_ttl_seconds = int(os.getenv("MULTI_TENANT_SESSION_TTL_SECONDS", "1800"))
         self.max_sessions_per_project = int(os.getenv("MULTI_TENANT_MAX_SESSIONS_PER_PROJECT", "50000"))
@@ -94,6 +95,28 @@ class MultiTenantDetector:
         self.min_observed_hours = int(os.getenv("MULTI_TENANT_MIN_OBSERVED_HOURS", "6"))
         self.max_parse_failure_rate = float(os.getenv("MULTI_TENANT_MAX_PARSE_FAILURE_RATE", "0.05"))
         self.model_version = os.getenv("MULTI_TENANT_MODEL_VERSION", "student-teacher-v1")
+        self.feature_schema_version = os.getenv("MULTI_TENANT_FEATURE_SCHEMA_VERSION", "access-log-v2")
+        self.score_normalization_version = "hybrid-v1"
+        self.min_calibration_samples = int(os.getenv("MULTI_TENANT_MIN_CALIBRATION_SAMPLES", "20"))
+        self.max_daily_threshold_delta = float(os.getenv("MULTI_TENANT_MAX_DAILY_THRESHOLD_DELTA", "0.1"))
+        self.profile_settings = {
+            "standard": {
+                "warmup_threshold": default_warmup_threshold,
+                "min_training_sequences": 100,
+                "min_if_feature_rows": 100,
+                "min_observed_hours": self.min_observed_hours,
+                "min_distinct_templates": 10,
+                "max_single_template_ratio": 0.85,
+            },
+            "low_traffic": {
+                "warmup_threshold": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_WARMUP_THRESHOLD", "1000")),
+                "min_training_sequences": 30,
+                "min_if_feature_rows": 50,
+                "min_observed_hours": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS", "3")),
+                "min_distinct_templates": 5,
+                "max_single_template_ratio": 0.9,
+            },
+        }
         
         # Thread safety
         self._lock = threading.RLock()
@@ -154,11 +177,13 @@ class MultiTenantDetector:
         Returns:
             Tuple of (project_id, api_key)
         """
-        threshold = warmup_threshold or self.default_warmup_threshold
+        traffic_profile = (metadata or {}).get("traffic_profile", "standard")
+        threshold = warmup_threshold or self.profile_settings.get(traffic_profile, self.profile_settings["standard"])["warmup_threshold"]
         project_id, api_key = self.project_manager.create_project(
             project_name=project_name,
             warmup_threshold=threshold,
-            metadata=metadata
+            metadata=metadata,
+            traffic_profile=traffic_profile,
         )
         
         # Initialize project sessions
@@ -188,14 +213,30 @@ class MultiTenantDetector:
             'warmup_progress': min(100, (project.current_log_count / project.warmup_threshold) * 100),
             'has_student_model': student is not None and student.is_trained,
             'student_info': student_info,
+            'traffic_profile': project.traffic_profile,
             'baseline_eligible_count': project.baseline_eligible_count,
+            'clean_baseline_count': project.clean_baseline_count,
+            'dirty_excluded_count': project.dirty_excluded_count,
+            'probe_skipped_count': project.probe_skipped_count,
             'parse_failure_rate': (
                 project.parse_failure_count / project.total_received_count
                 if project.total_received_count else 0.0
             ),
             'observed_hours': project.observed_hours,
             'student_training_blockers': project.student_training_blockers,
+            'distinct_template_count': project.distinct_template_count,
             'calibration_threshold': project.calibration_threshold,
+            'threshold_source': project.threshold_source,
+            'threshold_fitted_at': project.threshold_fitted_at,
+            'calibration_sample_count': project.calibration_sample_count,
+            'score_normalization_version': project.score_normalization_version,
+            'teacher_last_updated_at': project.teacher_last_updated_at,
+            'teacher_freshness': project.teacher_freshness,
+            'reservoir_counts': {
+                'clean_normal': project.clean_normal_reservoir_count,
+                'suspicious': project.suspicious_reservoir_count,
+                'confirmed_malicious': project.confirmed_malicious_reservoir_count,
+            },
             'created_at': project.created_at,
             'last_activity': project.last_activity
         }
@@ -211,15 +252,19 @@ class MultiTenantDetector:
         warmup_threshold: Optional[int] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        threshold = warmup_threshold or self.default_warmup_threshold
+        traffic_profile = (metadata or {}).get("traffic_profile", "standard")
+        profile_settings = self.profile_settings.get(traffic_profile, self.profile_settings["standard"])
+        threshold = warmup_threshold or profile_settings["warmup_threshold"]
         project = self.project_manager.ensure_project(
             project_id=project_id,
             project_name=project_name,
             warmup_threshold=threshold,
             metadata=metadata or {},
+            traffic_profile=traffic_profile,
         )
         self.project_sessions.setdefault(project_id, {})
         self.project_score_windows.setdefault(project_id, deque(maxlen=self.score_window_size))
+        self._project_score_buffers_for(project_id)
         self.incident_cache.setdefault(project_id, {})
         return self.get_project_status(project_id) or {
             "project_id": project.project_id,
@@ -234,16 +279,26 @@ class MultiTenantDetector:
         total_records: int,
         parse_failures: int,
         baseline_eligible: int,
+        clean_baseline_count: Optional[int] = None,
+        dirty_excluded_count: int = 0,
+        probe_skipped_count: int = 0,
+        distinct_template_count: int = 0,
         observed_hours: Optional[List[int]] = None,
         data_quality_incident_open: Optional[bool] = None,
+        traffic_profile: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         project = self.project_manager.record_ingest_stats(
             project_id,
             total_records=total_records,
             parse_failures=parse_failures,
             baseline_eligible=baseline_eligible,
+            clean_baseline_count=clean_baseline_count,
+            dirty_excluded_count=dirty_excluded_count,
+            probe_skipped_count=probe_skipped_count,
+            distinct_template_count=distinct_template_count,
             observed_hours=observed_hours,
             data_quality_incident_open=data_quality_incident_open,
+            traffic_profile=traffic_profile,
         )
         if not project:
             return None
@@ -298,26 +353,60 @@ class MultiTenantDetector:
     def extract_features(self, log_data: Dict, session_stats: Dict) -> np.ndarray:
         """Extract features for Isolation Forest"""
         event_hour = 0
+        event_weekday = 0
         event_time = log_data.get("event_time")
         if isinstance(event_time, str) and event_time:
             try:
-                event_hour = datetime.fromisoformat(event_time.replace("Z", "+00:00")).hour
+                parsed_time = datetime.fromisoformat(event_time.replace("Z", "+00:00"))
+                event_hour = parsed_time.hour
+                event_weekday = parsed_time.weekday()
             except ValueError:
                 event_hour = 0
+                event_weekday = 0
 
-        features = [
-            session_stats.get('request_count', 1),
-            session_stats.get('error_rate', 0.0),
-            session_stats.get('unique_paths', 1),
-            session_stats.get('error_count', 0),
-            1 if log_data.get('method', 'GET') == 'GET' else 0,
-            1 if log_data.get('method', 'GET') == 'POST' else 0,
-            1 if log_data.get('status', 200) >= 400 else 0,
-            len(log_data.get('path', '/')),
-            log_data.get('path', '/').count('/'),
-            1 if '?' in log_data.get('path', '/') else 0,
-            event_hour
-        ]
+        path = log_data.get('path', '/')
+        method = log_data.get('method', 'GET')
+        status = log_data.get('status', 200)
+        user_agent = log_data.get('user_agent', '-') or '-'
+        referer = log_data.get('referer', '-') or '-'
+
+        if self.feature_schema_version == "access-log-v3":
+            suspicious_token_count = sum(
+                token in path.lower()
+                for token in ("..", "%2e", "%2f", "cmd", "union", "select", "<script", "wget", "curl")
+            )
+            features = [
+                session_stats.get('request_count', 1),
+                session_stats.get('error_rate', 0.0),
+                session_stats.get('unique_paths', 1),
+                session_stats.get('error_count', 0),
+                1 if method == 'GET' else 0,
+                1 if method == 'POST' else 0,
+                1 if status >= 400 else 0,
+                len(path),
+                path.count('/'),
+                1 if '?' in path else 0,
+                event_hour,
+                event_weekday,
+                suspicious_token_count,
+                1 if status in {401, 403} else 0,
+                len(user_agent.split("/")[0]) if user_agent != '-' else 0,
+                0 if referer == '-' else 1,
+            ]
+        else:
+            features = [
+                session_stats.get('request_count', 1),
+                session_stats.get('error_rate', 0.0),
+                session_stats.get('unique_paths', 1),
+                session_stats.get('error_count', 0),
+                1 if method == 'GET' else 0,
+                1 if method == 'POST' else 0,
+                1 if status >= 400 else 0,
+                len(path),
+                path.count('/'),
+                1 if '?' in path else 0,
+                event_hour
+            ]
         return np.array(features, dtype=np.float64).reshape(1, -1)
     
     def normalize_template(self, log_data: Dict) -> str:
@@ -325,12 +414,123 @@ class MultiTenantDetector:
         message = f"{log_data['method']} {log_data['path']} {log_data['protocol']} {log_data['status']}"
         return self.normalizer.normalize(message)
 
+    def _profile_settings_for_project(self, project: ProjectConfig) -> Dict[str, Any]:
+        profile = project.traffic_profile if project.traffic_profile in self.profile_settings else "standard"
+        settings = dict(self.profile_settings[profile])
+        settings["profile"] = profile
+        return settings
+
+    def _split_name_for_position(self, position: int, warmup_threshold: int) -> str:
+        if warmup_threshold <= 0:
+            return "train"
+        train_end = max(1, int(warmup_threshold * 0.70))
+        calibration_end = max(train_end + 1, int(warmup_threshold * 0.85))
+        if position <= train_end:
+            return "train"
+        if position <= calibration_end:
+            return "calibration"
+        return "holdout"
+
+    def _normalize_component_score(self, component_name: str, component: Dict[str, Any]) -> Optional[float]:
+        if component.get("status") != "active":
+            return None
+        if component_name == "transformer":
+            threshold = float(component.get("threshold") or 1.0)
+            score = float(component.get("score") or 0.0)
+            return float(min(max(score / max(threshold, 1e-6), 0.0), 2.0) / 2.0)
+        if component_name == "isolation_forest":
+            threshold = float(component.get("threshold") or 1.0)
+            score = float(component.get("score") or 0.0)
+            if threshold <= 0:
+                return float(component.get("is_anomaly", 0))
+            return float(min(max(score / threshold, 0.0), 2.0) / 2.0)
+        return None
+
+    def _project_score_buffers_for(self, project_id: str) -> Dict[str, deque]:
+        return self.project_score_buffers.setdefault(
+            project_id,
+            {
+                "train": deque(maxlen=self.score_window_size),
+                "calibration": deque(maxlen=self.score_window_size),
+                "holdout": deque(maxlen=self.score_window_size),
+            },
+        )
+
+    def _compose_final_decision(
+        self,
+        *,
+        project: ProjectConfig,
+        traffic_class: str,
+        baseline_eligible: bool,
+        raw_result: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        rule_result = raw_result.get("rule_based", {}) or {}
+        iso_result = raw_result.get("isolation_forest", {}) or {}
+        transformer_result = raw_result.get("transformer", {}) or {}
+        component_status = {
+            "rule_based": "active",
+            "isolation_forest": iso_result.get("status", "not_available"),
+            "transformer": transformer_result.get("status", "not_available"),
+        }
+
+        policy_score = 0.0
+        if rule_result.get("is_attack"):
+            policy_score = max(float(rule_result.get("confidence", 1.0)), 0.95)
+
+        normalized_scores = {
+            "transformer": self._normalize_component_score("transformer", transformer_result),
+            "isolation_forest": self._normalize_component_score("isolation_forest", iso_result),
+        }
+        active_scores = [score for score in normalized_scores.values() if score is not None]
+        anomaly_score = float(sum(active_scores) / len(active_scores)) if active_scores else 0.0
+
+        final_decision = "not_flagged"
+        decision_reason = "behavioral_normal"
+        is_anomaly = False
+
+        if traffic_class in {"internal_probe", "data_quality_late_event"}:
+            final_decision = "skipped"
+            decision_reason = "internal_probe_skipped" if traffic_class == "internal_probe" else "late_event_skipped"
+        elif policy_score > 0:
+            final_decision = "threat_detected"
+            decision_reason = "known_attack_policy"
+            anomaly_score = max(anomaly_score, policy_score)
+            is_anomaly = True
+        else:
+            threshold = project.calibration_threshold
+            if anomaly_score >= threshold:
+                final_decision = "threat_detected"
+                decision_reason = "behavioral_anomaly"
+                is_anomaly = True
+            elif not active_scores:
+                decision_reason = "insufficient_signal"
+
+        return {
+            "policy_score": float(policy_score),
+            "anomaly_score": float(anomaly_score),
+            "final_decision": final_decision,
+            "decision_reason": decision_reason,
+            "component_status": component_status,
+            "is_anomaly": is_anomaly,
+            "raw_anomaly_score": float(raw_result.get("anomaly_score", anomaly_score)),
+            "unknown_template_ratio": float(raw_result.get("unknown_template_ratio", 0.0)),
+            "threshold_source": project.threshold_source,
+            "threshold_fitted_at": project.threshold_fitted_at,
+            "calibration_sample_count": project.calibration_sample_count,
+            "score_normalization_version": project.score_normalization_version,
+            "traffic_class": traffic_class,
+            "baseline_eligible": baseline_eligible,
+        }
+
     def _student_training_blockers(self, project: ProjectConfig) -> List[str]:
         blockers: List[str] = []
-        if project.baseline_eligible_count < project.warmup_threshold:
+        profile_settings = self._profile_settings_for_project(project)
+        if project.clean_baseline_count < project.warmup_threshold:
             blockers.append("insufficient_clean_baseline_volume")
-        if len(project.observed_hours) < self.min_observed_hours:
+        if len(project.observed_hours) < profile_settings["min_observed_hours"]:
             blockers.append("insufficient_time_coverage")
+        if project.distinct_template_count < profile_settings["min_distinct_templates"]:
+            blockers.append("insufficient_distinct_templates")
         parse_failure_rate = (
             project.parse_failure_count / project.total_received_count
             if project.total_received_count else 0.0
@@ -339,6 +539,16 @@ class MultiTenantDetector:
             blockers.append("parse_failure_rate_too_high")
         if project.data_quality_incident_open:
             blockers.append("active_data_quality_incident")
+        total_non_probe = project.clean_baseline_count + project.dirty_excluded_count
+        if project.probe_skipped_count > total_non_probe and project.probe_skipped_count > 0:
+            blockers.append("probe_traffic_dominant")
+        student = self.students.get(project.project_id)
+        if student and student.template_counts:
+            total_templates = sum(student.template_counts.values())
+            if total_templates > 0:
+                dominant_ratio = max(student.template_counts.values()) / total_templates
+                if dominant_ratio > profile_settings["max_single_template_ratio"]:
+                    blockers.append("dominant_single_endpoint")
         return blockers
 
     def _maybe_promote_project(self, project_id: str) -> None:
@@ -358,23 +568,39 @@ class MultiTenantDetector:
         ensemble_score: float,
         *,
         baseline_eligible: bool,
+        split_name: str,
     ) -> float:
-        window = self.project_score_windows.setdefault(
-            project_id,
-            deque(maxlen=self.score_window_size),
-        )
+        window = self.project_score_windows.setdefault(project_id, deque(maxlen=self.score_window_size))
+        score_buffers = self._project_score_buffers_for(project_id)
         if baseline_eligible:
             window.append(float(ensemble_score))
+            score_buffers[split_name].append(float(ensemble_score))
 
         project = self.project_manager.get_project(project_id)
         if not project:
             return 0.5
-        if len(window) < 50:
+        calibration_scores = list(score_buffers["calibration"])
+        holdout_scores = list(score_buffers["holdout"])
+        if len(calibration_scores) < self.min_calibration_samples or len(holdout_scores) < self.min_calibration_samples:
             return project.calibration_threshold
 
-        threshold = float(np.percentile(list(window), 97.5))
+        calibration_threshold = float(np.percentile(calibration_scores, 95))
+        holdout_threshold = float(np.percentile(holdout_scores, 97.5))
+        threshold = max(calibration_threshold, holdout_threshold)
         threshold = min(max(threshold, 0.45), 0.9)
-        self.project_manager.update_calibration_threshold(project_id, threshold)
+        current_threshold = project.calibration_threshold
+        threshold = min(
+            max(threshold, current_threshold - self.max_daily_threshold_delta),
+            current_threshold + self.max_daily_threshold_delta,
+        )
+        self.project_manager.update_threshold_metadata(
+            project_id,
+            threshold=threshold,
+            threshold_source="holdout_calibration",
+            calibration_sample_count=len(calibration_scores) + len(holdout_scores),
+            score_normalization_version=self.score_normalization_version,
+            feature_schema_version=self.feature_schema_version,
+        )
         return threshold
 
     def _build_incident(
@@ -384,6 +610,9 @@ class MultiTenantDetector:
         normalized_template: str,
         *,
         is_anomaly: bool,
+        decision_reason: Optional[str] = None,
+        raw_result: Optional[Dict[str, Any]] = None,
+        component_status: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         if not is_anomaly:
             return None
@@ -401,12 +630,54 @@ class MultiTenantDetector:
         )
         entity = log_data.get("session_key_hash") or log_data.get("ip") or "unknown"
         incident_id = f"{project_id}:{normalized_template}:{entity}:{bucket_time.isoformat()}"
-        incident = {
-            "incident_id": incident_id,
-            "incident_type": "anomaly",
-            "incident_bucket_start": bucket_time.isoformat(),
-            "normalized_template": normalized_template,
-        }
+        rule_result = (raw_result or {}).get("rule_based", {}) or {}
+        transformer_result = (raw_result or {}).get("transformer", {}) or {}
+        iso_result = (raw_result or {}).get("isolation_forest", {}) or {}
+        top_contributing_signals: List[str] = []
+
+        for attack_type in rule_result.get("attack_types", []) or []:
+            top_contributing_signals.append(f"rule:{attack_type}")
+        if transformer_result.get("status") == "active" and transformer_result.get("is_anomaly"):
+            top_contributing_signals.append("transformer:sequence_novelty")
+        if iso_result.get("status") == "active" and iso_result.get("is_anomaly"):
+            top_contributing_signals.append("iforest:feature_outlier")
+        if float((raw_result or {}).get("unknown_template_ratio", 0.0) or 0.0) >= 0.25:
+            top_contributing_signals.append("template:unknown_ratio")
+        if not top_contributing_signals and component_status:
+            for component_name, status in component_status.items():
+                if status == "active":
+                    top_contributing_signals.append(f"{component_name}:active")
+
+        top_contributing_signals = list(dict.fromkeys(top_contributing_signals))[:5]
+        incident_type = "known_exploit" if decision_reason == "known_attack_policy" else "behavioral_anomaly"
+        existing_incident = self.incident_cache.setdefault(project_id, {}).get(incident_id)
+        if existing_incident is None:
+            incident = {
+                "incident_id": incident_id,
+                "incident_type": incident_type,
+                "incident_bucket_start": bucket_time.isoformat(),
+                "incident_reason": decision_reason or "behavioral_anomaly",
+                "normalized_template": normalized_template,
+                "incident_grouped_event_count": 1,
+                "incident_first_seen_at": parsed_time.isoformat(),
+                "incident_last_seen_at": parsed_time.isoformat(),
+                "top_contributing_signals": top_contributing_signals,
+            }
+        else:
+            merged_signals = list(
+                dict.fromkeys(
+                    [*existing_incident.get("top_contributing_signals", []), *top_contributing_signals]
+                )
+            )[:5]
+            incident = {
+                **existing_incident,
+                "incident_type": existing_incident.get("incident_type") or incident_type,
+                "incident_reason": existing_incident.get("incident_reason") or decision_reason or "behavioral_anomaly",
+                "incident_grouped_event_count": int(existing_incident.get("incident_grouped_event_count", 0)) + 1,
+                "incident_last_seen_at": parsed_time.isoformat(),
+                "top_contributing_signals": merged_signals,
+            }
+
         self.incident_cache.setdefault(project_id, {})[incident_id] = incident
         return incident
     
@@ -489,6 +760,9 @@ class MultiTenantDetector:
         # Increment log count
         self.project_manager.increment_log_count(project_id)
         
+        baseline_eligible = True
+        split_name = self._split_name_for_position(project.clean_baseline_count + 1, project.warmup_threshold)
+
         # Route to appropriate model based on phase
         if project.phase == ProjectPhase.ACTIVE.value and project_id in self.students:
             # Use student model
@@ -504,7 +778,7 @@ class MultiTenantDetector:
             )
             
             # Collect training data during warmup
-            if project.phase == ProjectPhase.WARMUP.value:
+            if project.phase == ProjectPhase.WARMUP.value and split_name == "train":
                 self._collect_training_data(
                     project_id, normalized_template, session_id, features
                 )
@@ -512,18 +786,52 @@ class MultiTenantDetector:
             # Check if we should start student training
             if project.phase == ProjectPhase.TRAINING.value:
                 self._maybe_trigger_student_training(project_id)
-
+        decision = self._compose_final_decision(
+            project=project,
+            traffic_class="user_traffic",
+            baseline_eligible=baseline_eligible,
+            raw_result=result,
+        )
         calibrated_threshold = self._update_project_calibration(
             project_id,
-            result.get('anomaly_score', 0.0),
-            baseline_eligible=True,
+            decision.get('anomaly_score', 0.0),
+            baseline_eligible=baseline_eligible,
+            split_name=split_name,
         )
-        result['raw_anomaly_score'] = result.get('anomaly_score', 0.0)
-        result['is_anomaly'] = result.get('anomaly_score', 0.0) >= calibrated_threshold
+        decision['raw_anomaly_score'] = decision.get('anomaly_score', 0.0)
+        decision['anomaly_score'] = max(decision.get('anomaly_score', 0.0), decision.get('policy_score', 0.0))
+        if decision['final_decision'] not in {'threat_detected', 'skipped'}:
+            decision['is_anomaly'] = decision['anomaly_score'] >= calibrated_threshold
+            decision['final_decision'] = "threat_detected" if decision['is_anomaly'] else "not_flagged"
+            if decision['is_anomaly']:
+                decision['decision_reason'] = "behavioral_anomaly"
+        result.update(decision)
         result['calibration'] = {'project_threshold': calibrated_threshold, 'baseline_eligible': True}
-        incident = self._build_incident(project_id, log_data, normalized_template, is_anomaly=result['is_anomaly'])
+        incident = self._build_incident(
+            project_id,
+            log_data,
+            normalized_template,
+            is_anomaly=result['is_anomaly'],
+            decision_reason=result.get('decision_reason'),
+            raw_result=result,
+            component_status=result.get('component_status'),
+        )
         if incident:
             result.update(incident)
+
+        student = self.students.get(project_id)
+        if student is not None:
+            student.record_reservoir_observation(
+                sequence=list(session['templates']),
+                is_anomaly=result['is_anomaly'],
+                is_known_attack=bool(result.get('rule_based', {}).get('is_attack')),
+            )
+            self.project_manager.update_reservoir_counts(
+                project_id,
+                clean_normal_reservoir_count=len(student.clean_normal_reservoir),
+                suspicious_reservoir_count=len(student.suspicious_reservoir),
+                confirmed_malicious_reservoir_count=len(student.confirmed_malicious_reservoir),
+            )
 
         self._maybe_promote_project(project_id)
         project = self.project_manager.get_project(project_id) or project
@@ -535,8 +843,14 @@ class MultiTenantDetector:
         result['log_count'] = project.current_log_count
         result['warmup_progress'] = min(100, (project.current_log_count / project.warmup_threshold) * 100)
         result['model_version'] = self.model_version
-        result['feature_schema_version'] = 'access-log-v2'
+        result['feature_schema_version'] = self.feature_schema_version
         result['student_training_blockers'] = project.student_training_blockers
+        result['traffic_class'] = "user_traffic"
+        result['baseline_eligible'] = True
+        result['threshold_source'] = project.threshold_source
+        result['threshold_fitted_at'] = project.threshold_fitted_at
+        result['calibration_sample_count'] = project.calibration_sample_count
+        result['score_normalization_version'] = project.score_normalization_version
 
         return result
 
@@ -551,6 +865,7 @@ class MultiTenantDetector:
         normalized_event: Optional[str],
         raw_log: str,
         parsed_fields: Dict[str, Any],
+        traffic_class: Optional[str] = None,
         flags: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict:
@@ -585,39 +900,89 @@ class MultiTenantDetector:
             'session_key_hash': parsed_fields.get('session_key_hash'),
         }
 
-        baseline_eligible = not any(
-            bool((flags or {}).get(flag_name))
-            for flag_name in ('synthetic_attack', 'manual_malicious_override', 'rule_hit', 'parse_failed')
+        flags = flags or {}
+        traffic_class = traffic_class or "user_traffic"
+        baseline_eligible = bool(
+            traffic_class == "user_traffic"
+            and not any(
+                bool(flags.get(flag_name))
+                for flag_name in (
+                    'synthetic_attack',
+                    'manual_malicious_override',
+                    'rule_hit',
+                    'parse_failed',
+                    'internal_probe',
+                    'late_or_invalid_event',
+                    'duplicate_in_batch',
+                )
+            )
         )
         session, session_stats = self._get_or_create_session(project_id, session_key, log_data)
         normalized_template = normalized_event or self.normalize_template(log_data)
         features = self.extract_features(log_data, session_stats)
         self.project_manager.increment_log_count(project_id)
 
+        clean_position = project.clean_baseline_count + int((metadata or {}).get("clean_baseline_offset", 1 if baseline_eligible else 0))
+        split_name = self._split_name_for_position(clean_position, project.warmup_threshold)
+
         if project.phase == ProjectPhase.ACTIVE.value and project_id in self.students:
             result = self._detect_with_student(project_id, log_data, normalized_template, session, session_stats, features)
         else:
             result = self._detect_with_teacher(project_id, log_data, normalized_template, session, session_stats, features)
-            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible:
+            if project.phase == ProjectPhase.WARMUP.value and baseline_eligible and split_name == "train":
                 self._collect_training_data(project_id, normalized_template, session_key, features)
             if project.phase == ProjectPhase.TRAINING.value:
                 self._maybe_trigger_student_training(project_id)
 
+        decision = self._compose_final_decision(
+            project=project,
+            traffic_class=traffic_class,
+            baseline_eligible=baseline_eligible,
+            raw_result=result,
+        )
         calibrated_threshold = self._update_project_calibration(
             project_id,
-            result.get('anomaly_score', 0.0),
+            decision.get('anomaly_score', 0.0),
             baseline_eligible=baseline_eligible,
+            split_name=split_name,
         )
-        result['raw_anomaly_score'] = result.get('anomaly_score', 0.0)
-        result['is_anomaly'] = result.get('anomaly_score', 0.0) >= calibrated_threshold
+        decision['raw_anomaly_score'] = decision.get('anomaly_score', 0.0)
+        decision['anomaly_score'] = max(decision.get('anomaly_score', 0.0), decision.get('policy_score', 0.0))
+        if decision['final_decision'] not in {'skipped', 'threat_detected'}:
+            decision['is_anomaly'] = decision['anomaly_score'] >= calibrated_threshold
+            decision['final_decision'] = "threat_detected" if decision['is_anomaly'] else "not_flagged"
+            if decision['is_anomaly']:
+                decision['decision_reason'] = "behavioral_anomaly"
         result['calibration'] = {
             'project_threshold': calibrated_threshold,
             'baseline_eligible': baseline_eligible,
         }
-        incident = self._build_incident(project_id, log_data, normalized_template, is_anomaly=result['is_anomaly'])
+        incident = self._build_incident(
+            project_id,
+            log_data,
+            normalized_template,
+            is_anomaly=decision['is_anomaly'],
+            decision_reason=decision.get('decision_reason'),
+            raw_result=result,
+            component_status=decision.get('component_status'),
+        )
         if incident:
             result.update(incident)
 
+        result.update(decision)
+        student = self.students.get(project_id)
+        if student is not None:
+            student.record_reservoir_observation(
+                sequence=list(session['templates']),
+                is_anomaly=result['is_anomaly'],
+                is_known_attack=bool(result.get('rule_based', {}).get('is_attack')),
+            )
+            self.project_manager.update_reservoir_counts(
+                project_id,
+                clean_normal_reservoir_count=len(student.clean_normal_reservoir),
+                suspicious_reservoir_count=len(student.suspicious_reservoir),
+                confirmed_malicious_reservoir_count=len(student.confirmed_malicious_reservoir),
+            )
         self._maybe_promote_project(project_id)
         project = self.project_manager.get_project(project_id) or project
         runtime_metrics.increment('structured_detections_total')
@@ -627,8 +992,14 @@ class MultiTenantDetector:
         result['log_count'] = project.current_log_count
         result['warmup_progress'] = min(100, (project.current_log_count / project.warmup_threshold) * 100)
         result['model_version'] = self.model_version
-        result['feature_schema_version'] = 'access-log-v2'
+        result['feature_schema_version'] = self.feature_schema_version
         result['student_training_blockers'] = project.student_training_blockers
+        result['traffic_class'] = traffic_class
+        result['baseline_eligible'] = baseline_eligible
+        result['threshold_source'] = project.threshold_source
+        result['threshold_fitted_at'] = project.threshold_fitted_at
+        result['calibration_sample_count'] = project.calibration_sample_count
+        result['score_normalization_version'] = project.score_normalization_version
         return result
     
     def _get_or_create_session(
@@ -777,6 +1148,12 @@ class MultiTenantDetector:
                     len(student.training_sequences),
                     len(student.id_to_template)
                 )
+                self.project_manager.update_reservoir_counts(
+                    project_id,
+                    clean_normal_reservoir_count=len(student.clean_normal_reservoir),
+                    suspicious_reservoir_count=len(student.suspicious_reservoir),
+                    confirmed_malicious_reservoir_count=len(student.confirmed_malicious_reservoir),
+                )
     
     def _maybe_trigger_student_training(self, project_id: str):
         """Check and trigger student training if needed"""
@@ -810,12 +1187,16 @@ class MultiTenantDetector:
             student = self.students.get(project_id)
             if student and not student.is_trained:
                 logger.info(f"\nStarting training for project: {project_id[:8]}...")
+                project = self.project_manager.get_project(project_id)
+                profile_settings = self._profile_settings_for_project(project) if project else self.profile_settings["standard"]
                 success = student.train_from_teacher(
                     teacher_model=self.teacher,
                     epochs=5,
                     learning_rate=1e-4,
                     distillation_alpha=0.5,
-                    temperature=3.0
+                    temperature=3.0,
+                    min_training_sequences=profile_settings["min_training_sequences"],
+                    min_if_feature_rows=profile_settings["min_if_feature_rows"],
                 )
                 
                 if success:

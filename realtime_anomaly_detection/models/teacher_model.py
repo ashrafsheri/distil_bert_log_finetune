@@ -481,6 +481,11 @@ class TeacherModel:
         )
         
         # 2. Transformer detection
+        unknown_template_ratio = (
+            sum(1 for tid in sequence if tid == self.unknown_id) / len(sequence)
+            if sequence and self.unknown_id is not None
+            else 0.0
+        )
         transformer_result = {
             'is_anomaly': 0,
             'score': 0.0,
@@ -560,7 +565,8 @@ class TeacherModel:
                 'votes': dict(zip(vote_names, votes)),
                 'weights': dict(zip(vote_names, weights)),
                 'active_models': len(weights),
-            }
+            },
+            'unknown_template_ratio': float(unknown_template_ratio),
         }
     
     def get_soft_labels(self, sequence: List[int]) -> torch.Tensor:
