@@ -20,6 +20,8 @@ PROBE_PATHS = {"/health", "/healthz", "/ready", "/readyz", "/live", "/livez", "/
 TRANSPORT_NOISE_PREFIXES = ("/socket.io/",)
 SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
 PLACEHOLDER_RE = re.compile(r":([A-Za-z_]\w*)|{([A-Za-z_]\w*)}|<([A-Za-z_]\w*)>")
+SUCCESS_STATUSES = {200, 201, 202, 204, 304}
+SUPPRESSING_STATUSES = {401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,14 @@ class ManifestEndpoint:
             name = next(group for group in match.groups() if group)
             results.append(name)
         return results
+
+
+@dataclass
+class EndpointStats:
+    successes: int = 0
+    failures: int = 0
+    suppressed: bool = False
+    last_status: int | None = None
 
 
 def _load_manifest(path: Path) -> list[ManifestEndpoint]:
@@ -281,6 +291,55 @@ def _request_endpoint(
     )
 
 
+def _endpoint_key(endpoint: ManifestEndpoint) -> str:
+    return f"{endpoint.method} {endpoint.path_template}"
+
+
+def _choose_endpoint(
+    endpoints: list[ManifestEndpoint],
+    endpoint_stats: dict[str, EndpointStats],
+) -> ManifestEndpoint | None:
+    available = [endpoint for endpoint in endpoints if not endpoint_stats[_endpoint_key(endpoint)].suppressed]
+    if not available:
+        return None
+
+    proven = [endpoint for endpoint in available if endpoint_stats[_endpoint_key(endpoint)].successes > 0]
+    neutral = [
+        endpoint
+        for endpoint in available
+        if endpoint_stats[_endpoint_key(endpoint)].successes == 0
+        and endpoint_stats[_endpoint_key(endpoint)].failures == 0
+    ]
+    recoverable = [endpoint for endpoint in available if endpoint not in proven and endpoint not in neutral]
+
+    if proven:
+        pool = proven if random.random() < 0.85 else (neutral or recoverable or proven)
+    elif neutral:
+        pool = neutral
+    else:
+        pool = recoverable
+    return random.choice(pool) if pool else None
+
+
+def _record_endpoint_result(
+    endpoint: ManifestEndpoint,
+    endpoint_stats: dict[str, EndpointStats],
+    status: int,
+) -> EndpointStats:
+    stats = endpoint_stats[_endpoint_key(endpoint)]
+    stats.last_status = status
+    if status in SUCCESS_STATUSES:
+        stats.successes += 1
+        return stats
+
+    stats.failures += 1
+    if status in SUPPRESSING_STATUSES:
+        stats.suppressed = True
+    elif stats.failures >= 3 and stats.successes == 0:
+        stats.suppressed = True
+    return stats
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, help="Path to the manifest JSON file")
@@ -289,7 +348,9 @@ def main() -> int:
     parser.add_argument("--email", required=True, help="Firebase user email")
     parser.add_argument("--password", required=True, help="Firebase user password")
     parser.add_argument("--iterations", type=int, default=25, help="Number of requests to make")
-    parser.add_argument("--delay-seconds", type=float, default=0.2, help="Delay between requests")
+    parser.add_argument("--delay-seconds", type=float, default=0.75, help="Base delay between requests")
+    parser.add_argument("--jitter-seconds", type=float, default=0.35, help="Random extra delay added per request")
+    parser.add_argument("--backoff-seconds", type=float, default=3.0, help="Extra sleep after a 429 response")
     parser.add_argument("--param", action="append", default=[], help="Placeholder override in key=value form")
     parser.add_argument("--params-file", help="Optional JSON file with placeholder values")
     parser.add_argument("--include-writes", action="store_true", help="Include non-GET endpoints from the manifest")
@@ -328,9 +389,12 @@ def main() -> int:
     skipped = 0
     failures = 0
     chosen_endpoints: list[dict[str, Any]] = []
+    endpoint_stats = {_endpoint_key(endpoint): EndpointStats() for endpoint in endpoints}
 
     for _ in range(args.iterations):
-        endpoint = random.choice(endpoints)
+        endpoint = _choose_endpoint(endpoints, endpoint_stats)
+        if endpoint is None:
+            break
         rendered_path = _render_path(endpoint, explicit_params, discovered, auth_payload)
         if not rendered_path:
             skipped += 1
@@ -344,12 +408,15 @@ def main() -> int:
             insecure=args.insecure,
         )
         chosen_endpoints.append({"method": endpoint.method, "path": rendered_path, "status": status})
-        if 200 <= status < 300:
+        stats = _record_endpoint_result(endpoint, endpoint_stats, status)
+        if status in SUCCESS_STATUSES:
             successes += 1
             _collect_ids(payload, discovered)
         else:
             failures += 1
-        time.sleep(max(args.delay_seconds, 0.0))
+            if status == 429:
+                time.sleep(max(args.backoff_seconds, 0.0))
+        time.sleep(max(args.delay_seconds, 0.0) + random.uniform(0.0, max(args.jitter_seconds, 0.0)))
 
     print(
         json.dumps(
@@ -361,7 +428,18 @@ def main() -> int:
                 "successful_requests": successes,
                 "failed_requests": failures,
                 "skipped_unresolved": skipped,
+                "suppressed_endpoint_count": sum(1 for stats in endpoint_stats.values() if stats.suppressed),
                 "discovered_placeholders": {key: values[:3] for key, values in sorted(discovered.items())},
+                "endpoint_status_summary": {
+                    key: {
+                        "successes": stats.successes,
+                        "failures": stats.failures,
+                        "suppressed": stats.suppressed,
+                        "last_status": stats.last_status,
+                    }
+                    for key, stats in sorted(endpoint_stats.items())
+                    if stats.successes or stats.failures
+                },
                 "sample_requests": chosen_endpoints[:20],
             },
             indent=2,

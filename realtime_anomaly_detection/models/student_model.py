@@ -592,13 +592,13 @@ class StudentModel:
         if scores:
             self.transformer_threshold = float(np.percentile(scores, 95))
     
-    def calculate_transformer_score(self, sequence: List[int]) -> float:
-        """Calculate anomaly score from transformer (NLL)"""
+    def _score_transformer_sequence(self, sequence: List[int]) -> Tuple[float, Optional[str]]:
+        """Calculate anomaly score from transformer (NLL) with error details."""
         if not self.is_trained or self.transformer is None:
-            return 0.0
+            return 0.0, "transformer_not_trained"
         
         if len(sequence) < 1:
-            return 0.0
+            return 0.0, None
         
         # Handle unknown tokens
         cleaned_sequence = []
@@ -633,12 +633,19 @@ class StudentModel:
                 valid_nll = nll_per_pos[mask]
                 
                 if valid_nll.numel() > 0:
-                    return valid_nll.mean().item()
-                return 0.0
+                    return valid_nll.mean().item(), None
+                return 0.0, None
                 
             except Exception as e:
                 logger.warning(f"Student transformer error: {e}")
-                return self.transformer_threshold
+                return 0.0, str(e)
+
+    def calculate_transformer_score(self, sequence: List[int]) -> float:
+        """Calculate anomaly score from transformer (NLL)."""
+        score, error = self._score_transformer_sequence(sequence)
+        if error:
+            return self.transformer_threshold
+        return score
     
     def detect(
         self,
@@ -697,15 +704,26 @@ class StudentModel:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
                 transformer_result['status'] = 'insufficient_signal'
             else:
-                transformer_score = self.calculate_transformer_score(sequence)
-                transformer_result = {
-                    'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
-                    'score': float(transformer_score),
-                    'threshold': float(self.transformer_threshold),
-                    'status': 'active',
-                    'sequence_length': len(sequence),
-                    'context': transformer_context,
-                }
+                transformer_score, transformer_error = self._score_transformer_sequence(sequence)
+                if transformer_error:
+                    transformer_result = {
+                        'is_anomaly': 0,
+                        'score': None,
+                        'threshold': float(self.transformer_threshold),
+                        'status': 'error',
+                        'error': transformer_error[:160],
+                        'sequence_length': len(sequence),
+                        'context': transformer_context,
+                    }
+                else:
+                    transformer_result = {
+                        'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
+                        'score': float(transformer_score),
+                        'threshold': float(self.transformer_threshold),
+                        'status': 'active',
+                        'sequence_length': len(sequence),
+                        'context': transformer_context,
+                    }
         
         # 3. Isolation Forest detection
         iso_result = {'is_anomaly': 0, 'score': 0.0, 'status': 'not_available'}
