@@ -203,3 +203,29 @@ def test_manifest_seeded_teacher_sequence_is_not_treated_as_unknown(tmp_path: Pa
     assert result["endpoint_manifest_match"] is True
     assert result["unknown_template_ratio"] == 0.0
     assert result["transformer"]["status"] != "insufficient_signal"
+
+
+def test_transformer_scoring_error_is_exposed_instead_of_flat_threshold(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+        window_size=20,
+    )
+    project_id, api_key = detector.create_project("Fallback Visibility", warmup_threshold=1000)
+    detector.teacher._score_transformer_sequence = lambda sequence: (0.0, "forced_transformer_failure")
+
+    result = None
+    log_line = '135.125.182.34 - - [03/Apr/2026:02:53:33 +0000] "GET /chat/conversations HTTP/1.1" 200 512 "-" "okhttp/4.12.0"'
+    for _ in range(3):
+        result = detector.detect_single_log(api_key, log_line, session_id="error-seq-1")
+
+    assert result is not None
+    assert result["project_id"] == project_id
+    assert result["transformer"]["status"] == "error"
+    assert result["transformer"]["error"] == "forced_transformer_failure"
+    assert result["transformer"]["score"] is None
