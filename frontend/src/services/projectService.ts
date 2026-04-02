@@ -25,11 +25,23 @@ export interface ProjectHealthSummary {
   warmup_threshold: number;
   warmup_progress: number;
   has_student_model: boolean;
+  traffic_profile?: string;
   baseline_eligible_count: number;
+  clean_baseline_count?: number;
+  dirty_excluded_count?: number;
+  probe_skipped_count?: number;
   parse_failure_rate: number;
   observed_hours: number[];
   student_training_blockers: string[];
+  distinct_template_count?: number;
   calibration_threshold?: number | null;
+  threshold_source?: string | null;
+  threshold_fitted_at?: string | null;
+  calibration_sample_count?: number;
+  score_normalization_version?: string | null;
+  teacher_last_updated_at?: string | null;
+  teacher_freshness?: string | null;
+  reservoir_counts?: Record<string, number>;
   created_at: string;
   last_activity: string;
 }

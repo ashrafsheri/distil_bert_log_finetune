@@ -21,6 +21,7 @@ INFECTED_COUNT_AGG = "infected_count"
 PARSE_FAILURE_COUNT_AGG = "parse_failure_count"
 DETECTION_FAILURE_COUNT_AGG = "detection_failure_count"
 INCIDENT_COUNT_AGG = "incident_count"
+SKIPPED_COUNT_AGG = "skipped_count"
 
 class ElasticsearchService:
     """
@@ -83,12 +84,26 @@ class ElasticsearchService:
                             "incident_id": {"type": "keyword"},
                             "incident_type": {"type": "keyword"},
                             "incident_bucket_start": {"type": "date"},
+                            "incident_grouped_event_count": {"type": "integer"},
+                            "incident_reason": {"type": "keyword"},
+                            "top_contributing_signals": {"type": "keyword"},
                             "calibration": {"type": "object"},
                             "raw_anomaly_score": {"type": "float"},
                             "model_type": {"type": "keyword"},
                             "detector_phase": {"type": "keyword"},
                             "model_version": {"type": "keyword"},
                             "feature_schema_version": {"type": "keyword"},
+                            "traffic_class": {"type": "keyword"},
+                            "baseline_eligible": {"type": "boolean"},
+                            "decision_reason": {"type": "keyword"},
+                            "policy_score": {"type": "float"},
+                            "final_decision": {"type": "keyword"},
+                            "component_status": {"type": "object"},
+                            "threshold_source": {"type": "keyword"},
+                            "threshold_fitted_at": {"type": "date"},
+                            "calibration_sample_count": {"type": "integer"},
+                            "score_normalization_version": {"type": "keyword"},
+                            "unknown_template_ratio": {"type": "float"},
                         }
                     }
                 }
@@ -122,6 +137,10 @@ class ElasticsearchService:
             .get("incident_ids", {})
             .get("value", 0)
         )
+
+    @staticmethod
+    def _extract_skipped_count(response: Dict) -> int:
+        return response.get("aggregations", {}).get(SKIPPED_COUNT_AGG, {}).get("doc_count", 0)
 
 
     async def store_log(self, log_data: Dict) -> bool:
@@ -252,6 +271,11 @@ class ElasticsearchService:
                             "term": {"detection_status": "failed"}
                         }
                     },
+                    SKIPPED_COUNT_AGG: {
+                        "filter": {
+                            "term": {"detection_status": "skipped"}
+                        }
+                    },
                     INCIDENT_COUNT_AGG: {
                         "filter": {
                             "term": {"infected": True}
@@ -286,6 +310,7 @@ class ElasticsearchService:
             parse_failure_count = self._extract_parse_failure_count(response)
             detection_failure_count = self._extract_detection_failure_count(response)
             incident_count = self._extract_incident_count(response)
+            skipped_count = self._extract_skipped_count(response)
             logger.info("Total logs from ES: %s, infected logs: %s", total, infected_count)
             
             return {
@@ -295,6 +320,7 @@ class ElasticsearchService:
                 "parse_failure_count": parse_failure_count,
                 "detection_failure_count": detection_failure_count,
                 "incident_count": incident_count,
+                "skipped_count": skipped_count,
                 "offset": offset,
                 "limit": limit
             }
@@ -390,6 +416,11 @@ class ElasticsearchService:
                             "term": {"detection_status": "failed"}
                         }
                     },
+                    SKIPPED_COUNT_AGG: {
+                        "filter": {
+                            "term": {"detection_status": "skipped"}
+                        }
+                    },
                     INCIDENT_COUNT_AGG: {
                         "filter": {
                             "term": {"infected": True}
@@ -422,6 +453,7 @@ class ElasticsearchService:
             parse_failure_count = self._extract_parse_failure_count(response)
             detection_failure_count = self._extract_detection_failure_count(response)
             incident_count = self._extract_incident_count(response)
+            skipped_count = self._extract_skipped_count(response)
 
             return {
                 "logs": logs,
@@ -430,6 +462,7 @@ class ElasticsearchService:
                 "parse_failure_count": parse_failure_count,
                 "detection_failure_count": detection_failure_count,
                 "incident_count": incident_count,
+                "skipped_count": skipped_count,
                 "offset": offset,
                 "limit": limit,
             }

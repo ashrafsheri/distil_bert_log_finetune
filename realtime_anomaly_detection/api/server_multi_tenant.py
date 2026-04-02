@@ -103,6 +103,7 @@ class StructuredLogRequest(BaseModel):
     normalized_event: Optional[str] = None
     raw_log: str
     parsed_fields: Dict[str, Any]
+    traffic_class: Optional[str] = None
     flags: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
 
@@ -115,6 +116,7 @@ class InternalProjectRequest(BaseModel):
     project_id: str
     project_name: str
     warmup_threshold: Optional[int] = 10000
+    traffic_profile: Optional[str] = "standard"
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -123,8 +125,13 @@ class ProjectIngestStatsRequest(BaseModel):
     total_records: int
     parse_failures: int = 0
     baseline_eligible: int = 0
+    clean_baseline_count: int = 0
+    dirty_excluded_count: int = 0
+    probe_skipped_count: int = 0
+    distinct_template_count: int = 0
     observed_hours: List[int] = Field(default_factory=list)
     data_quality_incident_open: Optional[bool] = None
+    traffic_profile: Optional[str] = None
 
 
 class DetectionResponse(BaseModel):
@@ -496,7 +503,7 @@ async def register_project_internal(request: InternalProjectRequest):
         project_id=request.project_id,
         project_name=request.project_name,
         warmup_threshold=request.warmup_threshold,
-        metadata=request.metadata,
+        metadata={**(request.metadata or {}), "traffic_profile": request.traffic_profile or "standard"},
     )
 
 
@@ -511,8 +518,13 @@ async def record_project_ingest_stats_internal(request: ProjectIngestStatsReques
         total_records=request.total_records,
         parse_failures=request.parse_failures,
         baseline_eligible=request.baseline_eligible,
+        clean_baseline_count=request.clean_baseline_count,
+        dirty_excluded_count=request.dirty_excluded_count,
+        probe_skipped_count=request.probe_skipped_count,
+        distinct_template_count=request.distinct_template_count,
         observed_hours=request.observed_hours,
         data_quality_incident_open=request.data_quality_incident_open,
+        traffic_profile=request.traffic_profile,
     )
     if status is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -712,6 +724,7 @@ async def detect_structured(request: StructuredLogRequest):
         normalized_event=request.normalized_event,
         raw_log=request.raw_log,
         parsed_fields=request.parsed_fields,
+        traffic_class=request.traffic_class,
         flags=request.flags,
         metadata=request.metadata,
     )
@@ -752,6 +765,7 @@ async def detect_batch_structured(request: StructuredBatchLogRequest):
             normalized_event=event.normalized_event,
             raw_log=event.raw_log,
             parsed_fields=event.parsed_fields,
+            traffic_class=event.traffic_class,
             flags=event.flags,
             metadata=event.metadata,
         )

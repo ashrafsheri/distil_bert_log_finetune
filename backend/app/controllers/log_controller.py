@@ -267,6 +267,7 @@ async def fetch_logs(
             parse_failure_count=result.get("parse_failure_count", 0),
             detection_failure_count=result.get("detection_failure_count", 0),
             incident_count=result.get("incident_count", 0),
+            skipped_count=result.get("skipped_count", 0),
         )
         
     except HTTPException:
@@ -343,6 +344,7 @@ async def search_logs(
             parse_failure_count=result.get("parse_failure_count", 0),
             detection_failure_count=result.get("detection_failure_count", 0),
             incident_count=result.get("incident_count", 0),
+            skipped_count=result.get("skipped_count", 0),
         )
     except HTTPException:
         raise
@@ -545,7 +547,7 @@ async def receive_fluent_bit_logs(
             project_id=project.id,
             project_name=project.name,
             warmup_threshold=project.warmup_threshold or 10000,
-            metadata={"log_type": log_type, "org_id": project.org_id},
+            metadata={"log_type": log_type, "org_id": project.org_id, "traffic_profile": "standard"},
         )
 
         # Parse the raw request body
@@ -567,11 +569,19 @@ async def receive_fluent_bit_logs(
 
         structured_events: list[dict[str, Any]] = []
         processed_logs: list[dict[str, Any]] = []
+        seen_record_hashes: set[str] = set()
+        clean_baseline_count = 0
+        dirty_excluded_count = 0
+        probe_skipped_count = 0
+        distinct_clean_templates: set[str] = set()
+        observed_hours: list[int] = []
+        clean_baseline_seen_in_batch = 0
 
         for candidate in candidates:
             raw_log = candidate.get("raw_log")
             event_time = log_parser_service.normalize_record_timestamp(candidate.get("event_time"))
             extraction_error = candidate.get("extraction_error")
+            record_hash = LogService._stable_record_hash(candidate.get("record"))
 
             if not raw_log:
                 runtime_metrics.increment("parse_failures_total")
@@ -609,9 +619,31 @@ async def receive_fluent_bit_logs(
                 )
                 continue
 
-            should_skip_detection, skip_reason = LogService.should_skip_detection(parsed_log)
-            if should_skip_detection:
+            detection_context = LogService.classify_traffic(
+                parsed_log=parsed_log,
+                source_record=candidate.get("record"),
+                raw_log=raw_log,
+                event_time=parsed_log.get("timestamp", event_time),
+            )
+            if record_hash in seen_record_hashes:
+                detection_context["flags"]["duplicate_in_batch"] = True
+                detection_context["traffic_class"] = "data_quality_late_event"
+                detection_context["baseline_eligible"] = False
+                detection_context["decision_reason"] = "duplicate_in_batch"
+                detection_context["detection_status"] = "skipped"
+            seen_record_hashes.add(record_hash)
+
+            if detection_context["traffic_class"] in {"internal_probe", "data_quality_late_event"}:
                 session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
+                detection_error = (
+                    "internal_probe_skipped"
+                    if detection_context["traffic_class"] == "internal_probe"
+                    else detection_context["decision_reason"]
+                )
+                if detection_context["traffic_class"] == "internal_probe":
+                    probe_skipped_count += 1
+                else:
+                    dirty_excluded_count += 1
                 processed_logs.append(
                     LogService.format_log_for_storage(
                         parsed_log,
@@ -620,6 +652,14 @@ async def receive_fluent_bit_logs(
                             "is_anomaly": False,
                             "anomaly_score": 0.0,
                             "raw_anomaly_score": 0.0,
+                            "policy_score": 0.0,
+                            "final_decision": "skipped",
+                            "decision_reason": detection_context["decision_reason"],
+                            "component_status": {
+                                "rule_based": "skipped",
+                                "isolation_forest": "skipped",
+                                "transformer": "skipped",
+                            },
                             "details": {
                                 "rule_based": {},
                                 "isolation_forest": {"status": "skipped"},
@@ -627,7 +667,7 @@ async def receive_fluent_bit_logs(
                                 "ensemble": {"score": 0.0, "active_models": 0},
                             },
                             "detection_status": "skipped",
-                            "detection_error": skip_reason,
+                            "detection_error": detection_error,
                             "model_version": "student-teacher-v1",
                             "feature_schema_version": "access-log-v2",
                             "phase": "skipped",
@@ -641,12 +681,30 @@ async def receive_fluent_bit_logs(
                         parse_status="parsed",
                         parse_error=None,
                         detection_status="skipped",
-                        detection_error=skip_reason,
+                        detection_error=detection_error,
+                        traffic_class=detection_context["traffic_class"],
+                        baseline_eligible=False,
+                        decision_reason=detection_context["decision_reason"],
                     )
                 )
                 continue
 
             session_key = LogService.build_session_key(project_id, parsed_log, candidate.get("record"))
+            if detection_context["baseline_eligible"]:
+                clean_baseline_seen_in_batch += 1
+                clean_baseline_count += 1
+                distinct_clean_templates.add(parsed_log.get("normalized_event") or "")
+                try:
+                    observed_hours.append(
+                        datetime.fromisoformat(
+                            (parsed_log.get("timestamp", event_time) or "").replace("Z", "+00:00")
+                        ).hour
+                    )
+                except Exception:
+                    pass
+            else:
+                dirty_excluded_count += 1
+
             structured_events.append(
                 {
                     "parsed_log": parsed_log,
@@ -656,6 +714,11 @@ async def receive_fluent_bit_logs(
                     "project_id": project_id,
                     "log_type": log_type,
                     "event_time": parsed_log.get("timestamp", event_time),
+                    "traffic_class": detection_context["traffic_class"],
+                    "flags": detection_context["flags"],
+                    "baseline_eligible": detection_context["baseline_eligible"],
+                    "decision_reason": detection_context["decision_reason"],
+                    "clean_baseline_offset": clean_baseline_seen_in_batch if detection_context["baseline_eligible"] else 0,
                 }
             )
 
@@ -665,26 +728,7 @@ async def receive_fluent_bit_logs(
             len(processed_logs),
         )
 
-        observed_hours = []
-        for event in structured_events:
-            try:
-                observed_hours.append(
-                    datetime.fromisoformat(event["event_time"].replace("Z", "+00:00")).hour
-                )
-            except Exception:
-                continue
-
         parse_failures = sum(1 for log in processed_logs if log.get("parse_status") == "failed")
-        project_quality_status = await anomaly_detection_service.report_project_ingest_stats(
-            project_id=project.id,
-            total_records=len(candidates),
-            parse_failures=parse_failures,
-            baseline_eligible=len(structured_events),
-            observed_hours=observed_hours,
-            data_quality_incident_open=(
-                (parse_failures / len(candidates)) > 0.05 if candidates else False
-            ),
-        )
 
         if not structured_events and not processed_logs:
             raise HTTPException(status_code=400, detail="No valid logs found in request")
@@ -700,6 +744,7 @@ async def receive_fluent_bit_logs(
                     "event_time": event["event_time"],
                     "normalized_event": event["parsed_log"].get("normalized_event"),
                     "raw_log": event["raw_log"],
+                    "traffic_class": event["traffic_class"],
                     "parsed_fields": {
                         "ip_address": event["parsed_log"].get("ip_address"),
                         "method": event["parsed_log"].get("method"),
@@ -712,7 +757,13 @@ async def receive_fluent_bit_logs(
                         "user_agent": event["parsed_log"].get("user_agent"),
                         "session_key_hash": event["session_key_hash"],
                     },
-                    "metadata": {"log_type": log_type, "org_id": project.org_id},
+                    "flags": event["flags"],
+                    "metadata": {
+                        "log_type": log_type,
+                        "org_id": project.org_id,
+                        "traffic_profile": "standard",
+                        "clean_baseline_offset": event["clean_baseline_offset"],
+                    },
                 }
                 for event in structured_events
             ]
@@ -727,6 +778,9 @@ async def receive_fluent_bit_logs(
                     "details": {},
                     "detection_status": "failed",
                     "detection_error": "detector_unavailable",
+                    "final_decision": "detection_failed",
+                    "decision_reason": "detector_unavailable",
+                    "component_status": {},
                     "model_version": "adaptive-v2",
                     "feature_schema_version": "access-log-v1",
                 }
@@ -749,6 +803,9 @@ async def receive_fluent_bit_logs(
                 "details": {},
                 "detection_status": "failed",
                 "detection_error": "missing_detection_result",
+                "final_decision": "detection_failed",
+                "decision_reason": "missing_detection_result",
+                "component_status": {},
                 "model_version": "adaptive-v2",
                 "feature_schema_version": "access-log-v1",
             }
@@ -771,8 +828,26 @@ async def receive_fluent_bit_logs(
                     parse_error=None,
                     detection_status=detection_status,
                     detection_error=anomaly_result.get("detection_error"),
+                    traffic_class=event["traffic_class"],
+                    baseline_eligible=event["baseline_eligible"],
+                    decision_reason=anomaly_result.get("decision_reason", event["decision_reason"]),
                 )
             )
+
+        project_quality_status = await anomaly_detection_service.report_project_ingest_stats(
+            project_id=project.id,
+            total_records=len(candidates),
+            parse_failures=parse_failures,
+            baseline_eligible=clean_baseline_count,
+            clean_baseline_count=clean_baseline_count,
+            dirty_excluded_count=dirty_excluded_count,
+            probe_skipped_count=probe_skipped_count,
+            distinct_template_count=len([template for template in distinct_clean_templates if template]),
+            observed_hours=observed_hours,
+            data_quality_incident_open=(
+                (parse_failures / len(candidates)) > 0.05 if candidates else False
+            ),
+        )
         
         # Store processed logs in Elasticsearch
         if processed_logs:

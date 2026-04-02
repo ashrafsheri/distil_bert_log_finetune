@@ -119,6 +119,10 @@ class StudentModel:
         self.training_sequences: List[List[int]] = []
         self.training_features: List[np.ndarray] = []
         self.session_windows: Dict[str, deque] = {}
+        self.clean_normal_reservoir: List[List[int]] = []
+        self.suspicious_reservoir: List[List[int]] = []
+        self.confirmed_malicious_reservoir: List[List[int]] = []
+        self.clean_feature_reservoir: List[np.ndarray] = []
         
         # State
         self.is_trained = False
@@ -166,6 +170,9 @@ class StudentModel:
                 self.iso_threshold = state.get('iso_threshold')
                 self.logs_processed = state.get('logs_processed', 0)
                 self.last_trained_at = state.get('last_trained_at')
+                self.clean_normal_reservoir = state.get('clean_normal_reservoir', [])
+                self.suspicious_reservoir = state.get('suspicious_reservoir', [])
+                self.confirmed_malicious_reservoir = state.get('confirmed_malicious_reservoir', [])
             
             # Load transformer
             if self.model_path.exists():
@@ -239,6 +246,9 @@ class StudentModel:
                     'iso_threshold': self.iso_threshold,
                     'logs_processed': self.logs_processed,
                     'last_trained_at': self.last_trained_at,
+                    'clean_normal_reservoir': self.clean_normal_reservoir[-512:],
+                    'suspicious_reservoir': self.suspicious_reservoir[-512:],
+                    'confirmed_malicious_reservoir': self.confirmed_malicious_reservoir[-512:],
                     'saved_at': datetime.now().isoformat()
                 }
                 with open(self.state_path, 'wb') as f:
@@ -279,7 +289,8 @@ class StudentModel:
         self,
         template_id: int,
         session_id: str,
-        features: Optional[np.ndarray] = None
+        features: Optional[np.ndarray] = None,
+        collect_for_training: bool = True,
     ):
         """Collect data for training during warmup"""
         with self._lock:
@@ -290,13 +301,38 @@ class StudentModel:
             self.session_windows[session_id].append(template_id)
             
             # Collect sequences for training
-            if len(self.session_windows[session_id]) >= 5:  # Min sequence length
+            if collect_for_training and len(self.session_windows[session_id]) >= 5:  # Min sequence length
                 sequence = list(self.session_windows[session_id])
                 self.training_sequences.append(sequence)
+                self.clean_normal_reservoir.append(sequence)
+                self.clean_normal_reservoir = self.clean_normal_reservoir[-2048:]
             
             # Collect features for isolation forest
-            if features is not None:
+            if collect_for_training and features is not None:
                 self.training_features.append(features.flatten())
+                self.clean_feature_reservoir.append(features.flatten())
+                self.clean_feature_reservoir = self.clean_feature_reservoir[-2048:]
+
+    def record_reservoir_observation(
+        self,
+        *,
+        sequence: List[int],
+        is_anomaly: bool,
+        is_known_attack: bool,
+    ) -> None:
+        with self._lock:
+            if not sequence:
+                return
+            clipped_sequence = list(sequence[-self.window_size:])
+            if is_known_attack:
+                self.confirmed_malicious_reservoir.append(clipped_sequence)
+                self.confirmed_malicious_reservoir = self.confirmed_malicious_reservoir[-1024:]
+            elif is_anomaly:
+                self.suspicious_reservoir.append(clipped_sequence)
+                self.suspicious_reservoir = self.suspicious_reservoir[-1024:]
+            else:
+                self.clean_normal_reservoir.append(clipped_sequence)
+                self.clean_normal_reservoir = self.clean_normal_reservoir[-2048:]
     
     def train_from_teacher(
         self,
@@ -304,7 +340,9 @@ class StudentModel:
         epochs: int = 5,
         learning_rate: float = 1e-4,
         distillation_alpha: float = 0.5,
-        temperature: float = 3.0
+        temperature: float = 3.0,
+        min_training_sequences: int = 100,
+        min_if_feature_rows: int = 100,
     ):
         """
         Train student model using knowledge distillation from teacher.
@@ -320,7 +358,7 @@ class StudentModel:
             logger.warning("Student is already being trained")
             return False
         
-        if len(self.training_sequences) < 100:
+        if len(self.training_sequences) < min_training_sequences:
             logger.warning(f"Not enough training sequences: {len(self.training_sequences)}")
             return False
         
@@ -341,38 +379,50 @@ class StudentModel:
             self.pad_id = base_vocab_size
             self.unknown_id = base_vocab_size + 1
             self.vocab_size = self.unknown_id + 1
-            
-            # Prepare training sequences
-            padded_sequences = []
-            for seq in self.training_sequences:
-                sanitized = []
-                for t in seq:
-                    if t is None or t >= self.pad_id:
-                        sanitized.append(min(t, self.pad_id - 1) if t is not None else 0)
+
+            def _pad_sequences(sequences: List[List[int]]) -> List[List[int]]:
+                padded_sequences: List[List[int]] = []
+                for seq in sequences:
+                    sanitized = []
+                    for token in seq:
+                        if token is None or token >= self.pad_id:
+                            sanitized.append(min(token, self.pad_id - 1) if token is not None else 0)
+                        else:
+                            sanitized.append(token)
+
+                    if len(sanitized) < self.window_size:
+                        sanitized = sanitized + [self.pad_id] * (self.window_size - len(sanitized))
                     else:
-                        sanitized.append(t)
-                
-                if len(sanitized) < self.window_size:
-                    sanitized = sanitized + [self.pad_id] * (self.window_size - len(sanitized))
-                else:
-                    sanitized = sanitized[-self.window_size:]
-                padded_sequences.append(sanitized)
-            
-            # Get soft labels from teacher
+                        sanitized = sanitized[-self.window_size:]
+                    padded_sequences.append(sanitized)
+                return padded_sequences
+
+            total_sequences = len(self.training_sequences)
+            train_cutoff = max(1, int(total_sequences * 0.70))
+            calibration_cutoff = max(train_cutoff + 1, int(total_sequences * 0.85))
+
+            train_sequences = _pad_sequences(self.training_sequences[:train_cutoff])
+            calibration_sequences = _pad_sequences(self.training_sequences[train_cutoff:calibration_cutoff])
+            holdout_sequences = _pad_sequences(self.training_sequences[calibration_cutoff:])
+
+            if not calibration_sequences:
+                calibration_sequences = train_sequences[-min(16, len(train_sequences)):]
+            if not holdout_sequences:
+                holdout_sequences = calibration_sequences[-min(16, len(calibration_sequences)):]
+
             soft_labels = None
             if teacher_model is not None and distillation_alpha > 0:
                 logger.info("  Getting soft labels from teacher...")
                 soft_labels = []
-                for seq in padded_sequences[:len(padded_sequences)]:
+                for seq in train_sequences:
                     teacher_soft = teacher_model.get_soft_labels(seq)
                     if teacher_soft is not None:
                         soft_labels.append(teacher_soft.cpu())
                     else:
-                        # Create uniform distribution as fallback
                         soft_labels.append(
                             torch.ones(self.window_size, teacher_model.vocab_size) / teacher_model.vocab_size
                         )
-            
+
             # Initialize student transformer
             self.transformer = TemplateTransformer(
                 vocab_size=self.vocab_size,
@@ -387,7 +437,7 @@ class StudentModel:
             
             # Create dataset
             dataset = StudentTrainingDataset(
-                padded_sequences,
+                train_sequences,
                 self.pad_id,
                 soft_labels
             )
@@ -465,22 +515,28 @@ class StudentModel:
             self.transformer.eval()
             
             # Train isolation forest
-            if len(self.training_features) > 100:
+            if len(self.training_features) >= min_if_feature_rows:
                 logger.info("  Training isolation forest...")
-                feature_matrix = np.vstack(self.training_features)
-                # Note: warm_start=False to avoid sklearn warning about not increasing n_estimators
+                total_features = len(self.training_features)
+                train_feature_cutoff = max(1, int(total_features * 0.70))
+                calibration_feature_cutoff = max(train_feature_cutoff + 1, int(total_features * 0.85))
+                train_matrix = np.vstack(self.training_features[:train_feature_cutoff])
+                calibration_features = self.training_features[train_feature_cutoff:calibration_feature_cutoff]
+                if not calibration_features:
+                    calibration_features = self.training_features[-min(16, len(self.training_features)):]
+                calibration_matrix = np.vstack(calibration_features)
                 self.iso_forest = IsolationForest(
                     n_estimators=100,
                     contamination=0.1,
                     random_state=42,
                     warm_start=False
                 )
-                self.iso_forest.fit(feature_matrix)
-                scores = -self.iso_forest.score_samples(feature_matrix)
+                self.iso_forest.fit(train_matrix)
+                scores = -self.iso_forest.score_samples(calibration_matrix)
                 self.iso_threshold = float(np.percentile(scores, 95))
             
-            # Calculate threshold
-            self._update_threshold(padded_sequences)
+            # Calculate thresholds from held-out calibration windows
+            self._update_threshold(calibration_sequences or holdout_sequences or train_sequences)
             
             # Mark as trained
             self.is_trained = True
@@ -610,6 +666,11 @@ class StudentModel:
         )
         
         # 2. Transformer detection
+        unknown_template_ratio = (
+            sum(1 for tid in sequence if tid == self.unknown_id) / len(sequence)
+            if sequence and self.unknown_id is not None
+            else 0.0
+        )
         transformer_result = {
             'is_anomaly': 0,
             'score': 0.0,
@@ -691,7 +752,8 @@ class StudentModel:
                 'votes': dict(zip(vote_names, votes)),
                 'weights': dict(zip(vote_names, weights)),
                 'active_models': len(weights),
-            }
+            },
+            'unknown_template_ratio': float(unknown_template_ratio),
         }
     
     def get_training_data_for_teacher(self) -> Tuple[List[List[int]], Optional[np.ndarray]]:
@@ -702,10 +764,10 @@ class StudentModel:
             Tuple of (sequences, features) for teacher training
         """
         with self._lock:
-            sequences = list(self.training_sequences)
+            sequences = list(self.clean_normal_reservoir)
             features = None
-            if self.training_features:
-                features = np.vstack(self.training_features)
+            if self.clean_feature_reservoir:
+                features = np.vstack(self.clean_feature_reservoir)
             return sequences, features
     
     def get_model_info(self) -> Dict:
@@ -721,5 +783,8 @@ class StudentModel:
             'is_training': self.is_training,
             'last_trained_at': self.last_trained_at,
             'window_size': self.window_size,
-            'training_sequences_pending': len(self.training_sequences)
+            'training_sequences_pending': len(self.training_sequences),
+            'clean_normal_reservoir_count': len(self.clean_normal_reservoir),
+            'suspicious_reservoir_count': len(self.suspicious_reservoir),
+            'confirmed_malicious_reservoir_count': len(self.confirmed_malicious_reservoir),
         }

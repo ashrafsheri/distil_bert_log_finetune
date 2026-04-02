@@ -144,6 +144,29 @@ def test_metric_helpers_report_binary_and_incident_scores() -> None:
     }
 
 
+def test_summarize_category_counts_groups_rows_by_requested_keys() -> None:
+    harness = load_harness_module()
+    summary = harness.summarize_category_counts(
+        [
+            {"decision_reason": "known_attack_policy", "incident_type": "known_exploit", "traffic_class": "user_traffic"},
+            {"decision_reason": "known_attack_policy", "incident_type": "known_exploit", "traffic_class": "user_traffic"},
+            {"decision_reason": "behavioral_anomaly", "incident_type": "behavioral_anomaly", "traffic_class": "user_traffic"},
+        ],
+        keys=("decision_reason", "incident_type", "traffic_class"),
+    )
+
+    assert summary == [
+        {
+            "category": "decision_reason=known_attack_policy | incident_type=known_exploit | traffic_class=user_traffic",
+            "count": 2,
+        },
+        {
+            "category": "decision_reason=behavioral_anomaly | incident_type=behavioral_anomaly | traffic_class=user_traffic",
+            "count": 1,
+        },
+    ]
+
+
 def test_select_eval_index_supports_time_cutoff() -> None:
     harness = load_harness_module()
     event_a = harness.ReplayEvent(

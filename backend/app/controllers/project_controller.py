@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 from app.models.project import (
-    ProjectCreate, ProjectResponse, ProjectSummary, ProjectUpdate,
+    ProjectCreate, ProjectHealthSummary, ProjectResponse, ProjectSummary, ProjectUpdate,
     RegenerateApiKeyRequest, RegenerateApiKeyResponse,
     UpdateLogTypeRequest, UpdateLogTypeResponse
 )
@@ -19,6 +19,7 @@ from app.models.project_member import (
 )
 from app.services.project_service import ProjectService
 from app.services.project_member_service import ProjectMemberService
+from app.services.anomaly_detection_service import AnomalyDetectionService
 from app.utils.database import get_db
 from app.utils.firebase_auth import get_current_user
 from app.utils.permissions import check_permission
@@ -100,6 +101,10 @@ PROJECT_AVAILABLE_MEMBERS_RESPONSES = {
     404: {"description": PROJECT_NOT_FOUND},
     500: {"description": PROJECT_AVAILABLE_MEMBERS_FAILED},
 }
+
+
+def get_anomaly_detection_service() -> AnomalyDetectionService:
+    return AnomalyDetectionService()
 
 
 # ==================== Project Management ====================
@@ -296,6 +301,40 @@ async def get_project(
         raise
     except Exception as e:
         logger.error(f"Error getting project: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve project")
+
+
+@router.get("/{project_id}/health", response_model=ProjectHealthSummary, responses=PROJECT_GET_RESPONSES)
+async def get_project_health(
+    project_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
+    anomaly_detection_service: Annotated[AnomalyDetectionService, Depends(get_anomaly_detection_service)],
+):
+    """Return detector health and warmup state for a project."""
+    try:
+        project = await project_service.get_project_by_id(project_id, db)
+        if not project:
+            raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+
+        role = await project_service.check_user_project_access(current_user["uid"], project_id, db)
+        is_admin = current_user.get("role") == "admin"
+        is_manager_in_org = (
+            current_user.get("role") == "manager"
+            and current_user.get("org_id") == project.org_id
+        )
+        if not (is_admin or is_manager_in_org or role):
+            raise HTTPException(status_code=403, detail=PROJECT_ACCESS_DENIED)
+
+        health = await anomaly_detection_service.get_project_health(project_id)
+        if not health:
+            raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+        return ProjectHealthSummary(**health)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting project health: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve project")
 
 

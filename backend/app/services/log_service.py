@@ -3,7 +3,7 @@ Log Service
 Business logic for log processing and management
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timezone
 import uuid
 import csv
@@ -13,6 +13,8 @@ import ipaddress
 import json
 import asyncio
 import hashlib
+import os
+import re
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
@@ -39,7 +41,18 @@ class LogService:
         "/readyz",
         "/live",
         "/livez",
+        "/metrics",
     }
+    SYNTHETIC_FLAG_FIELDS = ("synthetic_attack", "allowlisted_synthetic_attack")
+    MANUAL_OVERRIDE_FIELDS = ("manual_malicious_override", "manual_override", "forced_malicious")
+    RULE_PATTERNS = (
+        re.compile(r"(?:\.\./|%2e%2e%2f|/etc/passwd|/proc/self|/windows/system32)", re.IGNORECASE),
+        re.compile(r"(?:\b(?:cmd|command)\b.*(?:=|%3d)|(?:;|&&|\|\|)\s*(?:cat|wget|curl|bash|sh)\b)", re.IGNORECASE),
+        re.compile(r"(?:\bunion\b.+\bselect\b|\bor\b\s*['\"]?1['\"]?\s*=\s*['\"]?1|\bsleep\s*\(|\bbenchmark\s*\()", re.IGNORECASE),
+        re.compile(r"(?:<script|javascript:|onerror=|onload=)", re.IGNORECASE),
+    )
+    MAX_FUTURE_EVENT_SECONDS = int(os.getenv("LOG_EVENT_MAX_FUTURE_SECONDS", "300"))
+    MAX_PAST_EVENT_SECONDS = int(os.getenv("LOG_EVENT_MAX_PAST_SECONDS", str(7 * 24 * 3600)))
     
     def __init__(self):
         self.logs_storage = []  # Placeholder for actual storage
@@ -279,6 +292,102 @@ class LogService:
         if path in LogService.DETECTION_SKIP_PATHS:
             return True, "health_check_skipped"
         return False, None
+
+    @staticmethod
+    def _parse_event_datetime(event_time: Any) -> Optional[datetime]:
+        if not isinstance(event_time, str) or not event_time:
+            return None
+        try:
+            parsed = datetime.fromisoformat(event_time.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def detect_rule_hit(parsed_log: Dict[str, Any]) -> bool:
+        path = parsed_log.get("path") or ""
+        if not path:
+            return False
+        return any(pattern.search(path) for pattern in LogService.RULE_PATTERNS)
+
+    @staticmethod
+    def classify_traffic(
+        *,
+        parsed_log: Dict[str, Any],
+        source_record: Any,
+        raw_log: Optional[str],
+        event_time: Optional[str],
+    ) -> Dict[str, Any]:
+        flags: Dict[str, Any] = {
+            "rule_hit": LogService.detect_rule_hit(parsed_log),
+            "synthetic_attack": False,
+            "manual_malicious_override": False,
+            "parse_failed": False,
+            "internal_probe": False,
+            "late_or_invalid_event": False,
+            "duplicate_in_batch": False,
+        }
+
+        candidates: List[Dict[str, Any]] = []
+        if isinstance(source_record, dict):
+            candidates.append(source_record)
+            nested_record = source_record.get("record")
+            if isinstance(nested_record, dict):
+                candidates.append(nested_record)
+
+        for candidate in candidates:
+            if any(bool(candidate.get(field_name)) for field_name in LogService.SYNTHETIC_FLAG_FIELDS):
+                flags["synthetic_attack"] = True
+            if any(bool(candidate.get(field_name)) for field_name in LogService.MANUAL_OVERRIDE_FIELDS):
+                flags["manual_malicious_override"] = True
+
+        should_skip, skip_reason = LogService.should_skip_detection(parsed_log)
+        if should_skip:
+            flags["internal_probe"] = True
+
+        parsed_event_time = LogService._parse_event_datetime(event_time or parsed_log.get("timestamp"))
+        if parsed_event_time is not None:
+            now = datetime.now(timezone.utc)
+            delta_seconds = (parsed_event_time - now).total_seconds()
+            if delta_seconds > LogService.MAX_FUTURE_EVENT_SECONDS or delta_seconds < -LogService.MAX_PAST_EVENT_SECONDS:
+                flags["late_or_invalid_event"] = True
+
+        if flags["internal_probe"]:
+            traffic_class = "internal_probe"
+            detection_status = "skipped"
+            decision_reason = skip_reason or "internal_probe_skipped"
+        elif flags["late_or_invalid_event"]:
+            traffic_class = "data_quality_late_event"
+            detection_status = "skipped"
+            decision_reason = "late_event_skipped"
+        elif flags["synthetic_attack"]:
+            traffic_class = "synthetic_attack"
+            detection_status = "pending"
+            decision_reason = "synthetic_attack_excluded"
+        elif flags["manual_malicious_override"]:
+            traffic_class = "manual_override"
+            detection_status = "pending"
+            decision_reason = "manual_override_excluded"
+        else:
+            traffic_class = "user_traffic"
+            detection_status = "pending"
+            decision_reason = "behavioral_detection_pending"
+
+        baseline_eligible = (
+            traffic_class == "user_traffic"
+            and not flags["rule_hit"]
+            and not flags["late_or_invalid_event"]
+        )
+
+        return {
+            "traffic_class": traffic_class,
+            "flags": flags,
+            "baseline_eligible": baseline_eligible,
+            "decision_reason": decision_reason,
+            "detection_status": detection_status,
+        }
 
     @staticmethod
     def extract_log_candidates(records: List[Any]) -> List[Dict[str, Any]]:
@@ -580,6 +689,9 @@ class LogService:
         parse_error: Optional[str] = None,
         detection_status: str = "scored",
         detection_error: Optional[str] = None,
+        traffic_class: Optional[str] = None,
+        baseline_eligible: Optional[bool] = None,
+        decision_reason: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Format a parsed log for Elasticsearch storage.
@@ -631,17 +743,31 @@ class LogService:
             "parse_error": parse_error,
             "detection_status": detection_status,
             "detection_error": detection_error,
+            "traffic_class": traffic_class,
+            "baseline_eligible": baseline_eligible,
+            "decision_reason": decision_reason or anomaly_result.get("decision_reason"),
+            "policy_score": anomaly_result.get("policy_score", 0.0),
+            "final_decision": anomaly_result.get("final_decision"),
+            "component_status": anomaly_result.get("component_status", {}),
             "session_key_hash": session_key_hash,
             "normalized_template": parsed_log.get("normalized_event"),
             "incident_id": anomaly_result.get("incident_id"),
             "incident_type": anomaly_result.get("incident_type"),
             "incident_bucket_start": anomaly_result.get("incident_bucket_start"),
+            "incident_grouped_event_count": anomaly_result.get("incident_grouped_event_count"),
+            "incident_reason": anomaly_result.get("incident_reason"),
+            "top_contributing_signals": anomaly_result.get("top_contributing_signals", []),
             "calibration": anomaly_result.get("calibration", {}),
             "raw_anomaly_score": anomaly_result.get("raw_anomaly_score", anomaly_result.get("anomaly_score", 0.0)),
             "model_type": anomaly_result.get("model_type"),
             "detector_phase": anomaly_result.get("phase"),
             "model_version": anomaly_result.get("model_version", "adaptive-v2"),
             "feature_schema_version": anomaly_result.get("feature_schema_version", "access-log-v1"),
+            "threshold_source": anomaly_result.get("threshold_source"),
+            "threshold_fitted_at": anomaly_result.get("threshold_fitted_at"),
+            "calibration_sample_count": anomaly_result.get("calibration_sample_count"),
+            "score_normalization_version": anomaly_result.get("score_normalization_version"),
+            "unknown_template_ratio": anomaly_result.get("unknown_template_ratio"),
         }
 
         return formatted_log
@@ -676,6 +802,12 @@ class LogService:
             "parse_error": parse_error,
             "detection_status": "skipped",
             "detection_error": "parse_failed",
+            "traffic_class": "unsupported_format",
+            "baseline_eligible": False,
+            "decision_reason": "parse_failure",
+            "policy_score": 0.0,
+            "final_decision": "parse_failed",
+            "component_status": {},
             "session_key_hash": LogService.build_session_key_hash(
                 f"{org_id}:{LogService._stable_record_hash(source_record)}"
             ),
@@ -683,12 +815,20 @@ class LogService:
             "incident_id": None,
             "incident_type": "parse_failure",
             "incident_bucket_start": event_time,
+            "incident_grouped_event_count": None,
+            "incident_reason": "parse_failure",
+            "top_contributing_signals": [],
             "calibration": {},
             "raw_anomaly_score": 0.0,
             "model_type": None,
             "detector_phase": "skipped",
             "model_version": "adaptive-v2",
             "feature_schema_version": "access-log-v1",
+            "threshold_source": None,
+            "threshold_fitted_at": None,
+            "calibration_sample_count": 0,
+            "score_normalization_version": None,
+            "unknown_template_ratio": None,
         }
 
     @staticmethod
@@ -716,8 +856,17 @@ class LogService:
             "parseError": log.get("parse_error"),
             "detectionStatus": log.get("detection_status", "scored"),
             "detectionError": log.get("detection_error"),
+            "trafficClass": log.get("traffic_class"),
+            "baselineEligible": log.get("baseline_eligible"),
+            "decisionReason": log.get("decision_reason"),
+            "policyScore": log.get("policy_score"),
+            "finalDecision": log.get("final_decision"),
+            "componentStatus": log.get("component_status", {}),
             "incidentId": log.get("incident_id"),
             "incidentType": log.get("incident_type"),
+            "incidentGroupedEventCount": log.get("incident_grouped_event_count"),
+            "incidentReason": log.get("incident_reason"),
+            "topContributingSignals": log.get("top_contributing_signals", []),
             "normalizedTemplate": log.get("normalized_template"),
             "sessionKeyHash": log.get("session_key_hash"),
             "modelVersion": log.get("model_version"),
@@ -726,6 +875,11 @@ class LogService:
             "modelType": log.get("model_type"),
             "rawAnomalyScore": log.get("raw_anomaly_score"),
             "calibration": log.get("calibration", {}),
+            "thresholdSource": log.get("threshold_source"),
+            "thresholdFittedAt": log.get("threshold_fitted_at"),
+            "calibrationSampleCount": log.get("calibration_sample_count"),
+            "scoreNormalizationVersion": log.get("score_normalization_version"),
+            "unknownTemplateRatio": log.get("unknown_template_ratio"),
         }
 
     @staticmethod

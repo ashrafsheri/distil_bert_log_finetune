@@ -39,15 +39,24 @@ class ProjectConfig:
     
     # Warmup configuration
     warmup_threshold: int = 10000  # Number of logs before student training
+    traffic_profile: str = "standard"
     current_log_count: int = 0
     phase: str = ProjectPhase.WARMUP.value
     baseline_eligible_count: int = 0
+    clean_baseline_count: int = 0
+    dirty_excluded_count: int = 0
+    probe_skipped_count: int = 0
     total_received_count: int = 0
     parse_failure_count: int = 0
     observed_hours: List[int] = field(default_factory=list)
     data_quality_incident_open: bool = False
     student_training_blockers: List[str] = field(default_factory=list)
     calibration_threshold: float = 0.5
+    threshold_source: str = "bootstrap"
+    threshold_fitted_at: Optional[str] = None
+    calibration_sample_count: int = 0
+    score_normalization_version: str = "hybrid-v1"
+    feature_schema_version: str = "access-log-v2"
     
     # Timestamps
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -61,6 +70,12 @@ class ProjectConfig:
     # Training metrics
     training_sequences_collected: int = 0
     unique_templates_seen: int = 0
+    distinct_template_count: int = 0
+    teacher_last_updated_at: Optional[str] = None
+    teacher_freshness: Optional[str] = None
+    clean_normal_reservoir_count: int = 0
+    suspicious_reservoir_count: int = 0
+    confirmed_malicious_reservoir_count: int = 0
     
     # Elasticsearch index configuration
     es_index_pattern: Optional[str] = None
@@ -76,15 +91,24 @@ class ProjectConfig:
             'api_key': self.api_key,
             'api_key_hash': self.api_key_hash,
             'warmup_threshold': self.warmup_threshold,
+            'traffic_profile': self.traffic_profile,
             'current_log_count': self.current_log_count,
             'phase': self.phase,
             'baseline_eligible_count': self.baseline_eligible_count,
+            'clean_baseline_count': self.clean_baseline_count,
+            'dirty_excluded_count': self.dirty_excluded_count,
+            'probe_skipped_count': self.probe_skipped_count,
             'total_received_count': self.total_received_count,
             'parse_failure_count': self.parse_failure_count,
             'observed_hours': self.observed_hours,
             'data_quality_incident_open': self.data_quality_incident_open,
             'student_training_blockers': self.student_training_blockers,
             'calibration_threshold': self.calibration_threshold,
+            'threshold_source': self.threshold_source,
+            'threshold_fitted_at': self.threshold_fitted_at,
+            'calibration_sample_count': self.calibration_sample_count,
+            'score_normalization_version': self.score_normalization_version,
+            'feature_schema_version': self.feature_schema_version,
             'created_at': self.created_at,
             'last_activity': self.last_activity,
             'student_trained_at': self.student_trained_at,
@@ -92,6 +116,12 @@ class ProjectConfig:
             'student_state_path': self.student_state_path,
             'training_sequences_collected': self.training_sequences_collected,
             'unique_templates_seen': self.unique_templates_seen,
+            'distinct_template_count': self.distinct_template_count,
+            'teacher_last_updated_at': self.teacher_last_updated_at,
+            'teacher_freshness': self.teacher_freshness,
+            'clean_normal_reservoir_count': self.clean_normal_reservoir_count,
+            'suspicious_reservoir_count': self.suspicious_reservoir_count,
+            'confirmed_malicious_reservoir_count': self.confirmed_malicious_reservoir_count,
             'es_index_pattern': self.es_index_pattern,
             'metadata': self.metadata
         }
@@ -105,15 +135,24 @@ class ProjectConfig:
             api_key=data['api_key'],
             api_key_hash=data['api_key_hash'],
             warmup_threshold=data.get('warmup_threshold', 10000),
+            traffic_profile=data.get('traffic_profile', data.get('metadata', {}).get('traffic_profile', 'standard')),
             current_log_count=data.get('current_log_count', 0),
             phase=data.get('phase', ProjectPhase.WARMUP.value),
             baseline_eligible_count=data.get('baseline_eligible_count', 0),
+            clean_baseline_count=data.get('clean_baseline_count', data.get('baseline_eligible_count', 0)),
+            dirty_excluded_count=data.get('dirty_excluded_count', 0),
+            probe_skipped_count=data.get('probe_skipped_count', 0),
             total_received_count=data.get('total_received_count', 0),
             parse_failure_count=data.get('parse_failure_count', 0),
             observed_hours=data.get('observed_hours', []),
             data_quality_incident_open=data.get('data_quality_incident_open', False),
             student_training_blockers=data.get('student_training_blockers', []),
             calibration_threshold=data.get('calibration_threshold', 0.5),
+            threshold_source=data.get('threshold_source', 'bootstrap'),
+            threshold_fitted_at=data.get('threshold_fitted_at'),
+            calibration_sample_count=data.get('calibration_sample_count', 0),
+            score_normalization_version=data.get('score_normalization_version', 'hybrid-v1'),
+            feature_schema_version=data.get('feature_schema_version', 'access-log-v2'),
             created_at=data.get('created_at', datetime.now().isoformat()),
             last_activity=data.get('last_activity', datetime.now().isoformat()),
             student_trained_at=data.get('student_trained_at'),
@@ -121,6 +160,12 @@ class ProjectConfig:
             student_state_path=data.get('student_state_path'),
             training_sequences_collected=data.get('training_sequences_collected', 0),
             unique_templates_seen=data.get('unique_templates_seen', 0),
+            distinct_template_count=data.get('distinct_template_count', data.get('unique_templates_seen', 0)),
+            teacher_last_updated_at=data.get('teacher_last_updated_at'),
+            teacher_freshness=data.get('teacher_freshness'),
+            clean_normal_reservoir_count=data.get('clean_normal_reservoir_count', 0),
+            suspicious_reservoir_count=data.get('suspicious_reservoir_count', 0),
+            confirmed_malicious_reservoir_count=data.get('confirmed_malicious_reservoir_count', 0),
             es_index_pattern=data.get('es_index_pattern'),
             metadata=data.get('metadata', {})
         )
@@ -186,6 +231,7 @@ class ProjectManager:
         project_name: str,
         warmup_threshold: int = 10000,
         metadata: Optional[Dict] = None,
+        traffic_profile: str = "standard",
     ) -> ProjectConfig:
         """Ensure a backend-owned project exists in detector storage."""
         with self._lock:
@@ -201,6 +247,7 @@ class ProjectManager:
                     api_key=api_key,
                     api_key_hash=api_key_hash,
                     warmup_threshold=warmup_threshold,
+                    traffic_profile=(metadata or {}).get("traffic_profile", traffic_profile),
                     es_index_pattern=f"logs-{project_id}",
                     metadata=metadata or {},
                 )
@@ -210,6 +257,7 @@ class ProjectManager:
             else:
                 project.project_name = project_name
                 project.warmup_threshold = warmup_threshold
+                project.traffic_profile = (metadata or {}).get("traffic_profile", traffic_profile)
                 if metadata:
                     project.metadata.update(metadata)
                 project.last_activity = datetime.now().isoformat()
@@ -221,7 +269,8 @@ class ProjectManager:
         self,
         project_name: str,
         warmup_threshold: int = 10000,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
+        traffic_profile: str = "standard",
     ) -> Tuple[str, str]:
         """
         Create a new project with a unique API key.
@@ -250,6 +299,7 @@ class ProjectManager:
                 api_key=api_key,  # Store for initial return only
                 api_key_hash=api_key_hash,
                 warmup_threshold=warmup_threshold,
+                traffic_profile=(metadata or {}).get("traffic_profile", traffic_profile),
                 es_index_pattern=f"logs-{project_id}",
                 metadata=metadata or {}
             )
@@ -318,8 +368,13 @@ class ProjectManager:
         total_records: int,
         parse_failures: int = 0,
         baseline_eligible: int = 0,
+        clean_baseline_count: Optional[int] = None,
+        dirty_excluded_count: int = 0,
+        probe_skipped_count: int = 0,
+        distinct_template_count: int = 0,
         observed_hours: Optional[List[int]] = None,
         data_quality_incident_open: Optional[bool] = None,
+        traffic_profile: Optional[str] = None,
     ) -> Optional[ProjectConfig]:
         """Record ingest quality metrics used for student promotion gates."""
         with self._lock:
@@ -327,15 +382,22 @@ class ProjectManager:
             if not project:
                 return None
 
+            clean_count = baseline_eligible if clean_baseline_count is None else clean_baseline_count
             project.total_received_count += max(total_records, 0)
             project.parse_failure_count += max(parse_failures, 0)
-            project.baseline_eligible_count += max(baseline_eligible, 0)
+            project.baseline_eligible_count += max(clean_count, 0)
+            project.clean_baseline_count += max(clean_count, 0)
+            project.dirty_excluded_count += max(dirty_excluded_count, 0)
+            project.probe_skipped_count += max(probe_skipped_count, 0)
+            project.distinct_template_count = max(project.distinct_template_count, distinct_template_count)
             if observed_hours:
                 merged_hours = set(project.observed_hours)
                 merged_hours.update(int(hour) for hour in observed_hours if hour is not None)
                 project.observed_hours = sorted(hour for hour in merged_hours if 0 <= hour <= 23)
             if data_quality_incident_open is not None:
                 project.data_quality_incident_open = data_quality_incident_open
+            if traffic_profile:
+                project.traffic_profile = traffic_profile
             project.last_activity = datetime.now().isoformat()
             self._save_projects()
             return project
@@ -346,6 +408,29 @@ class ProjectManager:
             if not project:
                 return None
             project.calibration_threshold = threshold
+            self._save_projects()
+            return project
+
+    def update_threshold_metadata(
+        self,
+        project_id: str,
+        *,
+        threshold: float,
+        threshold_source: str,
+        calibration_sample_count: int,
+        score_normalization_version: str,
+        feature_schema_version: str,
+    ) -> Optional[ProjectConfig]:
+        with self._lock:
+            project = self.projects.get(project_id)
+            if not project:
+                return None
+            project.calibration_threshold = threshold
+            project.threshold_source = threshold_source
+            project.threshold_fitted_at = datetime.now().isoformat()
+            project.calibration_sample_count = calibration_sample_count
+            project.score_normalization_version = score_normalization_version
+            project.feature_schema_version = feature_schema_version
             self._save_projects()
             return project
 
@@ -372,6 +457,24 @@ class ProjectManager:
             if project:
                 project.training_sequences_collected = sequences_collected
                 project.unique_templates_seen = unique_templates
+                project.distinct_template_count = max(project.distinct_template_count, unique_templates)
+
+    def update_reservoir_counts(
+        self,
+        project_id: str,
+        *,
+        clean_normal_reservoir_count: int,
+        suspicious_reservoir_count: int,
+        confirmed_malicious_reservoir_count: int,
+    ) -> None:
+        with self._lock:
+            project = self.projects.get(project_id)
+            if not project:
+                return
+            project.clean_normal_reservoir_count = clean_normal_reservoir_count
+            project.suspicious_reservoir_count = suspicious_reservoir_count
+            project.confirmed_malicious_reservoir_count = confirmed_malicious_reservoir_count
+            self._save_projects()
     
     def _trigger_student_training(self, project_id: str):
         """Mark project for student model training"""
@@ -437,7 +540,12 @@ class ProjectManager:
         """Record that teacher model was updated"""
         with self._lock:
             self.last_teacher_update = datetime.now()
+            freshness = self.last_teacher_update.isoformat()
+            for project in self.projects.values():
+                project.teacher_last_updated_at = freshness
+                project.teacher_freshness = "fresh"
             self._save_state()
+            self._save_projects()
     
     def list_projects(self) -> List[Dict]:
         """List all projects with their status"""
@@ -449,11 +557,15 @@ class ProjectManager:
                     'phase': p.phase,
                     'log_count': p.current_log_count,
                     'warmup_threshold': p.warmup_threshold,
+                    'traffic_profile': p.traffic_profile,
                     'warmup_progress': min(100, (p.current_log_count / p.warmup_threshold) * 100),
                     'created_at': p.created_at,
                     'last_activity': p.last_activity,
                     'has_student_model': p.student_model_path is not None,
                     'baseline_eligible_count': p.baseline_eligible_count,
+                    'clean_baseline_count': p.clean_baseline_count,
+                    'dirty_excluded_count': p.dirty_excluded_count,
+                    'probe_skipped_count': p.probe_skipped_count,
                     'parse_failure_rate': (
                         p.parse_failure_count / p.total_received_count
                         if p.total_received_count else 0.0
@@ -461,6 +573,18 @@ class ProjectManager:
                     'observed_hours': p.observed_hours,
                     'student_training_blockers': p.student_training_blockers,
                     'calibration_threshold': p.calibration_threshold,
+                    'threshold_source': p.threshold_source,
+                    'threshold_fitted_at': p.threshold_fitted_at,
+                    'calibration_sample_count': p.calibration_sample_count,
+                    'score_normalization_version': p.score_normalization_version,
+                    'distinct_template_count': p.distinct_template_count,
+                    'teacher_last_updated_at': p.teacher_last_updated_at,
+                    'teacher_freshness': p.teacher_freshness,
+                    'reservoir_counts': {
+                        'clean_normal': p.clean_normal_reservoir_count,
+                        'suspicious': p.suspicious_reservoir_count,
+                        'confirmed_malicious': p.confirmed_malicious_reservoir_count,
+                    },
                 }
                 for p in self.projects.values()
             ]

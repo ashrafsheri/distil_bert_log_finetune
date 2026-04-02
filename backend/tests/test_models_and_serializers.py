@@ -37,6 +37,20 @@ def test_convert_elasticsearch_logs_to_entries_maps_anomaly_details() -> None:
                 "status_code": 200,
                 "infected": True,
                 "anomaly_score": 0.97,
+                "traffic_class": "user_traffic",
+                "baseline_eligible": True,
+                "decision_reason": "known_attack_policy",
+                "policy_score": 1.0,
+                "final_decision": "threat_detected",
+                "component_status": {"rule_based": "active"},
+                "incident_grouped_event_count": 3,
+                "incident_reason": "known_attack_policy",
+                "top_contributing_signals": ["rule:path_traversal"],
+                "threshold_source": "holdout_calibration",
+                "threshold_fitted_at": "2026-03-31T09:59:00Z",
+                "calibration_sample_count": 128,
+                "score_normalization_version": "hybrid-v1",
+                "unknown_template_ratio": 0.0,
                 "anomaly_details": {
                     "rule_based": {"is_attack": True},
                     "ensemble": {"score": 0.97},
@@ -56,6 +70,12 @@ def test_convert_elasticsearch_logs_to_entries_maps_anomaly_details() -> None:
     assert logs[0].ipAddress == "127.0.0.1"
     assert logs[0].anomaly_details is not None
     assert logs[0].anomaly_details.rule_based == {"is_attack": True}
+    assert logs[0].trafficClass == "user_traffic"
+    assert logs[0].decisionReason == "known_attack_policy"
+    assert logs[0].finalDecision == "threat_detected"
+    assert logs[0].incidentGroupedEventCount == 3
+    assert logs[0].incidentReason == "known_attack_policy"
+    assert logs[0].topContributingSignals == ["rule:path_traversal"]
     assert logs[1].anomaly_details is None
 
 

@@ -34,6 +34,9 @@ class LogEntry(BaseModel):
     detectionError: Optional[str] = None
     incidentId: Optional[str] = None
     incidentType: Optional[str] = None
+    incidentGroupedEventCount: Optional[int] = None
+    incidentReason: Optional[str] = None
+    topContributingSignals: Optional[list[str]] = None
     normalizedTemplate: Optional[str] = None
     sessionKeyHash: Optional[str] = None
     modelVersion: Optional[str] = None
@@ -42,6 +45,17 @@ class LogEntry(BaseModel):
     modelType: Optional[str] = None
     rawAnomalyScore: Optional[float] = None
     calibration: Optional[Dict[str, Any]] = None
+    trafficClass: Optional[str] = None
+    baselineEligible: Optional[bool] = None
+    decisionReason: Optional[str] = None
+    policyScore: Optional[float] = None
+    finalDecision: Optional[str] = None
+    componentStatus: Optional[Dict[str, Any]] = None
+    thresholdSource: Optional[str] = None
+    thresholdFittedAt: Optional[str] = None
+    calibrationSampleCount: Optional[int] = None
+    scoreNormalizationVersion: Optional[str] = None
+    unknownTemplateRatio: Optional[float] = None
 
     class Config:
         json_schema_extra = {
@@ -57,12 +71,26 @@ class LogEntry(BaseModel):
                 "parseStatus": "parsed",
                 "detectionStatus": "scored",
                 "incidentId": "proj-1:/login:203.0.113.4:2025-10-07T12:00:00Z",
+                "incidentGroupedEventCount": 4,
+                "incidentReason": "known_attack_policy",
+                "topContributingSignals": ["rule:path_traversal", "rule:command_injection"],
                 "normalizedTemplate": "GET /api/v1/fetch HTTP/1.1 200",
                 "modelVersion": "multi-tenant-v1",
                 "featureSchemaVersion": "access-log-v1",
                 "detectorPhase": "warmup",
                 "modelType": "teacher",
                 "rawAnomalyScore": 0.31,
+                "trafficClass": "user_traffic",
+                "baselineEligible": True,
+                "decisionReason": "behavioral_anomaly",
+                "policyScore": 0.0,
+                "finalDecision": "threat_detected",
+                "componentStatus": {"rule_based": "active", "transformer": "active", "isolation_forest": "not_fitted"},
+                "thresholdSource": "holdout_calibration",
+                "thresholdFittedAt": "2025-10-07T12:00:00Z",
+                "calibrationSampleCount": 128,
+                "scoreNormalizationVersion": "hybrid-v1",
+                "unknownTemplateRatio": 0.1,
                 "calibration": {"threshold": 0.58, "calibrated_score": 0.25},
                 "anomaly_details": {
                     "rule_based": {"is_attack": False, "confidence": 0.0},
@@ -100,6 +128,7 @@ class LogEntryResponse(BaseModel):
     parse_failure_count: int = 0
     detection_failure_count: int = 0
     incident_count: int = 0
+    skipped_count: int = 0
 
 
 class WebSocketMessage(BaseModel):
