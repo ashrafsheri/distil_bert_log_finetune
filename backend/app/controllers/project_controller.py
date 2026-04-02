@@ -115,6 +115,7 @@ async def create_project(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/create", "POST"))],
     project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
+    anomaly_detection_service: Annotated[AnomalyDetectionService, Depends(get_anomaly_detection_service)],
 ):
     """
     Create a new project within an organization.
@@ -140,6 +141,19 @@ async def create_project(
             raise HTTPException(status_code=403, detail="You don't have permission to create projects in this organization")
         
         result = await project_service.create_project(request, current_user["uid"], db)
+        try:
+            await anomaly_detection_service.register_or_update_project(
+                project_id=result.project_id,
+                project_name=result.name,
+                warmup_threshold=result.warmup_threshold,
+                metadata={
+                    "log_type": result.log_type,
+                    "org_id": result.org_id,
+                    "traffic_profile": result.traffic_profile,
+                },
+            )
+        except Exception as detector_error:
+            logger.warning("Project created but detector registration failed for %s: %s", result.project_id, detector_error)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -345,6 +359,7 @@ async def update_project(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[dict, Depends(check_permission("/api/v1/projects/{project_id}", "PUT"))],
     project_service: Annotated[ProjectService, Depends(lambda: ProjectService())],
+    anomaly_detection_service: Annotated[AnomalyDetectionService, Depends(get_anomaly_detection_service)],
 ):
     """
     Update a project.
@@ -373,10 +388,26 @@ async def update_project(
             raise HTTPException(status_code=403, detail=PROJECT_UPDATE_DENIED)
         
         success = await project_service.update_project(project_id, request, db)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-        
+
+        refreshed_project = await project_service.get_project_by_id(project_id, db)
+        if refreshed_project is not None:
+            try:
+                await anomaly_detection_service.register_or_update_project(
+                    project_id=refreshed_project.id,
+                    project_name=refreshed_project.name,
+                    warmup_threshold=refreshed_project.warmup_threshold or 10000,
+                    metadata={
+                        "log_type": refreshed_project.log_type,
+                        "org_id": refreshed_project.org_id,
+                        "traffic_profile": getattr(refreshed_project, "traffic_profile", "standard") or "standard",
+                    },
+                )
+            except Exception as detector_error:
+                logger.warning("Project updated but detector registration failed for %s: %s", project_id, detector_error)
+
         return {"message": f"Project {project_id} updated successfully"}
     except HTTPException:
         raise

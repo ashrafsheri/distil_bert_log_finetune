@@ -9,12 +9,16 @@ from typing import Optional, Literal
 from datetime import datetime
 import secrets
 
+TrafficProfile = Literal["standard", "low_traffic"]
+
 
 class ProjectBase(BaseModel):
     """Base project model with common fields"""
     name: str
     org_id: str
     log_type: Literal["apache", "nginx"] = "apache"
+    warmup_threshold: Optional[int] = None
+    traffic_profile: TrafficProfile = "standard"
 
 
 class Project(ProjectBase):
@@ -45,12 +49,16 @@ class ProjectCreate(BaseModel):
     name: str
     org_id: str
     log_type: Literal["apache", "nginx"] = "apache"
+    warmup_threshold: Optional[int] = None
+    traffic_profile: TrafficProfile = "standard"
 
 
 class ProjectUpdate(BaseModel):
     """Model for updating a project"""
     name: Optional[str] = None
     log_type: Optional[Literal["apache", "nginx"]] = None
+    warmup_threshold: Optional[int] = None
+    traffic_profile: Optional[TrafficProfile] = None
 
 
 class ProjectResponse(BaseModel):
@@ -60,6 +68,8 @@ class ProjectResponse(BaseModel):
     name: str
     org_id: str
     log_type: Literal["apache", "nginx"]
+    warmup_threshold: int
+    traffic_profile: TrafficProfile
 
 
 class ProjectSummary(BaseModel):
@@ -70,6 +80,8 @@ class ProjectSummary(BaseModel):
     log_type: Literal["apache", "nginx"]
     member_count: int
     model_status: Optional[str] = None
+    warmup_threshold: Optional[int] = None
+    traffic_profile: TrafficProfile = "standard"
 
 
 class ProjectHealthSummary(BaseModel):
@@ -94,6 +106,7 @@ class ProjectHealthSummary(BaseModel):
     threshold_source: Optional[str] = None
     threshold_fitted_at: Optional[str] = None
     calibration_sample_count: int = 0
+    low_sample_calibration: bool = False
     score_normalization_version: Optional[str] = None
     teacher_last_updated_at: Optional[str] = None
     teacher_freshness: Optional[str] = None

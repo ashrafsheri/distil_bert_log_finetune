@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS projects (
     api_key VARCHAR UNIQUE NOT NULL,
     created_by VARCHAR NOT NULL,
     log_type VARCHAR NOT NULL DEFAULT 'apache',
+    traffic_profile VARCHAR NOT NULL DEFAULT 'standard',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     model_status modelstatus DEFAULT 'warmup',
@@ -102,7 +103,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 3b: Migrate old organizations to projects
 -- Each old organization becomes a project within an organization
 INSERT INTO projects (
-    id, org_id, name, api_key, created_by, log_type,
+    id, org_id, name, api_key, created_by, log_type, traffic_profile,
     created_at, updated_at, model_status, log_count,
     warmup_threshold, warmup_progress, student_trained_at
 )
@@ -113,6 +114,7 @@ SELECT
     pt.api_key,
     pt.created_by,
     COALESCE(pt.log_type, 'apache') as log_type,
+    'standard' as traffic_profile,
     pt.created_at,
     pt.updated_at,
     pt.model_status,

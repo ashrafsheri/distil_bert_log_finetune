@@ -19,6 +19,7 @@ const ProjectsDashboard: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [selectedOrg, setSelectedOrg] = useState('');
   const [logType, setLogType] = useState<'apache' | 'nginx'>('apache');
+  const [trafficProfile, setTrafficProfile] = useState<'standard' | 'low_traffic'>('standard');
   const [isCreating, setIsCreating] = useState(false);
   const [projectCreationResult, setProjectCreationResult] = useState<CreateProjectResponse | null>(null);
   const [regeneratingKeyFor, setRegeneratingKeyFor] = useState<string | null>(null);
@@ -38,6 +39,7 @@ const ProjectsDashboard: React.FC = () => {
   const organizationSelectId = 'create-project-organization';
   const organizationDisplayId = 'selected-organization';
   const createLogTypeSelectId = 'create-project-log-type';
+  const createTrafficProfileSelectId = 'create-project-traffic-profile';
   const updateLogTypeSelectId = 'update-project-log-type';
 
   useEffect(() => {
@@ -110,7 +112,8 @@ const ProjectsDashboard: React.FC = () => {
       const result = await projectService.createProject({
         name: projectName.trim(),
         org_id: orgId,
-        log_type: logType
+        log_type: logType,
+        traffic_profile: trafficProfile,
       });
       
       // Show API key modal
@@ -120,6 +123,7 @@ const ProjectsDashboard: React.FC = () => {
       setProjectName('');
       setSelectedOrg('');
       setLogType('apache');
+      setTrafficProfile('standard');
       setShowCreateForm(false);
       
       // Reload projects
@@ -149,7 +153,9 @@ const ProjectsDashboard: React.FC = () => {
         name: projectName,
         api_key: result.new_api_key,
         org_id: '',
-        log_type: 'apache'
+        log_type: 'apache',
+        warmup_threshold: projectHealth[projectId]?.warmup_threshold ?? 10000,
+        traffic_profile: projectHealth[projectId]?.traffic_profile === 'low_traffic' ? 'low_traffic' : 'standard',
       });
       
     } catch (err) {
@@ -338,6 +344,26 @@ const ProjectsDashboard: React.FC = () => {
                   <option value="nginx">Nginx</option>
                 </select>
               </div>
+              <div>
+                <label htmlFor={createTrafficProfileSelectId} className="block text-sm font-medium text-slate-300 mb-3">
+                  Traffic Profile
+                </label>
+                <select
+                  id={createTrafficProfileSelectId}
+                  value={trafficProfile}
+                  onChange={(e) => setTrafficProfile(e.target.value as 'standard' | 'low_traffic')}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
+                  disabled={isCreating}
+                >
+                  <option value="standard">Standard</option>
+                  <option value="low_traffic">Low Traffic</option>
+                </select>
+                <p className="mt-2 text-sm text-slate-400">
+                  {trafficProfile === 'low_traffic'
+                    ? 'Uses a 1,000-log warmup target with lower sequence and calibration requirements for quieter live projects.'
+                    : 'Uses the standard 10,000-log warmup target and stricter activation thresholds.'}
+                </p>
+              </div>
               <div className="flex gap-4 pt-4">
                 <Button
                   type="submit"
@@ -415,11 +441,17 @@ const ProjectsDashboard: React.FC = () => {
                             <div>
                               Phase: <span className="text-slate-200 font-medium">{projectHealth[project.id].phase}</span>
                               {' '}• Warmup {projectHealth[project.id].warmup_progress.toFixed(1)}%
+                              {' '}• Profile <span className="text-slate-200 font-medium">{projectHealth[project.id].traffic_profile || 'standard'}</span>
                             </div>
                             <div>
                               Baseline eligible: <span className="text-slate-200 font-medium">{projectHealth[project.id].baseline_eligible_count.toLocaleString()}</span>
                               {' '}• Parse failure rate: <span className="text-slate-200 font-medium">{(projectHealth[project.id].parse_failure_rate * 100).toFixed(1)}%</span>
                             </div>
+                            {projectHealth[project.id].low_sample_calibration && (
+                              <div className="text-yellow-300">
+                                Calibration is running in low-sample mode for this low-traffic project.
+                              </div>
+                            )}
                             {projectHealth[project.id].student_training_blockers.length > 0 && (
                               <div className="text-vt-warning">
                                 Blockers: {projectHealth[project.id].student_training_blockers.join(', ')}

@@ -38,6 +38,7 @@ class ProjectDB(Base):
     api_key = Column(String, unique=True, index=True, nullable=False)
     created_by = Column(String, nullable=False)  # uid of creator
     log_type = Column(String, nullable=False, server_default=text("'apache'"))  # Log format type: apache or nginx
+    traffic_profile = Column(String, nullable=False, server_default=text("'standard'"))
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
