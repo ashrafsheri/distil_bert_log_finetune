@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -49,6 +50,35 @@ def test_project_manager_ensure_project_and_ingest_stats(tmp_path: Path) -> None
     assert updated.distinct_template_count == 12
     assert updated.traffic_profile == "low_traffic"
     assert updated.observed_hours == [1, 2, 5, 9]
+
+
+def test_project_manager_tracks_recent_parse_failure_window(tmp_path: Path) -> None:
+    previous_window = os.environ.get("MULTI_TENANT_PARSE_FAILURE_WINDOW")
+    os.environ["MULTI_TENANT_PARSE_FAILURE_WINDOW"] = "100"
+    try:
+        manager = ProjectManager(storage_dir=tmp_path / "projects")
+        manager.ensure_project(
+            project_id="proj-window",
+            project_name="Recent Window",
+            warmup_threshold=1000,
+        )
+
+        updated = manager.record_ingest_stats("proj-window", total_records=100, parse_failures=20)
+        assert updated is not None
+        assert updated.recent_total_received_count == 100
+        assert updated.recent_parse_failure_count == 20
+
+        updated = manager.record_ingest_stats("proj-window", total_records=50, parse_failures=0)
+        assert updated is not None
+        assert updated.total_received_count == 150
+        assert updated.parse_failure_count == 20
+        assert updated.recent_total_received_count == 100
+        assert updated.recent_parse_failure_count == 10
+    finally:
+        if previous_window is None:
+            os.environ.pop("MULTI_TENANT_PARSE_FAILURE_WINDOW", None)
+        else:
+            os.environ["MULTI_TENANT_PARSE_FAILURE_WINDOW"] = previous_window
 
 def test_project_manager_persists_low_traffic_threshold_metadata(tmp_path: Path) -> None:
     manager = ProjectManager(storage_dir=tmp_path / "projects")
@@ -229,3 +259,78 @@ def test_transformer_scoring_error_is_exposed_instead_of_flat_threshold(tmp_path
     assert result["transformer"]["status"] == "error"
     assert result["transformer"]["error"] == "forced_transformer_failure"
     assert result["transformer"]["score"] is None
+
+
+def test_recent_parse_failure_rate_can_clear_student_blocker(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    import numpy as np
+    from models.multi_tenant_detector import MultiTenantDetector
+    from models.student_model import StudentModel
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-recent-quality",
+        project_name="Recent Quality",
+        warmup_threshold=1000,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    project = detector.project_manager.get_project("proj-recent-quality")
+    assert project is not None
+    project.clean_baseline_count = 1000
+    project.current_log_count = 1000
+    project.observed_hours = [1, 2, 3, 4]
+    project.distinct_template_count = 20
+    project.total_received_count = 5000
+    project.parse_failure_count = 500
+    project.recent_total_received_count = 500
+    project.recent_parse_failure_count = 0
+
+    student = StudentModel(
+        project_id=project.project_id,
+        storage_dir=detector.project_manager.get_project_storage_path(project.project_id),
+        window_size=detector.window_size,
+        device=detector.device,
+    )
+    student.training_sequences = [[1, 2, 3, 4, 5] for _ in range(35)]
+    student.training_features = [np.array([1.0, 2.0, 3.0]) for _ in range(55)]
+    student.template_counts = Counter({"GET /users/me": 20, "GET /products/user/:id": 15})
+    detector.students[project.project_id] = student
+
+    blockers = detector._student_training_blockers(project)
+
+    assert "parse_failure_rate_too_high" not in blockers
+
+
+def test_warmup_can_continue_collecting_if_features_after_threshold(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+        window_size=20,
+    )
+    detector.ensure_project(
+        project_id="proj-feature-recovery",
+        project_name="Feature Recovery",
+        warmup_threshold=10,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    project = detector.project_manager.get_project("proj-feature-recovery")
+    assert project is not None
+    project.clean_baseline_count = 12
+    project.current_log_count = 12
+
+    log_line = '135.125.182.34 - - [03/Apr/2026:02:53:33 +0000] "GET /users/me HTTP/1.1" 200 512 "-" "okhttp/4.12.0"'
+    detector.detect_single_log(project.api_key, log_line, session_id="feature-recovery-1")
+
+    student = detector.students.get(project.project_id)
+    assert student is not None
+    assert len(student.training_features) == 1

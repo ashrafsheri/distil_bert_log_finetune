@@ -4,6 +4,7 @@ Manages multi-tenant projects with API keys, warmup tracking, and project-specif
 """
 
 import json
+import os
 import uuid
 import hashlib
 import secrets
@@ -48,6 +49,8 @@ class ProjectConfig:
     probe_skipped_count: int = 0
     total_received_count: int = 0
     parse_failure_count: int = 0
+    recent_total_received_count: int = 0
+    recent_parse_failure_count: int = 0
     observed_hours: List[int] = field(default_factory=list)
     data_quality_incident_open: bool = False
     student_training_blockers: List[str] = field(default_factory=list)
@@ -100,6 +103,8 @@ class ProjectConfig:
             'probe_skipped_count': self.probe_skipped_count,
             'total_received_count': self.total_received_count,
             'parse_failure_count': self.parse_failure_count,
+            'recent_total_received_count': self.recent_total_received_count,
+            'recent_parse_failure_count': self.recent_parse_failure_count,
             'observed_hours': self.observed_hours,
             'data_quality_incident_open': self.data_quality_incident_open,
             'student_training_blockers': self.student_training_blockers,
@@ -144,6 +149,8 @@ class ProjectConfig:
             probe_skipped_count=data.get('probe_skipped_count', 0),
             total_received_count=data.get('total_received_count', 0),
             parse_failure_count=data.get('parse_failure_count', 0),
+            recent_total_received_count=data.get('recent_total_received_count', 0),
+            recent_parse_failure_count=data.get('recent_parse_failure_count', 0),
             observed_hours=data.get('observed_hours', []),
             data_quality_incident_open=data.get('data_quality_incident_open', False),
             student_training_blockers=data.get('student_training_blockers', []),
@@ -186,6 +193,7 @@ class ProjectManager:
     def __init__(self, storage_dir: Path, teacher_update_interval_days: int = 7):
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self.parse_failure_window = int(os.getenv("MULTI_TENANT_PARSE_FAILURE_WINDOW", "2000"))
         
         # Project storage
         self.projects: Dict[str, ProjectConfig] = {}
@@ -383,8 +391,20 @@ class ProjectManager:
                 return None
 
             clean_count = baseline_eligible if clean_baseline_count is None else clean_baseline_count
-            project.total_received_count += max(total_records, 0)
-            project.parse_failure_count += max(parse_failures, 0)
+            total_records = max(total_records, 0)
+            parse_failures = max(parse_failures, 0)
+            project.total_received_count += total_records
+            project.parse_failure_count += parse_failures
+            retained_total = project.recent_total_received_count
+            retained_failures = project.recent_parse_failure_count
+            if self.parse_failure_window > 0:
+                retained_total_budget = max(self.parse_failure_window - total_records, 0)
+                if retained_total > retained_total_budget and retained_total > 0:
+                    retention_ratio = retained_total_budget / retained_total
+                    retained_failures = int(round(retained_failures * retention_ratio))
+                    retained_total = retained_total_budget
+            project.recent_total_received_count = retained_total + total_records
+            project.recent_parse_failure_count = retained_failures + parse_failures
             project.baseline_eligible_count += max(clean_count, 0)
             project.clean_baseline_count += max(clean_count, 0)
             project.dirty_excluded_count += max(dirty_excluded_count, 0)

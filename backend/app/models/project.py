@@ -99,6 +99,9 @@ class ProjectHealthSummary(BaseModel):
     dirty_excluded_count: int = 0
     probe_skipped_count: int = 0
     parse_failure_rate: float
+    recent_parse_failure_rate: float = 0.0
+    recent_parse_failure_sample_count: int = 0
+    effective_parse_failure_rate: float = 0.0
     observed_hours: list[int]
     student_training_blockers: list[str]
     distinct_template_count: int = 0
