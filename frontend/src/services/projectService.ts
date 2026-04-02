@@ -7,6 +7,7 @@ import { apiService } from './apiService';
 
 export type ProjectLogType = 'apache' | 'nginx';
 export type ProjectMemberRole = 'project_staff' | 'project_admin' | 'owner';
+export type ProjectTrafficProfile = 'standard' | 'low_traffic';
 
 export interface ProjectSummary {
   id: string;
@@ -15,6 +16,8 @@ export interface ProjectSummary {
   log_type: ProjectLogType;
   member_count: number;
   model_status?: string;
+  warmup_threshold?: number;
+  traffic_profile?: ProjectTrafficProfile;
 }
 
 export interface ProjectHealthSummary {
@@ -38,6 +41,7 @@ export interface ProjectHealthSummary {
   threshold_source?: string | null;
   threshold_fitted_at?: string | null;
   calibration_sample_count?: number;
+  low_sample_calibration?: boolean;
   score_normalization_version?: string | null;
   teacher_last_updated_at?: string | null;
   teacher_freshness?: string | null;
@@ -50,6 +54,8 @@ export interface CreateProjectRequest {
   name: string;
   org_id: string;
   log_type?: ProjectLogType;
+  warmup_threshold?: number;
+  traffic_profile?: ProjectTrafficProfile;
 }
 
 export interface CreateProjectResponse {
@@ -58,11 +64,15 @@ export interface CreateProjectResponse {
   name: string;
   org_id: string;
   log_type: ProjectLogType;
+  warmup_threshold: number;
+  traffic_profile: ProjectTrafficProfile;
 }
 
 export interface UpdateProjectRequest {
   name?: string;
   log_type?: ProjectLogType;
+  warmup_threshold?: number;
+  traffic_profile?: ProjectTrafficProfile;
 }
 
 export interface RegenerateApiKeyRequest {

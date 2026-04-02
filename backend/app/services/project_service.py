@@ -33,6 +33,10 @@ class ProjectService:
         """Initialize ProjectService"""
         pass
 
+    @staticmethod
+    def _default_warmup_threshold(traffic_profile: str) -> int:
+        return 1000 if traffic_profile == "low_traffic" else 10000
+
     async def create_project(
         self, 
         project_data: ProjectCreate, 
@@ -67,13 +71,21 @@ class ProjectService:
             api_key = generate_api_key()
 
         # Create project in database
+        resolved_traffic_profile = project_data.traffic_profile or "standard"
+        resolved_warmup_threshold = (
+            project_data.warmup_threshold
+            if project_data.warmup_threshold is not None
+            else self._default_warmup_threshold(resolved_traffic_profile)
+        )
         project_db = ProjectDB(
             id=project_id,
             org_id=project_data.org_id,
             name=project_data.name,
             api_key=api_key,
             created_by=creator_uid,
-            log_type=project_data.log_type
+            log_type=project_data.log_type,
+            warmup_threshold=resolved_warmup_threshold,
+            traffic_profile=resolved_traffic_profile,
         )
         db.add(project_db)
 
@@ -117,7 +129,9 @@ class ProjectService:
             api_key=api_key,
             name=project_data.name,
             org_id=project_data.org_id,
-            log_type=project_data.log_type
+            log_type=project_data.log_type,
+            warmup_threshold=resolved_warmup_threshold,
+            traffic_profile=resolved_traffic_profile,
         )
 
     async def _api_key_exists(self, api_key: str, db: AsyncSession) -> bool:
@@ -175,6 +189,8 @@ class ProjectService:
                 ProjectDB.org_id,
                 ProjectDB.log_type,
                 ProjectDB.model_status,
+                ProjectDB.warmup_threshold,
+                ProjectDB.traffic_profile,
                 func.count(ProjectMemberDB.id).label('member_count')
             )
             .outerjoin(ProjectMemberDB, ProjectDB.id == ProjectMemberDB.project_id)
@@ -184,7 +200,9 @@ class ProjectService:
                 ProjectDB.name, 
                 ProjectDB.org_id, 
                 ProjectDB.log_type,
-                ProjectDB.model_status
+                ProjectDB.model_status,
+                ProjectDB.warmup_threshold,
+                ProjectDB.traffic_profile,
             )
             .order_by(ProjectDB.created_at)
         )
@@ -197,7 +215,9 @@ class ProjectService:
                 org_id=proj.org_id,
                 log_type=proj.log_type,
                 model_status=proj.model_status,
-                member_count=proj.member_count
+                member_count=proj.member_count,
+                warmup_threshold=proj.warmup_threshold,
+                traffic_profile=proj.traffic_profile or "standard",
             )
             for proj in projects
         ]
@@ -224,6 +244,8 @@ class ProjectService:
                 ProjectDB.org_id,
                 ProjectDB.log_type,
                 ProjectDB.model_status,
+                ProjectDB.warmup_threshold,
+                ProjectDB.traffic_profile,
                 func.count(ProjectMemberDB.id).label('member_count')
             )
             .join(ProjectMemberDB, ProjectDB.id == ProjectMemberDB.project_id)
@@ -233,7 +255,9 @@ class ProjectService:
                 ProjectDB.name, 
                 ProjectDB.org_id, 
                 ProjectDB.log_type,
-                ProjectDB.model_status
+                ProjectDB.model_status,
+                ProjectDB.warmup_threshold,
+                ProjectDB.traffic_profile,
             )
             .order_by(ProjectDB.created_at)
         )
@@ -246,7 +270,9 @@ class ProjectService:
                 org_id=proj.org_id,
                 log_type=proj.log_type,
                 model_status=proj.model_status,
-                member_count=proj.member_count
+                member_count=proj.member_count,
+                warmup_threshold=proj.warmup_threshold,
+                traffic_profile=proj.traffic_profile or "standard",
             )
             for proj in projects
         ]
@@ -278,7 +304,13 @@ class ProjectService:
             project.name = project_data.name
         if project_data.log_type:
             project.log_type = project_data.log_type
-        
+        if project_data.traffic_profile:
+            project.traffic_profile = project_data.traffic_profile
+            if project_data.warmup_threshold is None:
+                project.warmup_threshold = self._default_warmup_threshold(project_data.traffic_profile)
+        if project_data.warmup_threshold is not None:
+            project.warmup_threshold = project_data.warmup_threshold
+
         await db.commit()
         return True
 

@@ -97,7 +97,6 @@ class MultiTenantDetector:
         self.model_version = os.getenv("MULTI_TENANT_MODEL_VERSION", "student-teacher-v1")
         self.feature_schema_version = os.getenv("MULTI_TENANT_FEATURE_SCHEMA_VERSION", "access-log-v2")
         self.score_normalization_version = "hybrid-v1"
-        self.min_calibration_samples = int(os.getenv("MULTI_TENANT_MIN_CALIBRATION_SAMPLES", "20"))
         self.max_daily_threshold_delta = float(os.getenv("MULTI_TENANT_MAX_DAILY_THRESHOLD_DELTA", "0.1"))
         self.profile_settings = {
             "standard": {
@@ -105,6 +104,7 @@ class MultiTenantDetector:
                 "min_training_sequences": 100,
                 "min_if_feature_rows": 100,
                 "min_observed_hours": self.min_observed_hours,
+                "min_calibration_samples": int(os.getenv("MULTI_TENANT_STANDARD_MIN_CALIBRATION_SAMPLES", "50")),
                 "min_distinct_templates": 10,
                 "max_single_template_ratio": 0.85,
             },
@@ -113,6 +113,7 @@ class MultiTenantDetector:
                 "min_training_sequences": 30,
                 "min_if_feature_rows": 50,
                 "min_observed_hours": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS", "3")),
+                "min_calibration_samples": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_CALIBRATION_SAMPLES", "20")),
                 "min_distinct_templates": 5,
                 "max_single_template_ratio": 0.9,
             },
@@ -204,6 +205,13 @@ class MultiTenantDetector:
         student = self.students.get(project_id)
         student_info = student.get_model_info() if student else None
         
+        standard_calibration_floor = self.profile_settings["standard"]["min_calibration_samples"] * 2
+        low_sample_calibration = (
+            project.threshold_source == "holdout_calibration"
+            and project.traffic_profile == "low_traffic"
+            and project.calibration_sample_count < standard_calibration_floor
+        )
+
         return {
             'project_id': project.project_id,
             'project_name': project.project_name,
@@ -229,6 +237,7 @@ class MultiTenantDetector:
             'threshold_source': project.threshold_source,
             'threshold_fitted_at': project.threshold_fitted_at,
             'calibration_sample_count': project.calibration_sample_count,
+            'low_sample_calibration': low_sample_calibration,
             'score_normalization_version': project.score_normalization_version,
             'teacher_last_updated_at': project.teacher_last_updated_at,
             'teacher_freshness': project.teacher_freshness,
@@ -243,7 +252,15 @@ class MultiTenantDetector:
     
     def list_projects(self) -> List[Dict]:
         """List all projects with status"""
-        return self.project_manager.list_projects()
+        projects = self.project_manager.list_projects()
+        standard_calibration_floor = self.profile_settings["standard"]["min_calibration_samples"] * 2
+        for project in projects:
+            project["low_sample_calibration"] = (
+                project.get("threshold_source") == "holdout_calibration"
+                and project.get("traffic_profile") == "low_traffic"
+                and int(project.get("calibration_sample_count") or 0) < standard_calibration_floor
+            )
+        return projects
 
     def ensure_project(
         self,
@@ -543,6 +560,12 @@ class MultiTenantDetector:
         if project.probe_skipped_count > total_non_probe and project.probe_skipped_count > 0:
             blockers.append("probe_traffic_dominant")
         student = self.students.get(project.project_id)
+        training_sequence_count = len(student.training_sequences) if student else 0
+        training_feature_count = len(student.training_features) if student else 0
+        if training_sequence_count < profile_settings["min_training_sequences"]:
+            blockers.append("insufficient_training_sequences")
+        if training_feature_count < profile_settings["min_if_feature_rows"]:
+            blockers.append("insufficient_if_features")
         if student and student.template_counts:
             total_templates = sum(student.template_counts.values())
             if total_templates > 0:
@@ -579,9 +602,11 @@ class MultiTenantDetector:
         project = self.project_manager.get_project(project_id)
         if not project:
             return 0.5
+        profile_settings = self._profile_settings_for_project(project)
+        min_calibration_samples = profile_settings["min_calibration_samples"]
         calibration_scores = list(score_buffers["calibration"])
         holdout_scores = list(score_buffers["holdout"])
-        if len(calibration_scores) < self.min_calibration_samples or len(holdout_scores) < self.min_calibration_samples:
+        if len(calibration_scores) < min_calibration_samples or len(holdout_scores) < min_calibration_samples:
             return project.calibration_threshold
 
         calibration_threshold = float(np.percentile(calibration_scores, 95))

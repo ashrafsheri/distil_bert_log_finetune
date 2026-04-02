@@ -50,3 +50,29 @@ def test_project_manager_ensure_project_and_ingest_stats(tmp_path: Path) -> None
     assert updated.distinct_template_count == 12
     assert updated.traffic_profile == "low_traffic"
     assert updated.observed_hours == [1, 2, 5, 9]
+
+def test_project_manager_persists_low_traffic_threshold_metadata(tmp_path: Path) -> None:
+    manager = ProjectManager(storage_dir=tmp_path / "projects")
+
+    project = manager.ensure_project(
+        project_id="proj-low",
+        project_name="Quiet Service",
+        warmup_threshold=1000,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    assert project.traffic_profile == "low_traffic"
+    assert project.warmup_threshold == 1000
+
+    updated = manager.update_threshold_metadata(
+        "proj-low",
+        threshold=0.58,
+        threshold_source="holdout_calibration",
+        calibration_sample_count=40,
+        score_normalization_version="hybrid-v1",
+        feature_schema_version="access-log-v2",
+    )
+
+    assert updated is not None
+    assert updated.threshold_source == "holdout_calibration"
+    assert updated.calibration_sample_count == 40
+    assert updated.score_normalization_version == "hybrid-v1"

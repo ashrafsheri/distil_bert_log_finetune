@@ -77,6 +77,8 @@ class ProjectStatusResponse(BaseModel):
     warmup_threshold: int
     warmup_progress: float
     has_student_model: bool
+    traffic_profile: str = "standard"
+    low_sample_calibration: bool = False
     created_at: str
     last_activity: str
 
@@ -468,6 +470,8 @@ async def list_projects(
             warmup_threshold=p['warmup_threshold'],
             warmup_progress=p['warmup_progress'],
             has_student_model=p['has_student_model'],
+            traffic_profile=p.get('traffic_profile', 'standard'),
+            low_sample_calibration=p.get('low_sample_calibration', False),
             created_at=p['created_at'],
             last_activity=p['last_activity']
         )
@@ -567,6 +571,8 @@ async def get_project_status(
         warmup_threshold=status['warmup_threshold'],
         warmup_progress=status['warmup_progress'],
         has_student_model=status['has_student_model'],
+        traffic_profile=status.get('traffic_profile', 'standard'),
+        low_sample_calibration=status.get('low_sample_calibration', False),
         created_at=status['created_at'],
         last_activity=status['last_activity']
     )

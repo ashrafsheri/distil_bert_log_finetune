@@ -547,7 +547,11 @@ async def receive_fluent_bit_logs(
             project_id=project.id,
             project_name=project.name,
             warmup_threshold=project.warmup_threshold or 10000,
-            metadata={"log_type": log_type, "org_id": project.org_id, "traffic_profile": "standard"},
+            metadata={
+                "log_type": log_type,
+                "org_id": project.org_id,
+                "traffic_profile": getattr(project, "traffic_profile", "standard") or "standard",
+            },
         )
 
         # Parse the raw request body
@@ -761,7 +765,7 @@ async def receive_fluent_bit_logs(
                     "metadata": {
                         "log_type": log_type,
                         "org_id": project.org_id,
-                        "traffic_profile": "standard",
+                        "traffic_profile": getattr(project, "traffic_profile", "standard") or "standard",
                         "clean_baseline_offset": event["clean_baseline_offset"],
                     },
                 }
@@ -847,6 +851,7 @@ async def receive_fluent_bit_logs(
             data_quality_incident_open=(
                 (parse_failures / len(candidates)) > 0.05 if candidates else False
             ),
+            traffic_profile=getattr(project, "traffic_profile", "standard") or "standard",
         )
         
         # Store processed logs in Elasticsearch
