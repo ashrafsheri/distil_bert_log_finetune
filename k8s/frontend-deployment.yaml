@@ -24,6 +24,7 @@ spec:
       containers:
         - name: frontend
           image: ghcr.io/OWNER/frontend:main
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:

@@ -35,6 +35,7 @@ spec:
       containers:
         - name: backend
           image: ghcr.io/OWNER/backend:main
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
