@@ -94,6 +94,25 @@ const getDecisionBadge = (decisionState: DecisionState) => {
   };
 };
 
+const getTransformerBadge = (transformer: LogEntry['anomaly_details'] extends undefined ? never : NonNullable<LogEntry['anomaly_details']>['transformer']) => {
+  if (transformer?.status === 'insufficient_signal') {
+    return {
+      label: 'Low Signal',
+      className: 'bg-vt-warning/20 text-vt-warning border border-vt-warning/30',
+    };
+  }
+  if (transformer?.is_anomaly === 1) {
+    return {
+      label: '⚠ Anomaly',
+      className: 'bg-vt-error/20 text-vt-error border border-vt-error/30',
+    };
+  }
+  return {
+    label: '✓ Normal',
+    className: 'bg-vt-success/20 text-vt-success border border-vt-success/30',
+  };
+};
+
 // Helper function to calculate threshold percentage above
 const calculateThresholdPercentage = (score: number, threshold: number): string => {
   if (!score || !threshold) return '';
@@ -376,6 +395,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
               const isolationForest = anomalyDetails?.isolation_forest;
               const transformer = anomalyDetails?.transformer;
               const ensemble = anomalyDetails?.ensemble;
+              const transformerBadge = getTransformerBadge(transformer);
+              const unknownTemplateRatio = log.unknownTemplateRatio;
+              const transformerSuppressed = transformer?.status === 'insufficient_signal';
 
               return (
                 <React.Fragment key={rowKey}>
@@ -647,18 +669,16 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <h5 className="text-xs font-bold text-vt-light uppercase tracking-wide">Transformer</h5>
                               </div>
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm ${
-                                transformer?.is_anomaly === 1
-                                  ? 'bg-vt-error/20 text-vt-error border border-vt-error/30' 
-                                  : 'bg-vt-success/20 text-vt-success border border-vt-success/30'
+                                transformerBadge.className
                               }`}>
-                                {transformer?.is_anomaly === 1 ? '⚠ Anomaly' : '✓ Normal'}
+                                {transformerBadge.label}
                               </span>
                             </div>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center text-sm">
-                                <span className="text-vt-muted">NLL Score</span>
+                                <span className="text-vt-muted">{transformerSuppressed ? 'Transformer Score' : 'NLL Score'}</span>
                                 <span className="text-vt-light font-mono font-semibold">
-                                  {(transformer?.score || 0).toFixed(3)}
+                                  {transformerSuppressed ? 'Suppressed' : (transformer?.score || 0).toFixed(3)}
                                 </span>
                               </div>
                               {transformer?.threshold && (
@@ -673,7 +693,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                 <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm"
                                   style={{
-                                    width: `${Math.min((transformer?.score || 0) * 10, 100)}%`,
+                                    width: transformerSuppressed ? '0%' : `${Math.min((transformer?.score || 0) * 10, 100)}%`,
                                     background: transformer?.is_anomaly === 1 
                                       ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                       : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
@@ -692,6 +712,23 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                     <div className="flex justify-between items-center text-xs">
                                       <span className="text-vt-muted">Context</span>
                                       <span className="text-vt-primary font-semibold">{transformer.context}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {typeof unknownTemplateRatio === 'number' && (
+                                <div className="pt-3 border-t border-vt-muted/20 space-y-2">
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-vt-muted">Unknown Template Ratio</span>
+                                    <span className={`font-mono font-semibold ${
+                                      unknownTemplateRatio >= 0.5 ? 'text-vt-warning' : 'text-vt-light'
+                                    }`}>
+                                      {(unknownTemplateRatio * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  {transformerSuppressed && (
+                                    <div className="rounded-lg border border-vt-warning/30 bg-vt-warning/10 px-3 py-2 text-xs text-vt-warning">
+                                      Sequence is dominated by unseen templates. The transformer output is being suppressed because it is not reliable for this event yet.
                                     </div>
                                   )}
                                 </div>

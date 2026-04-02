@@ -28,6 +28,9 @@ from .ensemble_detector import (
 )
 logger = logging.getLogger(__name__)
 
+MIN_SEQUENCE_CONTEXT = 3
+MAX_UNKNOWN_TEMPLATE_RATIO = 0.5
+
 
 class TeacherTrainingDataset(Dataset):
     """Dataset for teacher model training/fine-tuning"""
@@ -486,20 +489,28 @@ class TeacherModel:
             if sequence and self.unknown_id is not None
             else 0.0
         )
+        transformer_context = 'single_log' if len(sequence) <= 1 else f'{len(sequence)}_logs'
         transformer_result = {
             'is_anomaly': 0,
             'score': 0.0,
             'threshold': float(self.transformer_threshold),
-            'status': 'insufficient_context'
+            'status': 'insufficient_context',
+            'sequence_length': len(sequence),
+            'context': transformer_context,
         }
-        if len(sequence) >= 3:
-            transformer_score = self.calculate_transformer_score(sequence)
-            transformer_result = {
-                'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
-                'score': float(transformer_score),
-                'threshold': float(self.transformer_threshold),
-                'status': 'active'
-            }
+        if len(sequence) >= MIN_SEQUENCE_CONTEXT:
+            if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
+                transformer_result['status'] = 'insufficient_signal'
+            else:
+                transformer_score = self.calculate_transformer_score(sequence)
+                transformer_result = {
+                    'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
+                    'score': float(transformer_score),
+                    'threshold': float(self.transformer_threshold),
+                    'status': 'active',
+                    'sequence_length': len(sequence),
+                    'context': transformer_context,
+                }
         
         # 3. Isolation Forest detection
         iso_result = {'is_anomaly': 0, 'score': 0.0, 'status': 'not_available'}
