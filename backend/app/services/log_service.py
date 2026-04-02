@@ -32,6 +32,14 @@ APACHE_LOG_TIMESTAMP_FORMAT = "%d/%b/%Y:%H:%M:%S +0000"
 
 class LogService:
     """Service class for log-related business logic"""
+    DETECTION_SKIP_PATHS = {
+        "/health",
+        "/healthz",
+        "/ready",
+        "/readyz",
+        "/live",
+        "/livez",
+    }
     
     def __init__(self):
         self.logs_storage = []  # Placeholder for actual storage
@@ -264,6 +272,13 @@ class LogService:
     @staticmethod
     def build_session_key_hash(session_key: str) -> str:
         return hashlib.sha256(session_key.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def should_skip_detection(parsed_log: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        path = (parsed_log.get("path") or "").strip().lower()
+        if path in LogService.DETECTION_SKIP_PATHS:
+            return True, "health_check_skipped"
+        return False, None
 
     @staticmethod
     def extract_log_candidates(records: List[Any]) -> List[Dict[str, Any]]:
