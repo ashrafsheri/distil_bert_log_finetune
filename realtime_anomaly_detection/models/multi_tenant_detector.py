@@ -746,6 +746,7 @@ class MultiTenantDetector:
             "decision_reason": decision_reason,
             "component_status": component_status,
             "is_anomaly": is_anomaly,
+            "behavioral_signal_present": upstream_behavioral_anomaly,
             "raw_anomaly_score": float(raw_result.get("anomaly_score", anomaly_score)),
             "unknown_template_ratio": float(raw_result.get("unknown_template_ratio", 0.0)),
             "threshold_source": project.threshold_source,
@@ -1055,7 +1056,7 @@ class MultiTenantDetector:
         decision['raw_anomaly_score'] = decision.get('anomaly_score', 0.0)
         decision['anomaly_score'] = max(decision.get('anomaly_score', 0.0), decision.get('policy_score', 0.0))
         if decision['final_decision'] not in {'threat_detected', 'skipped'}:
-            decision['is_anomaly'] = decision['anomaly_score'] >= calibrated_threshold
+            decision['is_anomaly'] = bool(decision.get('behavioral_signal_present')) and decision['anomaly_score'] >= calibrated_threshold
             decision['final_decision'] = "threat_detected" if decision['is_anomaly'] else "not_flagged"
             if decision['is_anomaly']:
                 decision['decision_reason'] = "behavioral_anomaly"
@@ -1236,7 +1237,7 @@ class MultiTenantDetector:
         decision['raw_anomaly_score'] = decision.get('anomaly_score', 0.0)
         decision['anomaly_score'] = max(decision.get('anomaly_score', 0.0), decision.get('policy_score', 0.0))
         if decision['final_decision'] not in {'skipped', 'threat_detected'}:
-            decision['is_anomaly'] = decision['anomaly_score'] >= calibrated_threshold
+            decision['is_anomaly'] = bool(decision.get('behavioral_signal_present')) and decision['anomaly_score'] >= calibrated_threshold
             decision['final_decision'] = "threat_detected" if decision['is_anomaly'] else "not_flagged"
             if decision['is_anomaly']:
                 decision['decision_reason'] = "behavioral_anomaly"

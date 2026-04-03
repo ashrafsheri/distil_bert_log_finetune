@@ -412,3 +412,40 @@ def test_final_decision_flags_when_behavioral_component_is_active_anomaly(tmp_pa
     assert decision["final_decision"] == "threat_detected"
     assert decision["decision_reason"] == "behavioral_anomaly"
     assert decision["is_anomaly"] is True
+
+
+def test_detect_single_does_not_reflag_clean_component_outputs_after_calibration(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+    from models.project_manager import ProjectPhase
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    project_id, api_key = detector.create_project("No Reflag", warmup_threshold=1000)
+    project = detector.project_manager.get_project(project_id)
+    assert project is not None
+    project.phase = ProjectPhase.ACTIVE.value
+    project.calibration_threshold = 0.45
+    detector.students[project_id] = object()
+
+    detector._detect_with_student = lambda *args, **kwargs: {
+        "is_anomaly": False,
+        "anomaly_score": 0.0,
+        "model_type": "student",
+        "rule_based": {"is_attack": False, "confidence": 0.0},
+        "isolation_forest": {"status": "active", "is_anomaly": 0, "score": 0.603, "threshold": 0.6},
+        "transformer": {"status": "active", "is_anomaly": 0, "score": 2.378, "threshold": 2.573},
+        "ensemble": {"score": 0.0},
+        "unknown_template_ratio": 0.0,
+    }
+
+    log_line = '139.135.32.142 - - [03/Apr/2026:09:03:16 +0000] "GET /communities/af7c7d04-f89d-48ed-83f1-5ad47ede17d3/members?limit=200&offset=0 HTTP/2.0" 304 0 "-" "okhttp/4.12.0"'
+    result = detector.detect_single_log(api_key, log_line, session_id="no-reflag-1")
+
+    assert result["final_decision"] == "not_flagged"
+    assert result["decision_reason"] == "behavioral_normal"
+    assert result["is_anomaly"] is False
