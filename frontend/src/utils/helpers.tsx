@@ -1,5 +1,12 @@
 import { LogEntry } from '../services/logService';
 
+export const isThreatDetected = (log: Pick<LogEntry, 'finalDecision' | 'infected'>): boolean => {
+  if (typeof log.finalDecision === 'string') {
+    return log.finalDecision === 'threat_detected';
+  }
+  return Boolean(log.infected);
+};
+
 export const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
@@ -46,7 +53,7 @@ export const getStatusIcon = (statusCode: number) => {
 
 export const calculateThreatRate = (logs: LogEntry[]): number => {
   if (logs.length === 0) return 0;
-  const infectedCount = logs.filter(log => log.infected).length;
+  const infectedCount = logs.filter(isThreatDetected).length;
   return (infectedCount / logs.length) * 100;
 };
 

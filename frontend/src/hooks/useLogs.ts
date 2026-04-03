@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { LogEntry, LogSearchResponse } from '../services/logService';
 import { API_ENDPOINTS, WEBSOCKET_RECONNECT_DELAY, MAX_LOGS_DISPLAY } from '../utils/constants';
 import { apiService, websocketService } from '../services/apiService';
+import { isThreatDetected } from '../utils/helpers';
 
 interface UseLogsReturn {
   logs: LogEntry[];
@@ -116,7 +117,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
 
   const enqueuePendingLog = useCallback((log: LogEntry) => {
     setPendingLogs(prev => [log, ...prev].slice(0, MAX_LOGS_DISPLAY));
-    if (log.infected) {
+    if (isThreatDetected(log)) {
       setPendingThreatCount(prev => prev + 1);
     }
   }, []);
@@ -150,7 +151,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
       }
       const [next, ...rest] = prev;
       applyLogToDisplay(next);
-      if (next.infected) {
+      if (isThreatDetected(next)) {
         setPendingThreatCount(count => Math.max(0, count - 1));
       }
       return rest;
@@ -196,7 +197,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               
               // Update counts
               setTotalCount(prev => prev + 1);
-              if (newLog.infected) {
+              if (isThreatDetected(newLog)) {
                 setInfectedCount(prev => prev + 1);
               }
               if (newLog.parseStatus === 'failed') {
@@ -205,7 +206,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               if (newLog.detectionStatus === 'failed') {
                 setDetectionFailureCount(prev => prev + 1);
               }
-              if (newLog.infected && newLog.incidentId && !seenIncidentIdsRef.current.has(newLog.incidentId)) {
+              if (isThreatDetected(newLog) && newLog.incidentId && !seenIncidentIdsRef.current.has(newLog.incidentId)) {
                 seenIncidentIdsRef.current.add(newLog.incidentId);
                 setIncidentCount(prev => prev + 1);
               }
@@ -226,7 +227,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               
               // Update counts
               setTotalCount(prev => prev + 1);
-              if (message.infected) {
+              if (isThreatDetected(message)) {
                 setInfectedCount(prev => prev + 1);
               }
               if (message.parseStatus === 'failed') {
@@ -235,7 +236,7 @@ export const useLogs = (projectId?: string): UseLogsReturn => {
               if (message.detectionStatus === 'failed') {
                 setDetectionFailureCount(prev => prev + 1);
               }
-              if (message.infected && message.incidentId && !seenIncidentIdsRef.current.has(message.incidentId)) {
+              if (isThreatDetected(message) && message.incidentId && !seenIncidentIdsRef.current.has(message.incidentId)) {
                 seenIncidentIdsRef.current.add(message.incidentId);
                 setIncidentCount(prev => prev + 1);
               }

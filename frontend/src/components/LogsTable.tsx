@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { getStatusIcon } from '../utils/helpers';
+import { getStatusIcon, isThreatDetected } from '../utils/helpers';
 import { LogEntry } from '../services/logService';
 
 type DecisionState = 'threat' | 'parse_failed' | 'detection_failed' | 'clean';
@@ -7,7 +7,7 @@ type DecisionState = 'threat' | 'parse_failed' | 'detection_failed' | 'clean';
 const getDecisionState = (log: LogEntry): DecisionState => {
   if (log.parseStatus === 'failed') return 'parse_failed';
   if (log.detectionStatus === 'failed') return 'detection_failed';
-  if (log.infected) return 'threat';
+  if (isThreatDetected(log)) return 'threat';
   return 'clean';
 };
 
@@ -800,13 +800,13 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                       className="h-full rounded-full transition-all duration-500 shadow-sm"
                                       style={{
                                         width: `${(ensemble.score * 100)}%`,
-                                        background: log.infected 
+                                        background: isThreatDetected(log) 
                                           ? 'linear-gradient(90deg, #e94560 0%, #c73752 100%)' 
                                           : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
                                       }}
                                     ></div>
                                   </div>
-                                  <span className="text-lg font-mono font-bold flex-shrink-0" style={{ color: log.infected ? '#e94560' : '#10B981' }}>
+                                  <span className="text-lg font-mono font-bold flex-shrink-0" style={{ color: isThreatDetected(log) ? '#e94560' : '#10B981' }}>
                                     {(ensemble.score * 100).toFixed(1)}%
                                   </span>
                                 </div>
