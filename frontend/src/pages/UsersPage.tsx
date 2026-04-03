@@ -1,11 +1,15 @@
-import Select from '../components/Select';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
 import { userService, User } from '../services/userService';
-import Button from '../components/Button';
-import Card from '../components/Card';
 import UserPage from './UserPage';
+
+const roleBadgeClass = (role: User['role']) => {
+  if (role === 'admin') return 'border-rose-400/20 bg-rose-500/10 text-rose-200';
+  if (role === 'manager') return 'border-sky-400/20 bg-sky-500/10 text-sky-200';
+  return 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200';
+};
 
 const UsersPage: React.FC = () => {
   const { userInfo } = useAuth();
@@ -18,9 +22,11 @@ const UsersPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const updateRoleSelectId = 'update-user-role';
 
-  // Check if user has permission to access this page
   const isAdmin = userInfo?.role === 'admin';
   const isManager = userInfo?.role === 'manager';
   const canAccess = isAdmin || isManager;
@@ -39,7 +45,6 @@ const UsersPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Redirect if user doesn't have permission
     if (userInfo && !canAccess) {
       navigate('/dashboard');
       return;
@@ -48,7 +53,26 @@ const UsersPage: React.FC = () => {
     if (canAccess) {
       fetchUsers();
     }
-  }, [userInfo, canAccess, navigate, fetchUsers]);
+  }, [canAccess, fetchUsers, navigate, userInfo]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const query = searchTerm.trim().toLowerCase();
+      const matchesSearch = !query
+        || user.email.toLowerCase().includes(query)
+        || (user.org_name || user.org_id || '').toLowerCase().includes(query);
+      const matchesRole = !roleFilter || user.role === roleFilter;
+      const matchesStatus = !statusFilter || (statusFilter === 'enabled' ? user.enabled : !user.enabled);
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [roleFilter, searchTerm, statusFilter, users]);
+
+  const metrics = useMemo(() => {
+    const enabled = users.filter(user => user.enabled).length;
+    const admins = users.filter(user => user.role === 'admin').length;
+    const managers = users.filter(user => user.role === 'manager').length;
+    return { enabled, admins, managers };
+  }, [users]);
 
   const handleEnable = async (uid: string) => {
     try {
@@ -81,9 +105,7 @@ const UsersPage: React.FC = () => {
   };
 
   const handleDelete = async (uid: string, email: string) => {
-    if (!globalThis.confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
-      return;
-    }
+    if (!globalThis.confirm(`Delete user ${email}? This action cannot be undone.`)) return;
 
     try {
       setActionLoading(uid);
@@ -122,268 +144,247 @@ const UsersPage: React.FC = () => {
     }
   };
 
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'manager':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'employee':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      default:
-        return 'bg-vt-muted/20 text-vt-muted border-vt-muted/30';
-    }
-  };
-
-  // Show loading or redirect if user info is not loaded or user doesn't have permission
-  if (!userInfo || !canAccess) {
-    return null; // Will redirect via useEffect
-  }
+  if (!userInfo || !canAccess) return null;
 
   if (showCreateModal) {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <Button
-              variant="secondary"
-              onClick={() => setShowCreateModal(false)}
-              className="mb-4"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Users
-            </Button>
-          </div>
-          <UserPage onUserCreated={handleUserCreated} />
-        </div>
-      </div>
-    );
-  }
-
-  let usersContent: React.ReactNode;
-  if (loading) {
-    usersContent = (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vt-primary"></div>
-        <span className="ml-3 text-vt-muted">Loading users...</span>
-      </div>
-    );
-  } else if (users.length === 0) {
-    usersContent = (
-      <div className="text-center py-12">
-        <svg className="w-16 h-16 text-vt-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-        <p className="text-vt-muted text-lg">No users found</p>
-        {isAdmin && (
-          <Button
-            variant="primary"
-            onClick={() => setShowCreateModal(true)}
-            className="mt-4"
-          >
-            Create First User
-          </Button>
-        )}
-      </div>
-    );
-  } else {
-    usersContent = (
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-vt-muted/20">
-              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Email</th>
-              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Role</th>
-              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Status</th>
-              <th className="text-center py-3 px-4 text-sm font-semibold text-vt-light">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.uid} className="border-b border-vt-muted/10 hover:bg-vt-muted/5 transition-colors">
-                <td className="py-4 px-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vt-primary to-vt-success flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">
-                        {user.email.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <span className="text-vt-light font-medium">{user.email}</span>
-                  </div>
-                </td>
-                <td className="py-4 px-4 text-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-center">
-                  {user.enabled ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                      Enabled
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
-                      Disabled
-                    </span>
-                  )}
-                </td>
-                <td className="py-4 px-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {isAdmin && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setShowRoleModal(user.uid);
-                          setSelectedRole(user.role);
-                        }}
-                        isLoading={actionLoading === user.uid}
-                        disabled={actionLoading !== null}
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Role
-                      </Button>
-                    )}
-                    {user.enabled ? (
-                      <Button
-                        variant="warning"
-                        size="sm"
-                        onClick={() => handleDisable(user.uid)}
-                        isLoading={actionLoading === user.uid}
-                        disabled={actionLoading !== null}
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        Disable
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => handleEnable(user.uid)}
-                        isLoading={actionLoading === user.uid}
-                        disabled={actionLoading !== null}
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Enable
-                      </Button>
-                    )}
-                    <Button
-                      variant="error"
-                      size="sm"
-                      onClick={() => handleDelete(user.uid, user.email)}
-                      isLoading={actionLoading === user.uid}
-                      disabled={actionLoading !== null}
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          onClick={() => setShowCreateModal(false)}
+          className="mb-6 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/[0.05]"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to users
+        </button>
+        <UserPage onUserCreated={handleUserCreated} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8 animate-slide-down">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-vt-primary to-vt-success rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold gradient-text mb-2">Users Management</h1>
-                <p className="text-vt-muted text-lg">Manage all system users</p>
-              </div>
-            </div>
-            {(isAdmin || isManager) && (
-              <Button
-                variant="primary"
-                onClick={() => setShowCreateModal(true)}
-                size="lg"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-                Create User
-              </Button>
-            )}
+    <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+      <section className="rounded-[32px] border border-white/6 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,15,29,0.94))] p-8 shadow-[0_28px_80px_rgba(2,8,23,0.45)]">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Identity and access</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50">Users Management</h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-400">
+              Search accounts, adjust roles, and enforce access state across the LogGuard workspace.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-500/10 px-5 py-3 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/16"
+          >
+            Create User
+          </button>
+        </div>
+
+        <div className="mt-8 grid gap-4 xl:grid-cols-4">
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Total users</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-50">{users.length}</p>
+            <p className="mt-2 text-sm text-slate-400">All provisioned platform accounts.</p>
+          </div>
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Enabled</p>
+            <p className="mt-4 text-4xl font-semibold text-emerald-300">{metrics.enabled}</p>
+            <p className="mt-2 text-sm text-slate-400">Accounts currently able to authenticate.</p>
+          </div>
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Admins</p>
+            <p className="mt-4 text-4xl font-semibold text-rose-300">{metrics.admins}</p>
+            <p className="mt-2 text-sm text-slate-400">Platform-level administrative access.</p>
+          </div>
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Managers</p>
+            <p className="mt-4 text-4xl font-semibold text-sky-300">{metrics.managers}</p>
+            <p className="mt-2 text-sm text-slate-400">Operational managers across organizations.</p>
           </div>
         </div>
 
-        {/* Success Message */}
+        <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+          <label className="grid gap-2 text-sm text-slate-300">
+            <span>Search users</span>
+            <input
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Email or organization"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300">
+            <span>Role</span>
+            <Select
+              value={roleFilter}
+              onChange={value => setRoleFilter(value as string)}
+              options={[
+                { label: 'All roles', value: '' },
+                { label: 'Admin', value: 'admin' },
+                { label: 'Manager', value: 'manager' },
+                { label: 'Employee', value: 'employee' },
+              ]}
+              density="sm"
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300">
+            <span>Status</span>
+            <Select
+              value={statusFilter}
+              onChange={value => setStatusFilter(value as string)}
+              options={[
+                { label: 'All statuses', value: '' },
+                { label: 'Enabled', value: 'enabled' },
+                { label: 'Disabled', value: 'disabled' },
+              ]}
+              density="sm"
+            />
+          </label>
+        </div>
+
         {successMessage && (
-          <Card variant="strong" className="mb-6 border-vt-success/30 bg-vt-success/10 p-4 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-vt-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-vt-success font-medium">{successMessage}</p>
-            </div>
-          </Card>
+          <div className="mt-6 rounded-3xl border border-emerald-400/18 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-200">
+            {successMessage}
+          </div>
         )}
 
-        {/* Error Message */}
         {error && (
-          <Card variant="strong" className="mb-6 border-vt-error/30 bg-vt-error/10 p-4 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-vt-error flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-vt-error font-medium">{error}</p>
-            </div>
-          </Card>
+          <div className="mt-6 rounded-3xl border border-rose-400/18 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
+            {error}
+          </div>
         )}
 
-        {/* Users Table */}
-        <Card variant="strong" className="p-6 animate-slide-up">
-          {usersContent}
-        </Card>
+        <div className="mt-8 overflow-hidden rounded-[28px] border border-white/6 bg-white/[0.025]">
+          {loading ? (
+            <div className="flex items-center justify-center px-6 py-16">
+              <div className="flex items-center gap-3 text-slate-400">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-sky-400" />
+                Loading users...
+              </div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="px-6 py-16 text-center text-slate-400">No users match the current filters.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px]">
+                <thead className="bg-white/[0.02]">
+                  <tr className="border-b border-white/6 text-left">
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">User</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Role</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Organization</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(user => (
+                    <tr key={user.uid} className="border-b border-white/6 last:border-b-0">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-bold text-white">
+                            {user.email.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-100">{user.email}</div>
+                            <div className="mt-1 text-xs font-mono text-slate-500">{user.uid}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${roleBadgeClass(user.role)}`}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-sm text-slate-300">{user.org_name || user.org_id || 'Platform-wide'}</td>
+                      <td className="px-6 py-5">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${user.enabled ? 'border-emerald-400/18 bg-emerald-500/10 text-emerald-200' : 'border-amber-400/18 bg-amber-500/10 text-amber-200'}`}>
+                          {user.enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-wrap gap-2">
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowRoleModal(user.uid);
+                                setSelectedRole(user.role);
+                              }}
+                              disabled={actionLoading !== null}
+                              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Role
+                            </button>
+                          )}
+                          {user.enabled ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDisable(user.uid)}
+                              disabled={actionLoading !== null}
+                              className="rounded-2xl border border-amber-400/18 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/16 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {actionLoading === user.uid ? 'Working...' : 'Disable'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleEnable(user.uid)}
+                              disabled={actionLoading !== null}
+                              className="rounded-2xl border border-emerald-400/18 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/16 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {actionLoading === user.uid ? 'Working...' : 'Enable'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(user.uid, user.email)}
+                            disabled={actionLoading !== null}
+                            className="rounded-2xl border border-rose-400/18 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/16 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {actionLoading === user.uid ? 'Working...' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-        {/* Role Update Modal */}
         {showRoleModal && (
-          <div className="fixed inset-0 bg-vt-dark/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <Card variant="strong" className="relative w-full max-w-md p-6">
-              <Button
-                onClick={() => setShowRoleModal(null)}
-                variant="secondary"
-                size="sm"
-                className="absolute top-4 right-4"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </Button>
-              
-              <h3 className="text-2xl font-bold gradient-text mb-4">Update User Role</h3>
-              
-              <div className="mb-6">
-                <label htmlFor={updateRoleSelectId} className="block text-sm font-medium text-vt-light mb-2">
-                  Select Role
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+            <div className="w-full max-w-md rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(8,15,29,0.95))] p-6 shadow-[0_28px_80px_rgba(2,8,23,0.55)]">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-semibold text-slate-50">Update User Role</h3>
+                  <p className="mt-1 text-sm text-slate-400">Adjust access level for the selected account.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRoleModal(null)}
+                  className="rounded-full border border-white/10 p-2 text-slate-400 transition hover:bg-white/[0.05] hover:text-slate-100"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mt-6">
+                <label htmlFor={updateRoleSelectId} className="mb-2 block text-sm font-medium text-slate-300">
+                  Select role
                 </label>
                 <Select
                   id={updateRoleSelectId}
                   value={selectedRole}
-                  onChange={(val) => setSelectedRole(val as 'admin' | 'manager' | 'employee')}
+                  onChange={value => setSelectedRole(value as 'admin' | 'manager' | 'employee')}
                   options={[
                     { label: 'Employee', value: 'employee' },
                     { label: 'Manager', value: 'manager' },
@@ -392,27 +393,27 @@ const UsersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
                   onClick={() => setShowRoleModal(null)}
-                  className="flex-1"
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
                 >
                   Cancel
-                </Button>
-                <Button
-                  variant="primary"
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleUpdateRole(showRoleModal)}
-                  isLoading={actionLoading === showRoleModal}
-                  className="flex-1"
+                  disabled={actionLoading === showRoleModal}
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Update Role
-                </Button>
+                  {actionLoading === showRoleModal ? 'Updating...' : 'Update role'}
+                </button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

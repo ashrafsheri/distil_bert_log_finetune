@@ -616,7 +616,7 @@ body {
 }
 
 .ops-chart {
-  min-height: 18rem;
+  min-height: 14rem;
   border-radius: 1.2rem;
   padding: 1.3rem 1rem 0.85rem;
   border: 1px solid rgba(148, 163, 184, 0.08);
@@ -1015,7 +1015,7 @@ body {
   }
 
   .ops-chart {
-    min-height: 14rem;
+    min-height: 11rem;
     padding-inline: 0.6rem;
   }
 }

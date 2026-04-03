@@ -1,15 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { projectService, ProjectSummary, ProjectHealthSummary, CreateProjectResponse } from '../services/projectService';
 import { organizationService, OrganizationSummary } from '../services/organizationService';
+import { projectService, CreateProjectResponse, ProjectHealthSummary, ProjectSummary } from '../services/projectService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Button from '../components/Button';
-import Card from '../components/Card';
 import Modal from '../components/Modal';
 import ProjectCreationResult from '../components/ProjectCreationResult';
 import { useAuth } from '../context/AuthContext';
 
+const phaseBadgeClass = (phase?: string) => {
+  if (!phase) return 'border-slate-400/12 bg-slate-500/10 text-slate-300';
+  if (phase === 'warmup') return 'border-amber-400/18 bg-amber-500/10 text-amber-200';
+  if (phase === 'ready' || phase === 'active') return 'border-emerald-400/18 bg-emerald-500/10 text-emerald-200';
+  return 'border-sky-400/18 bg-sky-500/10 text-sky-200';
+};
+
 const ProjectsDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedOrgId = searchParams.get('org');
+  const { userInfo } = useAuth();
+  const isAdmin = userInfo?.role === 'admin';
+  const isManager = userInfo?.role === 'manager';
+  const canCreateProject = isAdmin || isManager;
+
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [projectHealth, setProjectHealth] = useState<Record<string, ProjectHealthSummary>>({});
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
@@ -28,73 +41,53 @@ const ProjectsDashboard: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectSummary | null>(null);
   const [newLogType, setNewLogType] = useState<'apache' | 'nginx'>('apache');
   const [isUpdatingLogType, setIsUpdatingLogType] = useState(false);
-  const [logTypeMessage, setLogTypeMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const selectedOrgId = searchParams.get('org');
-  const { userInfo } = useAuth();
-  const isAdmin = userInfo?.role === 'admin';
-  const isManager = userInfo?.role === 'manager';
-  const canCreateProject = isAdmin || isManager;
-  const projectNameInputId = 'create-project-name';
-  const organizationSelectId = 'create-project-organization';
-  const organizationDisplayId = 'selected-organization';
-  const createLogTypeSelectId = 'create-project-log-type';
-  const createTrafficProfileSelectId = 'create-project-traffic-profile';
-  const updateLogTypeSelectId = 'update-project-log-type';
+  const [logTypeMessage, setLogTypeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     loadData();
-  }, [selectedOrgId]);
+  }, [selectedOrgId, userInfo?.uid]);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Load projects
-      let projectsData: ProjectSummary[];
-      if (selectedOrgId) {
-        projectsData = await projectService.getProjectsByOrganization(selectedOrgId);
-      } else {
-        projectsData = await projectService.getMyProjects();
-      }
+
+      const [projectsData, organizationsData] = await Promise.all([
+        selectedOrgId ? projectService.getProjectsByOrganization(selectedOrgId) : projectService.getMyProjects(),
+        isAdmin ? organizationService.getAllOrganizations() : organizationService.getMyOrganizations(),
+      ]);
+
       setProjects(projectsData);
+      setOrganizations(organizationsData);
+
       const healthEntries = await Promise.all(
-        projectsData.map(async (project) => {
+        projectsData.map(async project => {
           try {
             const health = await projectService.getProjectHealth(project.id);
             return [project.id, health] as const;
           } catch {
             return null;
           }
-        })
+        }),
       );
+
       setProjectHealth(
         healthEntries.reduce<Record<string, ProjectHealthSummary>>((acc, entry) => {
-          if (entry) {
-            acc[entry[0]] = entry[1];
-          }
+          if (entry) acc[entry[0]] = entry[1];
           return acc;
-        }, {})
+        }, {}),
       );
-      
-      // Load organizations for dropdown (only for admins)
-      if (isAdmin) {
-        const orgsData = await organizationService.getAllOrganizations();
-        setOrganizations(orgsData);
-      }
     } catch (err) {
-      console.error('Error loading data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleCreateProject = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!projectName.trim()) {
       setError('Project name is required');
       return;
@@ -109,28 +102,21 @@ const ProjectsDashboard: React.FC = () => {
     try {
       setIsCreating(true);
       setError(null);
-      
       const result = await projectService.createProject({
         name: projectName.trim(),
         org_id: orgId,
         log_type: logType,
         traffic_profile: trafficProfile,
       });
-      
-      // Show API key modal
+
       setProjectCreationResult(result);
-      
-      // Reset form
       setProjectName('');
       setSelectedOrg('');
       setLogType('apache');
       setTrafficProfile('standard');
       setShowCreateForm(false);
-      
-      // Reload projects
       await loadData();
     } catch (err) {
-      console.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setIsCreating(false);
@@ -138,17 +124,12 @@ const ProjectsDashboard: React.FC = () => {
   };
 
   const handleRegenerateApiKey = async (projectId: string, projectName: string) => {
-    if (!globalThis.confirm(`Are you sure you want to regenerate the API key for "${projectName}"? The old key will no longer work.`)) {
-      return;
-    }
+    if (!globalThis.confirm(`Regenerate the API key for "${projectName}"? The old key will stop working.`)) return;
 
     try {
       setRegeneratingKeyFor(projectId);
       setError(null);
-      
       const result = await projectService.regenerateApiKey({ project_id: projectId });
-      
-      // Show API key modal with regenerated key
       setProjectCreationResult({
         project_id: projectId,
         name: projectName,
@@ -158,17 +139,11 @@ const ProjectsDashboard: React.FC = () => {
         warmup_threshold: projectHealth[projectId]?.warmup_threshold ?? 10000,
         traffic_profile: projectHealth[projectId]?.traffic_profile === 'low_traffic' ? 'low_traffic' : 'standard',
       });
-      
     } catch (err) {
-      console.error('Error regenerating API key:', err);
       setError(err instanceof Error ? err.message : 'Failed to regenerate API key');
     } finally {
       setRegeneratingKeyFor(null);
     }
-  };
-
-  const handleViewProject = (projectId: string) => {
-    navigate(`/dashboard/${projectId}`);
   };
 
   const handleOptimizeWarmup = async (project: ProjectSummary) => {
@@ -184,7 +159,6 @@ const ProjectsDashboard: React.FC = () => {
       });
       await loadData();
     } catch (err) {
-      console.error('Error optimizing warmup:', err);
       setError(err instanceof Error ? err.message : 'Failed to optimize project warmup');
     } finally {
       setOptimizingWarmupFor(null);
@@ -204,375 +178,393 @@ const ProjectsDashboard: React.FC = () => {
     try {
       setIsUpdatingLogType(true);
       setLogTypeMessage(null);
-      
-      await projectService.updateProjectLogType({
-        project_id: selectedProject.id,
-        log_type: newLogType
-      });
-      
-      setLogTypeMessage({ type: 'success', text: 'Log type updated successfully!' });
-      
-      // Update the project in the list
-      setProjects(projects.map(p => 
-        p.id === selectedProject.id 
-          ? { ...p, log_type: newLogType }
-          : p
-      ));
-      
-      // Close modal after a short delay to show success message
+      await projectService.updateProjectLogType({ project_id: selectedProject.id, log_type: newLogType });
+      setProjects(current =>
+        current.map(project => (project.id === selectedProject.id ? { ...project, log_type: newLogType } : project)),
+      );
+      setLogTypeMessage({ type: 'success', text: 'Log type updated successfully.' });
       setTimeout(() => {
         setShowLogTypeModal(false);
         setSelectedProject(null);
         setLogTypeMessage(null);
-      }, 1500);
+      }, 1200);
     } catch (err) {
-      console.error('Error updating log type:', err);
-      setLogTypeMessage({ 
-        type: 'error', 
-        text: err instanceof Error ? err.message : 'Failed to update log type' 
-      });
+      setLogTypeMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to update log type' });
     } finally {
       setIsUpdatingLogType(false);
     }
   };
 
-  const getStatusBadgeClass = (status?: string) => {
-    switch (status) {
-      case 'ready':
-        return 'bg-green-500/20 text-green-400 border border-green-500/30';
-      case 'training':
-        return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
-      case 'warmup':
-        return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
-      case 'failed':
-        return 'bg-red-500/20 text-red-400 border border-red-500/30';
-      default:
-        return 'bg-slate-500/20 text-slate-400 border border-slate-500/30';
-    }
-  };
+  const organizationMap = useMemo(() => {
+    return new Map(organizations.map(org => [org.id, org.name]));
+  }, [organizations]);
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      const health = projectHealth[project.id];
+      const phase = health?.phase || project.model_status || 'warmup';
+      const query = searchTerm.trim().toLowerCase();
+      const orgLabel = organizationMap.get(project.org_id) || project.org_id;
+      const matchesQuery = !query
+        || project.name.toLowerCase().includes(query)
+        || orgLabel.toLowerCase().includes(query)
+        || project.id.toLowerCase().includes(query);
+      const matchesStatus =
+        !statusFilter
+        || (statusFilter === 'student' && !!health?.has_student_model)
+        || (statusFilter === 'warmup' && phase === 'warmup')
+        || (statusFilter === 'active' && phase !== 'warmup');
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [organizationMap, projectHealth, projects, searchTerm, statusFilter]);
+
+  const metrics = useMemo(() => {
+    const activeProtection = projects.filter(project => {
+      const phase = projectHealth[project.id]?.phase || project.model_status;
+      return phase && phase !== 'warmup';
+    }).length;
+    const warmup = projects.filter(project => (projectHealth[project.id]?.phase || project.model_status || 'warmup') === 'warmup').length;
+    const studentModels = projects.filter(project => projectHealth[project.id]?.has_student_model).length;
+    const lowTraffic = projects.filter(project => (projectHealth[project.id]?.traffic_profile || project.traffic_profile) === 'low_traffic').length;
+    return { activeProtection, warmup, studentModels, lowTraffic };
+  }, [projectHealth, projects]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[70vh] items-center justify-center">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-3">
-                {selectedOrgId ? 'Organization Projects' : 'Projects'}
-              </h1>
-              <p className="text-slate-400 text-lg">
-                {selectedOrgId 
-                  ? `Viewing projects for organization ${selectedOrgId}`
-                  : 'Select a project to view its log monitoring dashboard'}
-              </p>
-            </div>
+    <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+      <section className="rounded-[32px] border border-white/6 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,15,29,0.94))] p-8 shadow-[0_28px_80px_rgba(2,8,23,0.45)]">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              {selectedOrgId ? 'Organization scope' : 'Project command center'}
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50">
+              {selectedOrgId ? 'Organization Projects' : 'Projects'}
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-400">
+              {selectedOrgId
+                ? `Monitoring projects belonging to ${organizationMap.get(selectedOrgId) || selectedOrgId}.`
+                : 'Manage protected services, warmup state, model readiness, and project-level access from one place.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
             {selectedOrgId && (
-              <Button
+              <button
+                type="button"
                 onClick={() => navigate('/projects')}
-                variant="secondary"
-                className="px-4 py-2"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
               >
-                ← Back to All Projects
-              </Button>
+                Back to all projects
+              </button>
+            )}
+            {canCreateProject && (
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(current => !current)}
+                className="inline-flex items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-500/10 px-5 py-3 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/16"
+              >
+                {showCreateForm ? 'Close form' : 'Create project'}
+              </button>
             )}
           </div>
         </div>
 
-        {canCreateProject && (
-          <div className="mb-8">
-            <Button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-vt-primary hover:bg-vt-primary/80 px-6 py-3 text-lg"
-            >
-              {showCreateForm ? 'Cancel' : 'Create New Project'}
-            </Button>
+        <div className="mt-8 grid gap-4 xl:grid-cols-4">
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Total projects</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-50">{projects.length}</p>
+            <p className="mt-2 text-sm text-slate-400">Protected services visible in this scope.</p>
           </div>
-        )}
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Active protection</p>
+            <p className="mt-4 text-4xl font-semibold text-emerald-300">{metrics.activeProtection}</p>
+            <p className="mt-2 text-sm text-slate-400">Projects beyond initial warmup.</p>
+          </div>
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Student models</p>
+            <p className="mt-4 text-4xl font-semibold text-sky-300">{metrics.studentModels}</p>
+            <p className="mt-2 text-sm text-slate-400">Projects currently running the student path.</p>
+          </div>
+          <div className="rounded-3xl border border-white/6 bg-white/[0.03] p-6">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Low traffic profile</p>
+            <p className="mt-4 text-4xl font-semibold text-fuchsia-300">{metrics.lowTraffic}</p>
+            <p className="mt-2 text-sm text-slate-400">Projects tuned for lower event volume.</p>
+          </div>
+        </div>
 
-        {showCreateForm && (
-          <Card className="mb-8 p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6">Create New Project</h2>
-            <form className="space-y-6" onSubmit={handleCreateProject}>
-              <div>
-                <label htmlFor={projectNameInputId} className="block text-sm font-medium text-slate-300 mb-3">
-                  Project Name
-                </label>
+        <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="grid gap-2 text-sm text-slate-300">
+            <span>Search projects</span>
+            <input
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Name, org, or project ID"
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300">
+            <span>Status</span>
+            <select
+              value={statusFilter}
+              onChange={event => setStatusFilter(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
+            >
+              <option value="">All states</option>
+              <option value="active">Active</option>
+              <option value="warmup">Warmup</option>
+              <option value="student">Student model ready</option>
+            </select>
+          </label>
+        </div>
+
+        {canCreateProject && showCreateForm && (
+          <form onSubmit={handleCreateProject} className="mt-8 rounded-[28px] border border-white/6 bg-white/[0.025] p-6">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-50">Create project</h2>
+              <p className="mt-1 text-sm text-slate-400">Provision a monitored application with warmup and log parsing defaults.</p>
+            </div>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <label className="grid gap-2 text-sm text-slate-300">
+                <span>Project name</span>
                 <input
-                  id={projectNameInputId}
-                  type="text"
                   value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
-                  placeholder="Enter project name"
+                  onChange={event => setProjectName(event.target.value)}
+                  className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
+                  placeholder="Production API Gateway"
                   required
                   disabled={isCreating}
                 />
-              </div>
-              {!selectedOrgId && isAdmin && (
-                <div>
-                  <label htmlFor={organizationSelectId} className="block text-sm font-medium text-slate-300 mb-3">
-                    Organization
-                  </label>
+              </label>
+
+              {!selectedOrgId && isAdmin ? (
+                <label className="grid gap-2 text-sm text-slate-300">
+                  <span>Organization</span>
                   <select
-                    id={organizationSelectId}
                     value={selectedOrg}
-                    onChange={(e) => setSelectedOrg(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
+                    onChange={event => setSelectedOrg(event.target.value)}
+                    className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
                     required
                     disabled={isCreating}
                   >
-                    <option value="">Select an organization</option>
+                    <option value="">Select organization</option>
                     {organizations.map(org => (
-                      <option key={org.id} value={org.id}>{org.name}</option>
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
                     ))}
                   </select>
-                </div>
-              )}
-              {selectedOrgId && (
-                <div>
-                  <label htmlFor={organizationDisplayId} className="block text-sm font-medium text-slate-300 mb-3">
-                    Organization
-                  </label>
-                  <input
-                    id={organizationDisplayId}
-                    type="text"
-                    value={selectedOrgId}
-                    disabled
-                    className="w-full px-4 py-3 bg-slate-600 border border-slate-500 rounded-lg text-slate-300 text-lg cursor-not-allowed"
-                  />
-                </div>
-              )}
-              <div>
-                <label htmlFor={createLogTypeSelectId} className="block text-sm font-medium text-slate-300 mb-3">
-                  Log Type
                 </label>
+              ) : (
+                <label className="grid gap-2 text-sm text-slate-300">
+                  <span>Organization</span>
+                  <input
+                    value={selectedOrgId ? organizationMap.get(selectedOrgId) || selectedOrgId : 'Current organization'}
+                    disabled
+                    className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-400 outline-none"
+                  />
+                </label>
+              )}
+
+              <label className="grid gap-2 text-sm text-slate-300">
+                <span>Log type</span>
                 <select
-                  id={createLogTypeSelectId}
                   value={logType}
-                  onChange={(e) => setLogType(e.target.value as 'apache' | 'nginx')}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
+                  onChange={event => setLogType(event.target.value as 'apache' | 'nginx')}
+                  className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
                   disabled={isCreating}
                 >
                   <option value="apache">Apache</option>
                   <option value="nginx">Nginx</option>
                 </select>
-              </div>
-              <div>
-                <label htmlFor={createTrafficProfileSelectId} className="block text-sm font-medium text-slate-300 mb-3">
-                  Traffic Profile
-                </label>
+              </label>
+
+              <label className="grid gap-2 text-sm text-slate-300">
+                <span>Traffic profile</span>
                 <select
-                  id={createTrafficProfileSelectId}
                   value={trafficProfile}
-                  onChange={(e) => setTrafficProfile(e.target.value as 'standard' | 'low_traffic')}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary text-lg"
+                  onChange={event => setTrafficProfile(event.target.value as 'standard' | 'low_traffic')}
+                  className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30"
                   disabled={isCreating}
                 >
                   <option value="standard">Standard</option>
-                  <option value="low_traffic">Low Traffic</option>
+                  <option value="low_traffic">Low traffic</option>
                 </select>
-                <p className="mt-2 text-sm text-slate-400">
-                  {trafficProfile === 'low_traffic'
-                    ? 'Uses a 1,000-log warmup target with lower sequence and calibration requirements for quieter live projects.'
-                    : 'Uses the standard 10,000-log warmup target and stricter activation thresholds.'}
-                </p>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="submit"
-                  className="bg-vt-success hover:bg-vt-success/80 px-6 py-3 text-lg"
-                  disabled={isCreating}
-                >
-                  {isCreating ? 'Creating...' : 'Create Project'}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  variant="secondary"
-                  className="px-6 py-3 text-lg"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Card>
+              </label>
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              {trafficProfile === 'low_traffic'
+                ? 'Low traffic reduces warmup targets and activation gates for quieter projects.'
+                : 'Standard traffic keeps the full warmup threshold and stricter activation criteria.'}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreating ? 'Creating...' : 'Create project'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         )}
 
         {error && (
-          <Card className="mb-8 border-red-500/50 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-red-400 font-medium">Error</p>
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
-            </div>
-            <Button onClick={loadData} className="mt-4">
-              Retry
-            </Button>
-          </Card>
+          <div className="mt-8 rounded-3xl border border-rose-400/18 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
+            {error}
+          </div>
         )}
 
-        <Card className="p-8">
-          <h2 className="text-2xl font-semibold text-white mb-6">My Projects</h2>
-          {projects.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="text-slate-400 text-lg">No projects available.</p>
-              <p className="text-slate-500 text-sm mt-2">
-                {isAdmin
-                  ? 'Create your first project to get started.'
-                  : 'Ask your administrator to add you to a project.'}
-              </p>
+        <div className="mt-8">
+          {filteredProjects.length === 0 ? (
+            <div className="rounded-[28px] border border-white/6 bg-white/[0.025] px-6 py-16 text-center text-slate-400">
+              No projects match the current view.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="pb-4 text-slate-300 font-medium text-lg">Project Name</th>
-                    <th className="pb-4 text-slate-300 font-medium text-lg">Log Type</th>
-                    <th className="pb-4 text-slate-300 font-medium text-lg">Status</th>
-                    <th className="pb-4 text-slate-300 font-medium text-lg">Members</th>
-                    <th className="pb-4 text-slate-300 font-medium text-lg">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((project) => (
-                    <tr key={project.id} className="border-b border-slate-800 align-top">
-                      <td className="py-4 text-white">
-                        <div className="font-medium">{project.name}</div>
-                        <div className="text-sm text-slate-400 font-mono">{project.id}</div>
-                        {projectHealth[project.id] && (
-                          <div className="mt-2 space-y-1 text-xs text-slate-400">
-                            <div>
-                              Phase: <span className="text-slate-200 font-medium">{projectHealth[project.id].phase}</span>
-                              {' '}• Warmup {projectHealth[project.id].warmup_progress.toFixed(1)}%
-                              {' '}• Profile <span className="text-slate-200 font-medium">{projectHealth[project.id].traffic_profile || 'standard'}</span>
-                            </div>
-                            <div>
-                              Baseline eligible: <span className="text-slate-200 font-medium">{projectHealth[project.id].baseline_eligible_count.toLocaleString()}</span>
-                              {' '}• Parse failure rate: <span className="text-slate-200 font-medium">{(projectHealth[project.id].parse_failure_rate * 100).toFixed(1)}%</span>
-                            </div>
-                            {projectHealth[project.id].low_sample_calibration && (
-                              <div className="text-yellow-300">
-                                Calibration is running in low-sample mode for this low-traffic project.
-                              </div>
-                            )}
-                            {projectHealth[project.id].student_training_blockers.length > 0 && (
-                              <div className="text-vt-warning">
-                                Blockers: {projectHealth[project.id].student_training_blockers.join(', ')}
-                              </div>
-                            )}
-                            {projectHealth[project.id].phase === 'warmup' && projectHealth[project.id].traffic_profile !== 'low_traffic' && (
-                              <div className="text-vt-primary">
-                                This project is still on the standard warmup lane. Switching to low-traffic lowers the target to 1,000 clean logs and relaxes activation gates.
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                          {project.log_type}
-                        </span>
-                      </td>
-                      <td className="py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(project.model_status)}`}>
-                          {project.model_status || 'warmup'}
-                        </span>
-                        {projectHealth[project.id]?.has_student_model && (
-                          <div className="mt-2 text-xs text-vt-success">Student model active</div>
-                        )}
-                      </td>
-                      <td className="py-4 text-slate-300">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-slate-700 text-slate-300">
-                          {project.member_count} member{project.member_count === 1 ? '' : 's'}
-                        </span>
-                      </td>
-                      <td className="py-4">
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={() => handleViewProject(project.id)}
-                            size="sm"
-                            className="bg-vt-primary hover:bg-vt-primary/80 px-4 py-2"
-                          >
-                            View Dashboard
-                          </Button>
-                          {(isAdmin || isManager) && (
-                            <Button
-                              onClick={() => navigate(`/projects/${project.id}/members`)}
-                              size="sm"
-                              variant="secondary"
-                              className="px-4 py-2"
-                            >
-                              Manage Members
-                            </Button>
-                          )}
-                          {(isAdmin || isManager) && (
-                            <Button
-                              onClick={() => handleChangeLogType(project)}
-                              size="sm"
-                              className="bg-vt-warning hover:bg-vt-warning/80 px-4 py-2"
-                            >
-                              Change Log Type
-                            </Button>
-                          )}
-                          {(isAdmin || isManager) && (
-                            projectHealth[project.id]
-                            && projectHealth[project.id].phase === 'warmup'
-                            && !projectHealth[project.id].has_student_model
-                            && (
-                              <Button
-                                onClick={() => handleOptimizeWarmup(project)}
-                                size="sm"
-                                disabled={optimizingWarmupFor === project.id}
-                                className="bg-vt-primary hover:bg-vt-primary/80 px-4 py-2"
-                              >
-                                {optimizingWarmupFor === project.id ? 'Optimizing...' : 'Optimize Warmup'}
-                              </Button>
-                            )
-                          )}
-                          {(isAdmin || isManager) && (
-                            <Button
-                              onClick={() => handleRegenerateApiKey(project.id, project.name)}
-                              size="sm"
-                              disabled={regeneratingKeyFor === project.id}
-                              className="bg-vt-success hover:bg-vt-success/80 px-4 py-2"
-                            >
-                              {regeneratingKeyFor === project.id ? 'Regenerating...' : 'Regenerate Key'}
-                            </Button>
+            <div className="grid gap-5 xl:grid-cols-2">
+              {filteredProjects.map(project => {
+                const health = projectHealth[project.id];
+                const phase = health?.phase || project.model_status || 'warmup';
+                const orgLabel = organizationMap.get(project.org_id) || project.org_id;
+                const blockers = health?.student_training_blockers || [];
+
+                return (
+                  <article
+                    key={project.id}
+                    className="rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(12,20,38,0.96),rgba(8,15,29,0.94))] p-6 shadow-[0_20px_48px_rgba(2,8,23,0.38)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2 className="text-xl font-semibold text-slate-50">{project.name}</h2>
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${phaseBadgeClass(phase)}`}>
+                            {phase}
+                          </span>
+                          {health?.has_student_model && (
+                            <span className="inline-flex rounded-full border border-emerald-400/18 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-200">
+                              Student model active
+                            </span>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-400">
+                          <span>{orgLabel}</span>
+                          <span>•</span>
+                          <span className="font-mono">{project.id}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Log type</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-100">{project.log_type}</div>
+                      </div>
+                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Traffic</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-100">{health?.traffic_profile || project.traffic_profile || 'standard'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Warmup</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-100">
+                          {health ? `${health.warmup_progress.toFixed(1)}%` : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Members</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-100">
+                          {project.member_count} member{project.member_count === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {health && (
+                      <div className="mt-4 rounded-2xl border border-white/6 bg-white/[0.02] p-4 text-sm text-slate-300">
+                        <div className="flex flex-wrap gap-4">
+                          <span>Baseline eligible: <strong className="text-slate-100">{health.baseline_eligible_count.toLocaleString()}</strong></span>
+                          <span>Parse failure rate: <strong className="text-slate-100">{(health.parse_failure_rate * 100).toFixed(1)}%</strong></span>
+                          {health.calibration_sample_count !== undefined && (
+                            <span>Calibration samples: <strong className="text-slate-100">{health.calibration_sample_count}</strong></span>
+                          )}
+                        </div>
+                        {blockers.length > 0 && (
+                          <div className="mt-3 text-amber-200">Blockers: {blockers.join(', ')}</div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/dashboard/${project.id}`)}
+                        className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px]"
+                      >
+                        View Dashboard
+                      </button>
+                      {(isAdmin || isManager) && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/projects/${project.id}/members`)}
+                          className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+                        >
+                          Manage Members
+                        </button>
+                      )}
+                      {(isAdmin || isManager) && (
+                        <button
+                          type="button"
+                          onClick={() => handleChangeLogType(project)}
+                          className="rounded-2xl border border-amber-400/18 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/16"
+                        >
+                          Change Log Type
+                        </button>
+                      )}
+                      {(isAdmin || isManager) && health && health.phase === 'warmup' && !health.has_student_model && (
+                        <button
+                          type="button"
+                          onClick={() => handleOptimizeWarmup(project)}
+                          disabled={optimizingWarmupFor === project.id}
+                          className="rounded-2xl border border-sky-400/18 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {optimizingWarmupFor === project.id ? 'Optimizing...' : 'Optimize Warmup'}
+                        </button>
+                      )}
+                      {(isAdmin || isManager) && (
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerateApiKey(project.id, project.name)}
+                          disabled={regeneratingKeyFor === project.id}
+                          className="rounded-2xl border border-emerald-400/18 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/16 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {regeneratingKeyFor === project.id ? 'Regenerating...' : 'Regenerate Key'}
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
-        </Card>
+        </div>
 
-        {/* API Key Modal */}
-        <Modal
-          isOpen={!!projectCreationResult}
-          onClose={() => setProjectCreationResult(null)}
-          title="API Key Generated"
-        >
+        <Modal isOpen={!!projectCreationResult} onClose={() => setProjectCreationResult(null)} title="API Key Generated">
           {projectCreationResult && (
             <ProjectCreationResult
               projectId={projectCreationResult.project_id}
@@ -583,7 +575,6 @@ const ProjectsDashboard: React.FC = () => {
           )}
         </Modal>
 
-        {/* Change Log Type Modal */}
         <Modal
           isOpen={showLogTypeModal}
           onClose={() => {
@@ -596,69 +587,54 @@ const ProjectsDashboard: React.FC = () => {
           {selectedProject && (
             <div className="space-y-4">
               <div>
-                <p className="text-slate-300 mb-4">
+                <p className="mb-4 text-slate-300">
                   Change the log format type for <span className="font-semibold text-white">{selectedProject.name}</span>
                 </p>
-                <label htmlFor={updateLogTypeSelectId} className="block text-sm font-medium text-slate-300 mb-2">
-                  Log Format Type
-                </label>
+                <label className="mb-2 block text-sm font-medium text-slate-300">Log format type</label>
                 <select
-                  id={updateLogTypeSelectId}
                   value={newLogType}
-                  onChange={(e) => setNewLogType(e.target.value as 'apache' | 'nginx')}
+                  onChange={event => setNewLogType(event.target.value as 'apache' | 'nginx')}
                   disabled={isUpdatingLogType}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-vt-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-400/30 disabled:opacity-50"
                 >
                   <option value="apache">Apache</option>
                   <option value="nginx">Nginx</option>
                 </select>
-                <p className="text-xs text-slate-400 mt-2">
-                  This setting determines how logs are parsed for this project
-                </p>
+                <p className="mt-2 text-xs text-slate-400">This controls how the service parses incoming logs for this project.</p>
               </div>
 
               {logTypeMessage && (
-                <div className={`p-3 rounded-lg ${
-                  logTypeMessage.type === 'success' 
-                    ? 'bg-green-500/20 border border-green-500/50 text-green-300' 
-                    : 'bg-red-500/20 border border-red-500/50 text-red-300'
-                }`}>
+                <div className={`rounded-2xl p-3 ${logTypeMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-200' : 'bg-rose-500/10 text-rose-200'}`}>
                   {logTypeMessage.text}
                 </div>
               )}
 
               <div className="flex gap-3 pt-4">
-                <Button
+                <button
+                  type="button"
                   onClick={handleUpdateLogType}
                   disabled={isUpdatingLogType || newLogType === selectedProject.log_type}
-                  className="flex-1 bg-vt-primary hover:bg-vt-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isUpdatingLogType ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <LoadingSpinner />
-                      <span>Updating...</span>
-                    </div>
-                  ) : (
-                    'Update Log Type'
-                  )}
-                </Button>
-                <Button
+                  {isUpdatingLogType ? 'Updating...' : 'Update Log Type'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setShowLogTypeModal(false);
                     setSelectedProject(null);
                     setLogTypeMessage(null);
                   }}
                   disabled={isUpdatingLogType}
-                  variant="secondary"
-                  className="px-6"
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </div>
           )}
         </Modal>
-      </div>
+      </section>
     </div>
   );
 };

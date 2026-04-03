@@ -31,13 +31,13 @@ const getRowClasses = (
   isTransformerAnomaly: boolean
 ): string => {
   const classes = [
-    'group hover:bg-vt-primary/5 transition-all duration-200',
-    decisionState === 'threat' ? 'bg-vt-error/10 border-l-4 border-l-vt-error' : '',
-    decisionState === 'parse_failed' ? 'bg-vt-accent/10 border-l-4 border-l-vt-accent' : '',
-    decisionState === 'detection_failed' ? 'bg-vt-warning/10 border-l-4 border-l-vt-warning' : '',
-    expandedRow === index ? 'bg-vt-primary/5' : '',
-    isFocused ? 'ring-2 ring-vt-warning/40 bg-vt-warning/5' : '',
-    highlightTransformerTrail && isTransformerAnomaly ? 'shadow-inner shadow-vt-warning/20' : '',
+    'group border-b border-white/6 transition-all duration-200 hover:bg-white/[0.03]',
+    decisionState === 'threat' ? 'bg-rose-500/[0.07] shadow-[inset_3px_0_0_rgba(251,113,133,0.9)]' : '',
+    decisionState === 'parse_failed' ? 'bg-cyan-400/[0.06] shadow-[inset_3px_0_0_rgba(34,211,238,0.85)]' : '',
+    decisionState === 'detection_failed' ? 'bg-amber-400/[0.06] shadow-[inset_3px_0_0_rgba(251,191,36,0.85)]' : '',
+    expandedRow === index ? 'bg-sky-500/[0.05]' : '',
+    isFocused ? 'bg-amber-400/[0.05] ring-1 ring-amber-400/20' : '',
+    highlightTransformerTrail && isTransformerAnomaly ? 'shadow-[inset_3px_0_0_rgba(251,191,36,0.75)]' : '',
   ];
   return classes.filter(Boolean).join(' ');
 };
@@ -361,34 +361,35 @@ const LogsTable: React.FC<LogsTableProps> = ({
 
   return (
     <div className="w-full">
-      <div className="overflow-x-auto">
+      <div className="overflow-hidden rounded-[24px] border border-white/6 bg-[linear-gradient(180deg,rgba(8,15,29,0.92),rgba(10,18,33,0.82))] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="overflow-x-auto">
         <table className="w-full min-w-full table-auto">
-          <thead className="bg-vt-blue/30 sticky top-0 z-10">
-            <tr className="border-b border-vt-primary/20">
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+          <thead className="sticky top-0 z-10 bg-[rgba(10,18,33,0.96)] backdrop-blur-md">
+            <tr className="border-b border-white/8">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 Timestamp
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 IP Address
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 API Endpoint
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 Status
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 Risk Score
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 Decision
               </th>
-              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-xs font-semibold text-vt-primary uppercase tracking-wider whitespace-nowrap">
+              <th className="px-3 sm:px-4 lg:px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 whitespace-nowrap">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-vt-muted/10">
+          <tbody>
             {logs.map((log, index) => {
               const rowData = renderLogRow(log, index, {
                 expandedRow,
@@ -445,7 +446,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                       </svg>
                       <div 
-                        className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-vt-blue/40"
+                        className="rounded-xl bg-white/[0.04] px-2.5 py-1.5 text-xs sm:text-sm font-mono"
                         style={{ color: getStatusColor(decisionState, log.statusCode) }}
                       >
                         {log.ipAddress}
@@ -539,7 +540,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                   </td>
                 </tr>
                 {expandedRow === index && (
-                  <tr className="bg-gradient-to-r from-vt-blue/20 to-transparent animate-slide-down">
+                  <tr className="animate-slide-down bg-[linear-gradient(180deg,rgba(8,15,29,0.96),rgba(12,20,38,0.92))]">
                     <td colSpan={7} className="px-3 sm:px-4 lg:px-6 py-6">
                       <div className="space-y-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -978,6 +979,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
           })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
