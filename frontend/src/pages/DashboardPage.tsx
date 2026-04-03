@@ -8,6 +8,7 @@ import Select from '../components/Select';
 import Button from '../components/Button';
 import { logService } from '../services/logService';
 import { projectService, ProjectSummary } from '../services/projectService';
+import { isThreatDetected } from '../utils/helpers';
 
 const DashboardPage: React.FC = () => {
   const { projectId } = useParams<{ projectId?: string }>();
@@ -116,7 +117,7 @@ const DashboardPage: React.FC = () => {
       if (showAnomaliesOnly) {
         filteredLiveLogs = uniqueLiveLogs.filter(log => {
           const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
-          return log.infected || transformerAnomaly;
+          return isThreatDetected(log) || transformerAnomaly;
         });
       }
       
@@ -131,7 +132,7 @@ const DashboardPage: React.FC = () => {
     if (!showAnomaliesOnly) return logs;
     return logs.filter(log => {
       const transformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
-      return log.infected || transformerAnomaly;
+      return isThreatDetected(log) || transformerAnomaly;
     });
   }, [logs, showAnomaliesOnly, searchResults, browseResults, page]);
 
@@ -723,20 +724,20 @@ const DashboardPage: React.FC = () => {
                     <div
                       key={focusedLogKey}
                       className={`rounded-xl px-4 py-3 border ${
-                        log.infected || isTransformerAnomaly
+                        isThreatDetected(log) || isTransformerAnomaly
                           ? 'border-vt-error/40 bg-vt-error/10'
                           : 'border-vt-muted/20 bg-vt-muted/5'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-mono text-vt-muted">{log.timestamp}</span>
-                        <span className={`text-xs font-semibold ${log.infected ? 'text-vt-error' : 'text-vt-success'}`}>
+                        <span className={`text-xs font-semibold ${isThreatDetected(log) ? 'text-vt-error' : 'text-vt-success'}`}>
                           {log.statusCode}
                         </span>
                       </div>
                       <p className="text-sm text-vt-light font-mono break-all mb-2">{log.apiAccessed}</p>
                       <div className="flex items-center gap-3 text-xs text-vt-muted">
-                        {log.infected && (
+                        {isThreatDetected(log) && (
                           <span className="inline-flex items-center gap-1 text-vt-error">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />

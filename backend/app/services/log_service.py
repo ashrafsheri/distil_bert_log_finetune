@@ -722,7 +722,10 @@ class LogService:
             Formatted log dict for Elasticsearch
         """
         ip_address = parsed_log["ip_address"]
-        infected_status = anomaly_result.get("is_anomaly", False)
+        final_decision = anomaly_result.get("final_decision")
+        infected_status = final_decision == "threat_detected"
+        if final_decision is None:
+            infected_status = anomaly_result.get("is_anomaly", False)
 
         # Override infected status if IP is in the IP table
         if ip_address in ip_status_map:
@@ -761,7 +764,7 @@ class LogService:
             "baseline_eligible": baseline_eligible,
             "decision_reason": decision_reason or anomaly_result.get("decision_reason"),
             "policy_score": anomaly_result.get("policy_score", 0.0),
-            "final_decision": anomaly_result.get("final_decision"),
+            "final_decision": final_decision,
             "component_status": anomaly_result.get("component_status", {}),
             "session_key_hash": session_key_hash,
             "normalized_template": parsed_log.get("normalized_event"),
