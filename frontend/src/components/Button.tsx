@@ -21,21 +21,21 @@ const Button: React.FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseStyles = 'font-semibold rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-vt-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer';
+  const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-50';
   
   const variantStyles: Record<ButtonVariant, string> = {
-    primary: 'bg-gradient-to-r from-vt-primary to-vt-primary/80 text-white border border-vt-primary/50 hover:from-vt-primary/90 hover:to-vt-primary/70 hover:border-vt-primary shadow-lg shadow-vt-primary/30 hover:shadow-xl hover:shadow-vt-primary/40 focus:ring-vt-primary',
-    success: 'bg-gradient-to-r from-vt-success to-vt-success/80 text-white border border-vt-success/50 hover:from-vt-success/90 hover:to-vt-success/70 hover:border-vt-success shadow-lg shadow-vt-success/30 hover:shadow-xl hover:shadow-vt-success/40 focus:ring-vt-success',
-    error: 'bg-gradient-to-r from-vt-error to-vt-error/80 text-white border border-vt-error/50 hover:from-vt-error/90 hover:to-vt-error/70 hover:border-vt-error shadow-lg shadow-vt-error/30 hover:shadow-xl hover:shadow-vt-error/40 focus:ring-vt-error',
-    danger: 'bg-gradient-to-r from-red-600 to-red-500 text-white border border-red-500/50 hover:from-red-700 hover:to-red-600 hover:border-red-600 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-600/40 focus:ring-red-500',
-    warning: 'bg-gradient-to-r from-vt-warning to-vt-warning/80 text-white border border-vt-warning/50 hover:from-vt-warning/90 hover:to-vt-warning/70 hover:border-vt-warning shadow-lg shadow-vt-warning/30 hover:shadow-xl hover:shadow-vt-warning/40 focus:ring-vt-warning',
-    secondary: 'bg-vt-muted/10 text-vt-light border border-vt-muted/30 hover:bg-vt-muted/20 hover:border-vt-primary/40 shadow-md shadow-vt-muted/10 hover:shadow-lg hover:shadow-vt-primary/20 focus:ring-vt-primary',
+    primary: 'border border-sky-400/25 bg-gradient-to-r from-sky-500 to-cyan-400 text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] hover:translate-y-[-1px] hover:shadow-[0_24px_48px_rgba(14,165,233,0.28)] focus:ring-sky-400/45',
+    success: 'border border-emerald-400/20 bg-emerald-500/12 text-emerald-100 hover:bg-emerald-500/18 focus:ring-emerald-400/35',
+    error: 'border border-rose-400/20 bg-rose-500/12 text-rose-100 hover:bg-rose-500/18 focus:ring-rose-400/35',
+    danger: 'border border-rose-400/20 bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-[0_18px_38px_rgba(244,63,94,0.22)] hover:translate-y-[-1px] hover:shadow-[0_24px_48px_rgba(244,63,94,0.28)] focus:ring-rose-400/35',
+    warning: 'border border-amber-400/20 bg-amber-500/12 text-amber-100 hover:bg-amber-500/18 focus:ring-amber-400/35',
+    secondary: 'border border-white/10 bg-white/[0.03] text-slate-100 hover:border-white/16 hover:bg-white/[0.06] focus:ring-sky-400/28',
   };
   
   const sizeStyles: Record<ButtonSize, string> = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'min-h-[2.4rem] px-3.5 py-2 text-sm',
+    md: 'min-h-[2.9rem] px-4.5 py-2.5 text-sm',
+    lg: 'min-h-[3.2rem] px-6 py-3 text-base',
   };
   
   const widthStyle = fullWidth ? 'w-full' : '';
@@ -62,4 +62,3 @@ const Button: React.FC<ButtonProps> = ({
 };
 
 export default Button;
-

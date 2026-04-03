@@ -6,199 +6,150 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+type NavItem = {
+  to: string;
+  label: string;
+  visible: boolean;
+  active: (pathname: string) => boolean;
+  icon: React.ReactNode;
+};
+
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { currentUser, userInfo } = useAuth();
-  
-  // Check if user can access Users page (admins and managers only)
+
   const canAccessUsers = userInfo?.role === 'admin' || userInfo?.role === 'manager';
-  // Check if user is admin
   const isAdmin = userInfo?.role === 'admin';
-  // Check if user is manager
   const isManager = userInfo?.role === 'manager';
 
+  const navItems: NavItem[] = [
+    {
+      to: '/',
+      label: 'Home',
+      visible: true,
+      active: pathname => pathname === '/',
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+    },
+    {
+      to: '/projects',
+      label: 'Projects',
+      visible: !!currentUser,
+      active: pathname => pathname === '/projects' || pathname.startsWith('/dashboard') || pathname.startsWith('/projects/'),
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      to: '/users',
+      label: 'Users',
+      visible: canAccessUsers,
+      active: pathname => pathname.startsWith('/users'),
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-1a4 4 0 00-5.356-3.77M9 20H4v-1a4 4 0 015.356-3.77M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+    },
+    {
+      to: '/admin-dashboard',
+      label: 'Admin',
+      visible: isAdmin,
+      active: pathname => pathname.startsWith('/admin-dashboard'),
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+    },
+    {
+      to: '/reports',
+      label: 'Reports',
+      visible: isManager,
+      active: pathname => pathname.startsWith('/reports'),
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+  ];
+
+  const visibleItems = navItems.filter(item => item.visible);
+
   return (
-    <div className="min-h-screen text-vt-light">
-      {/* Navigation Header */}
-      <nav className="glass-strong sticky top-0 z-50 border-b border-vt-primary/20 animate-slide-down">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 bg-gradient-to-br from-vt-primary to-vt-success rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div>
-                  <span className="text-xl font-bold gradient-text">LogGuard</span>
-                  <p className="text-xs text-vt-muted">AI-Powered Security</p>
-                </div>
-              </Link>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <header className="sticky top-0 z-50 border-b border-white/6 bg-[rgba(7,12,24,0.94)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-400/20 bg-gradient-to-br from-sky-500/20 to-cyan-400/10 text-sky-300 shadow-[0_12px_32px_rgba(59,130,246,0.18)]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
             </div>
-            
-            <div className="flex items-center space-x-2">
+            <div>
+              <div className="text-xl font-semibold tracking-tight text-slate-50">LogGuard</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-slate-500">AI Security Operations</div>
+            </div>
+          </Link>
+
+          <nav className="flex flex-1 flex-wrap items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/6 bg-white/[0.03] p-1">
+              {visibleItems.map(item => {
+                const active = item.active(location.pathname);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+                      active
+                        ? 'border border-sky-400/25 bg-sky-500/12 text-sky-200 shadow-[0_0_0_1px_rgba(56,189,248,0.08)]'
+                        : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100'
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-3 rounded-full border border-white/6 bg-white/[0.03] px-3 py-2 transition hover:border-white/10 hover:bg-white/[0.05]"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-bold text-white">
+                    {currentUser.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-slate-100">{currentUser.email?.split('@')[0] || 'User'}</div>
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{userInfo?.role || 'member'}</div>
+                  </div>
+                </Link>
+              </>
+            ) : (
               <Link
-                to="/"
-                className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  location.pathname === '/'
-                    ? 'text-vt-primary'
-                    : 'text-vt-muted hover:text-vt-light'
-                }`}
+                to="/login"
+                className="inline-flex items-center rounded-full border border-sky-400/25 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/18"
               >
-                {location.pathname === '/' && (
-                  <div className="absolute inset-0 bg-vt-primary/10 rounded-lg border border-vt-primary/30"></div>
-                )}
-                <div className="relative flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Home
-                </div>
+                Sign In
               </Link>
-              
-              {currentUser && (
-                <>
-                  <Link
-                    to="/projects"
-                    className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      location.pathname === '/projects' || location.pathname.startsWith('/dashboard')
-                        ? 'text-vt-primary'
-                        : 'text-vt-muted hover:text-vt-light'
-                    }`}
-                  >
-                    {(location.pathname === '/projects' || location.pathname.startsWith('/dashboard')) && (
-                      <div className="absolute inset-0 bg-vt-primary/10 rounded-lg border border-vt-primary/30"></div>
-                    )}
-                    <div className="relative flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      Projects
-                    </div>
-                  </Link>
-                  {canAccessUsers && (
-                    <Link
-                      to="/users"
-                      className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                        location.pathname === '/users'
-                          ? 'text-vt-primary'
-                          : 'text-vt-muted hover:text-vt-light'
-                      }`}
-                    >
-                      {location.pathname === '/users' && (
-                        <div className="absolute inset-0 bg-vt-primary/10 rounded-lg border border-vt-primary/30"></div>
-                      )}
-                      <div className="relative flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        Users
-                      </div>
-                    </Link>
-                  )}
-                  {isAdmin && (
-                    <Link
-                      to="/admin-dashboard"
-                      className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                        location.pathname === '/admin-dashboard'
-                          ? 'text-vt-primary'
-                          : 'text-vt-muted hover:text-vt-light'
-                      }`}
-                    >
-                      {location.pathname === '/admin-dashboard' && (
-                        <div className="absolute inset-0 bg-vt-primary/10 rounded-lg border border-vt-primary/30"></div>
-                      )}
-                      <div className="relative flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Admin
-                      </div>
-                    </Link>
-                  )}
-
-                  {isManager && (
-                    <Link
-                      to="/reports"
-                      className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                        location.pathname === '/reports'
-                          ? 'text-vt-primary'
-                          : 'text-vt-muted hover:text-vt-light'
-                      }`}
-                    >
-                      {location.pathname === '/reports' && (
-                        <div className="absolute inset-0 bg-vt-primary/10 rounded-lg border border-vt-primary/30"></div>
-                      )}
-                      <div className="relative flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Reports
-                      </div>
-                    </Link>
-                  )}
-                </>
-              )}
-
-              {currentUser ? (
-                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-vt-muted/30">
-                  <Link
-                    to="/profile"
-                    className={`flex items-center gap-2 text-sm transition-all duration-300 group ${
-                      location.pathname === '/profile'
-                        ? 'text-vt-primary'
-                        : 'text-vt-muted hover:text-vt-light'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-vt-primary to-vt-success flex items-center justify-center transition-transform duration-300 ${
-                      location.pathname === '/profile' ? 'ring-2 ring-vt-primary ring-offset-2 ring-offset-vt-dark' : 'group-hover:scale-110'
-                    }`}>
-                      <span className="text-xs font-bold text-white">
-                        {currentUser.email?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
-                    <span className="font-medium">
-                      {currentUser.email?.split('@')[0] || 'User'}
-                    </span>
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 ml-4">
-                  <Link
-                    to="/login"
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-vt-muted hover:text-vt-light transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="glass border-t border-vt-muted/20 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-sm text-vt-muted">
-              © 2025 LogGuard. Powered by Ensemble AI Detection.
-            </div>
-            <div className="flex items-center gap-6 text-sm text-vt-muted">
-              <button type="button" className="hover:text-vt-primary transition-colors">Documentation</button>
-              <button type="button" className="hover:text-vt-primary transition-colors">API</button>
-              <button type="button" className="hover:text-vt-primary transition-colors">Support</button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <main>{children}</main>
     </div>
   );
 };

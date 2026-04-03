@@ -488,12 +488,6 @@ const DashboardPage: React.FC = () => {
   const timelineBuckets = useMemo(() => buildTimelineBuckets(analysisDataset.slice(0, 200)), [analysisDataset]);
   const endpointInsights = useMemo(() => buildEndpointInsights(analysisDataset.slice(0, 200)), [analysisDataset]);
 
-  const recentThreats = useMemo(() => {
-    return analysisDataset
-      .filter(log => isThreatDetected(log) || log.anomaly_details?.transformer?.is_anomaly === 1)
-      .slice(0, 4);
-  }, [analysisDataset]);
-
   const chartPeak = useMemo(() => {
     return Math.max(1, ...timelineBuckets.map(bucket => Math.max(bucket.clean, bucket.threats)));
   }, [timelineBuckets]);
@@ -971,26 +965,11 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="ops-inline-stats">
               <span className="ops-chip">{totalResults.toLocaleString()} total results</span>
-              {recentThreats.length > 0 && <span className="ops-chip ops-chip--danger">{recentThreats.length} recent threats on screen</span>}
+              <span className={cx('ops-chip', displayedInfectedCount > 0 && 'ops-chip--danger')}>
+                {displayedInfectedCount.toLocaleString()} flagged in current view
+              </span>
             </div>
           </div>
-
-          {recentThreats.length > 0 && (
-            <div className="ops-threat-strip">
-              {recentThreats.map(log => (
-                <div key={`${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-threat`} className="ops-threat-strip__item">
-                  <div>
-                    <strong>{log.ipAddress}</strong>
-                    <span>{log.apiAccessed}</span>
-                  </div>
-                  <div>
-                    <strong>{((log.anomaly_score || 0) * 100).toFixed(1)}%</strong>
-                    <span>{log.incidentId || 'No incident id'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
 
           {isLoading && !browseResults && !searchResults ? (
             <LoadingSpinner text="Loading logs..." />
