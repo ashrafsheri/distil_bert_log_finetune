@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/OWNER/frontend:main
+          image: ghcr.io/YOUR_GITHUB_ORG_OR_USER/frontend:main
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

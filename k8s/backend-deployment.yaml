@@ -34,7 +34,7 @@ spec:
               done
       containers:
         - name: backend
-          image: ghcr.io/OWNER/backend:main
+          image: ghcr.io/YOUR_GITHUB_ORG_OR_USER/backend:main
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
