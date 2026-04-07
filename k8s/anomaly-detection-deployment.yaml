@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: anomaly-detection
-          image: ghcr.io/OWNER/anomaly-detection:main
+          image: ghcr.io/ashrafsheri/anomaly-detection:main
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
@@ -76,24 +76,30 @@ spec:
               cpu: "1"
               memory: 2Gi
               ephemeral-storage: 2Gi
+          # startupProbe gates readiness/liveness until the service is up.
+          # failureThreshold * periodSeconds = max startup budget.
+          # 30 * 10s = 300s — enough for cold PVC reads + model loading.
           startupProbe:
             httpGet:
               path: /health
               port: 8001
-            failureThreshold: 12
+            initialDelaySeconds: 15
+            failureThreshold: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
               port: 8001
-            initialDelaySeconds: 5
+            initialDelaySeconds: 0
             periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
               port: 8001
-            initialDelaySeconds: 10
+            initialDelaySeconds: 0
             periodSeconds: 30
+            failureThreshold: 3
       volumes:
         - name: model-artifacts
           persistentVolumeClaim:
