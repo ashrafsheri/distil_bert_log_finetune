@@ -80,6 +80,20 @@ class TemplateTransformer(nn.Module):
 # RULE-BASED DETECTOR
 # ============================================================================
 
+# Severity-to-weight mapping for rule types.
+# Weights reflect how strongly a single-type hit should influence the ensemble
+# relative to the transformer (0.7) and Isolation Forest (0.5).
+RULE_SEVERITY_WEIGHTS: Dict[str, float] = {
+    'sql_injection': 1.5,       # HIGH — reliable, high-impact patterns
+    'command_injection': 1.5,   # HIGH — reliable, high-impact patterns
+    'path_traversal': 0.8,      # MED — common in benign scanners; needs corroboration
+    'xss': 0.6,                 # Conservative — context-dependent, frequent false positives
+    'error_with_attack_pattern': 0.3,  # Heuristic bonus only
+    'abnormally_long_path': 0.3,       # Heuristic bonus only
+}
+_DEFAULT_RULE_WEIGHT = 0.5  # Fallback for any unlisted rule type
+
+
 class RuleBasedDetector:
     """Pattern-based attack detection for HTTP logs"""
     
@@ -155,8 +169,14 @@ class RuleBasedDetector:
             detected_attacks.append('abnormally_long_path')
         
         is_attack = len(detected_attacks) > 0
-        confidence = min(len(detected_attacks) * 0.3 + 0.4, 1.0) if is_attack else 0.0
-        
+        if is_attack:
+            # Highest-severity match drives the weight; each additional hit adds a small bonus.
+            max_weight = max(RULE_SEVERITY_WEIGHTS.get(a, _DEFAULT_RULE_WEIGHT) for a in detected_attacks)
+            extra = min(0.2, (len(detected_attacks) - 1) * 0.1)
+            confidence = max_weight + extra
+        else:
+            confidence = 0.0
+
         return {
             'is_attack': is_attack,
             'attack_types': detected_attacks,

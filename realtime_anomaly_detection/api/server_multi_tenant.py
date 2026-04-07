@@ -313,6 +313,9 @@ async def startup_event():
         # Start background scheduler
         update_scheduler.start_background_scheduler()
 
+        # Start background session-expiry thread
+        detector.start_background_cleanup()
+
         teacher_info = detector.teacher.get_model_info()
         logger.info("Teacher startup summary:")
         logger.info("  Base model dir: %s", base_model_dir)
@@ -345,9 +348,11 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global update_scheduler
+    global detector, update_scheduler
     if update_scheduler:
         update_scheduler.stop_background_scheduler()
+    if detector:
+        detector.stop_background_cleanup()
 
 
 # ============================================================================

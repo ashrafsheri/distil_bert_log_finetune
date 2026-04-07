@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 MIN_SEQUENCE_CONTEXT = 3
 MAX_UNKNOWN_TEMPLATE_RATIO = 0.5
+# Must match the temperature used in KD training loss (knowledge_distillation.py DistillationConfig)
+KD_TEMPERATURE = 3.0
 
 
 class TeacherTrainingDataset(Dataset):
@@ -517,7 +519,18 @@ class TeacherModel:
         }
         if len(sequence) >= MIN_SEQUENCE_CONTEXT:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
-                transformer_result['status'] = 'insufficient_signal'
+                # High unknown-template ratio signals novel endpoint scanning — treat as anomaly.
+                # Fallback: use transformer_threshold as a proxy for max_nll since per-project
+                # NLL history is not available in this scope.
+                unknown_penalty = unknown_template_ratio * float(self.transformer_threshold)
+                transformer_result = {
+                    'is_anomaly': 1,
+                    'score': unknown_penalty,
+                    'threshold': float(self.transformer_threshold),
+                    'status': 'unknown_penalty',
+                    'sequence_length': len(sequence),
+                    'context': transformer_context,
+                }
             else:
                 transformer_score, transformer_error = self._score_transformer_sequence(sequence)
                 if transformer_error:
@@ -567,7 +580,7 @@ class TeacherModel:
         if rule_result.get('is_attack'):
             confidence = float(rule_result.get('confidence', 0.5))
             votes.append(1)
-            weights.append(max(confidence, 1.0))
+            weights.append(confidence)  # severity-tiered weight; no floor
             vote_names.append('rule')
 
         if iso_result.get('status') == 'active':
@@ -575,7 +588,7 @@ class TeacherModel:
             weights.append(0.5)
             vote_names.append('iso')
 
-        if transformer_result.get('status') == 'active':
+        if transformer_result.get('status') in ('active', 'unknown_penalty'):
             votes.append(transformer_result['is_anomaly'])
             weights.append(0.7)
             vote_names.append('transformer')
@@ -588,10 +601,6 @@ class TeacherModel:
         )
         is_anomaly = ensemble_score > 0.5
 
-        if rule_result.get('is_attack'):
-            ensemble_score = max(ensemble_score, float(rule_result.get('confidence', 1.0)), 0.95)
-            is_anomaly = True
-        
         return {
             'is_anomaly': is_anomaly,
             'anomaly_score': ensemble_score,
@@ -642,8 +651,8 @@ class TeacherModel:
         
         with torch.no_grad():
             logits = self.transformer(input_ids, attention_mask)
-            # Return softmax probabilities (soft labels)
-            soft_labels = F.softmax(logits, dim=-1)
+            # Apply KD temperature so soft labels match the distribution used in training loss.
+            soft_labels = F.softmax(logits / KD_TEMPERATURE, dim=-1)
             return soft_labels.squeeze(0)
     
     def update_from_student_logs(

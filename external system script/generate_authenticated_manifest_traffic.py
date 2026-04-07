@@ -1,5 +1,34 @@
 #!/usr/bin/env python3
-"""Generate authenticated traffic from a seeded endpoint manifest."""
+"""
+Generate authenticated traffic from a seeded endpoint manifest.
+
+Normal mode  : uniform sampling across all endpoints, suitable for baseline warmup.
+Low-traffic  : --mode low_traffic
+               - defaults to 300 iterations
+               - rotates across --sessions simulated clients (distinct User-Agents)
+               - cycles through ALL eligible endpoints before repeating (ensures template diversity)
+               - shows warmup progress toward --warmup-target
+               - warns when temporal spread across clock-hours is insufficient
+
+Session identity note
+─────────────────────
+The anomaly detector derives session_id from the client IP + User-Agent in the ingested log.
+Since test scripts run from a single IP, all requests appear as one session unless User-Agents
+are rotated. Use --sessions N to simulate N distinct clients. Each unique client
+produces a separate session window and training sequence in the detector.
+
+Low-traffic quickstart
+──────────────────────
+python generate_authenticated_manifest_traffic.py \\
+  --manifest manifest.json \\
+  --base-url https://api.example.com \\
+  --firebase-api-key YOUR_KEY \\
+  --email test@example.com \\
+  --password secret \\
+  --mode low_traffic \\
+  --sessions 10 \\
+  --warmup-target 250
+"""
 
 from __future__ import annotations
 
@@ -10,7 +39,7 @@ import re
 import ssl
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 from urllib import error, parse, request
@@ -22,6 +51,32 @@ SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
 PLACEHOLDER_RE = re.compile(r":([A-Za-z_]\w*)|{([A-Za-z_]\w*)}|<([A-Za-z_]\w*)>")
 SUCCESS_STATUSES = {200, 201, 202, 204, 304}
 SUPPRESSING_STATUSES = {401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504}
+
+# Simulated browser User-Agents used to create distinct session identities.
+# The anomaly detector keys sessions on IP+User-Agent, so rotating these
+# produces separate training sequences even from a single machine.
+SESSION_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Windows NT 11.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/123.0 Safari/537.36",
+    "Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 Chrome/123.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Edg/124.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 14; OnePlus 12) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko",
+    "logguard-traffic-generator/1.0 (internal-test)",
+    "logguard-traffic-generator/2.0 (load-test-client-a)",
+    "logguard-traffic-generator/2.0 (load-test-client-b)",
+    "logguard-traffic-generator/2.0 (load-test-client-c)",
+    "logguard-traffic-generator/2.0 (load-test-client-d)",
+    "logguard-traffic-generator/2.0 (load-test-client-e)",
+]
 
 
 @dataclass(frozen=True)
@@ -46,6 +101,28 @@ class EndpointStats:
     failures: int = 0
     suppressed: bool = False
     last_status: int | None = None
+
+
+@dataclass
+class RunStats:
+    successes: int = 0
+    failures: int = 0
+    skipped: int = 0
+    start_time: float = field(default_factory=time.time)
+    hours_seen: set[int] = field(default_factory=set)
+
+    def elapsed(self) -> float:
+        return time.time() - self.start_time
+
+    def progress_line(self, warmup_target: int) -> str:
+        pct = min(100, int(self.successes / max(warmup_target, 1) * 100))
+        bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
+        return (
+            f"  [{bar}] {self.successes}/{warmup_target} ({pct}%)  "
+            f"ok={self.successes} err={self.failures} skip={self.skipped}  "
+            f"hours_seen={sorted(self.hours_seen)}  "
+            f"elapsed={self.elapsed():.0f}s"
+        )
 
 
 def _load_manifest(path: Path) -> list[ManifestEndpoint]:
@@ -85,10 +162,11 @@ def _http_json(
     body: dict[str, Any] | None = None,
     timeout: float = 20.0,
     insecure: bool = False,
+    user_agent: str = "logguard-traffic-generator/1.0",
 ) -> tuple[int, Any]:
     headers = {
         "Accept": "application/json",
-        "User-Agent": "logguard-traffic-generator/1.0",
+        "User-Agent": user_agent,
     }
     data: bytes | None = None
     if token:
@@ -273,32 +351,15 @@ def _bootstrap_discovery(
     return discovered
 
 
-def _request_endpoint(
-    base_url: str,
-    endpoint: ManifestEndpoint,
-    token: str,
-    rendered_path: str,
-    *,
-    timeout: float,
-    insecure: bool,
-) -> tuple[int, Any]:
-    return _http_json(
-        f"{base_url.rstrip('/')}{rendered_path}",
-        method=endpoint.method,
-        token=token,
-        timeout=timeout,
-        insecure=insecure,
-    )
-
-
 def _endpoint_key(endpoint: ManifestEndpoint) -> str:
     return f"{endpoint.method} {endpoint.path_template}"
 
 
-def _choose_endpoint(
+def _choose_endpoint_normal(
     endpoints: list[ManifestEndpoint],
     endpoint_stats: dict[str, EndpointStats],
 ) -> ManifestEndpoint | None:
+    """Original selection: biased toward proven endpoints (good for live testing)."""
     available = [endpoint for endpoint in endpoints if not endpoint_stats[_endpoint_key(endpoint)].suppressed]
     if not available:
         return None
@@ -321,6 +382,42 @@ def _choose_endpoint(
     return random.choice(pool) if pool else None
 
 
+def _make_low_traffic_cycle(endpoints: list[ManifestEndpoint]) -> list[ManifestEndpoint]:
+    """
+    Build a shuffled full-cycle pass over all eligible endpoints.
+    Called each time the cycle is exhausted so every endpoint is hit
+    before any endpoint repeats. This guarantees min_distinct_templates
+    is satisfied as quickly as possible.
+    """
+    available = list(endpoints)
+    random.shuffle(available)
+    return available
+
+
+def _choose_endpoint_low_traffic(
+    cycle: list[ManifestEndpoint],
+    endpoints: list[ManifestEndpoint],
+    endpoint_stats: dict[str, EndpointStats],
+) -> tuple[ManifestEndpoint | None, list[ManifestEndpoint]]:
+    """
+    Full-cycle selection for low-traffic mode.
+    Pops from the front of a pre-shuffled cycle; refills when exhausted.
+    Suppressed endpoints are skipped but not permanently removed from future cycles
+    (a 429 may recover).
+    """
+    remaining_cycle = list(cycle)
+    while remaining_cycle:
+        endpoint = remaining_cycle.pop(0)
+        if not endpoint_stats[_endpoint_key(endpoint)].suppressed:
+            return endpoint, remaining_cycle
+    # Cycle exhausted — build a new one
+    new_cycle = _make_low_traffic_cycle(endpoints)
+    if new_cycle:
+        endpoint = new_cycle.pop(0)
+        return endpoint, new_cycle
+    return None, []
+
+
 def _record_endpoint_result(
     endpoint: ManifestEndpoint,
     endpoint_stats: dict[str, EndpointStats],
@@ -340,24 +437,98 @@ def _record_endpoint_result(
     return stats
 
 
+def _print_low_traffic_hints(endpoints: list[ManifestEndpoint], sessions: int, warmup_target: int) -> None:
+    """Print a pre-run summary so the user knows what to expect."""
+    print(f"\n{'─'*60}", file=sys.stderr)
+    print("  LOW-TRAFFIC MODE", file=sys.stderr)
+    print(f"{'─'*60}", file=sys.stderr)
+    print(f"  Eligible endpoints   : {len(endpoints)}", file=sys.stderr)
+    print(f"  Simulated sessions   : {sessions}", file=sys.stderr)
+    print(f"  Warmup target        : {warmup_target} successful requests", file=sys.stderr)
+    print(f"  Template diversity   : all {len(endpoints)} endpoints cycled before repeat", file=sys.stderr)
+    print("", file=sys.stderr)
+    if len(endpoints) < 5:
+        print(
+            "  ⚠  Only found {n} eligible endpoints. The detector needs ≥5 distinct templates.\n"
+            "     Add --include-writes or expand baseline_eligible endpoints in your manifest.".format(n=len(endpoints)),
+            file=sys.stderr,
+        )
+    print(
+        "  ℹ  Temporal spread: the anomaly detector requires traffic across ≥1 clock-hour.\n"
+        "     If this run finishes in <60 min, run it again 1+ hours later (or lower\n"
+        "     MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS=1 in your deployment env).",
+        file=sys.stderr,
+    )
+    print(f"{'─'*60}\n", file=sys.stderr)
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--manifest", required=True, help="Path to the manifest JSON file")
-    parser.add_argument("--base-url", required=True, help="API base URL, e.g. https://api.barterease.co")
-    parser.add_argument("--firebase-api-key", required=True, help="Firebase Web API key used for email/password login")
+    parser.add_argument("--base-url", required=True, help="API base URL, e.g. https://api.example.com")
+    parser.add_argument("--firebase-api-key", required=True, help="Firebase Web API key")
     parser.add_argument("--email", required=True, help="Firebase user email")
     parser.add_argument("--password", required=True, help="Firebase user password")
-    parser.add_argument("--iterations", type=int, default=25, help="Number of requests to make")
-    parser.add_argument("--delay-seconds", type=float, default=0.75, help="Base delay between requests")
-    parser.add_argument("--jitter-seconds", type=float, default=0.35, help="Random extra delay added per request")
-    parser.add_argument("--backoff-seconds", type=float, default=3.0, help="Extra sleep after a 429 response")
-    parser.add_argument("--param", action="append", default=[], help="Placeholder override in key=value form")
-    parser.add_argument("--params-file", help="Optional JSON file with placeholder values")
-    parser.add_argument("--include-writes", action="store_true", help="Include non-GET endpoints from the manifest")
-    parser.add_argument("--timeout", type=float, default=20.0, help="HTTP timeout in seconds")
-    parser.add_argument("--insecure", action="store_true", help="Disable TLS certificate validation")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for endpoint selection")
+
+    # Mode
+    parser.add_argument(
+        "--mode",
+        choices=["normal", "low_traffic"],
+        default="normal",
+        help=(
+            "normal: biased toward proven endpoints, suitable for live testing. "
+            "low_traffic: full-cycle endpoint rotation + session diversity, "
+            "optimized for warming up low-traffic detector projects."
+        ),
+    )
+
+    # Volume
+    parser.add_argument("--iterations", type=int, default=None,
+        help="Number of requests. Defaults: normal=25, low_traffic=300.")
+    parser.add_argument("--warmup-target", type=int, default=250,
+        help="[low_traffic] Keep running until this many successful requests are made. "
+             "Set to match MULTI_TENANT_LOW_TRAFFIC_WARMUP_THRESHOLD (default 200). "
+             "Overrides --iterations when reached first.")
+
+    # Session diversity
+    parser.add_argument("--sessions", type=int, default=10,
+        help="[low_traffic] Number of distinct User-Agent identities to rotate across. "
+             "Each identity produces a separate session window in the anomaly detector. "
+             "Max: {n}. Default: 10.".format(n=len(SESSION_USER_AGENTS)))
+
+    # Timing
+    parser.add_argument("--delay-seconds", type=float, default=None,
+        help="Base delay between requests. Defaults: normal=0.75, low_traffic=0.3.")
+    parser.add_argument("--jitter-seconds", type=float, default=None,
+        help="Random extra delay per request. Defaults: normal=0.35, low_traffic=0.15.")
+    parser.add_argument("--backoff-seconds", type=float, default=3.0,
+        help="Extra sleep after a 429 response.")
+
+    # Endpoint options
+    parser.add_argument("--include-writes", action="store_true",
+        help="Include POST/PUT/PATCH/DELETE endpoints.")
+    parser.add_argument("--param", action="append", default=[],
+        help="Placeholder override in key=value form.")
+    parser.add_argument("--params-file",
+        help="Optional JSON file with placeholder values.")
+    parser.add_argument("--timeout", type=float, default=20.0,
+        help="HTTP timeout in seconds.")
+    parser.add_argument("--insecure", action="store_true",
+        help="Disable TLS certificate validation.")
+    parser.add_argument("--seed", type=int, default=42,
+        help="Random seed for endpoint selection.")
+
     args = parser.parse_args()
+
+    # Apply mode defaults
+    is_low_traffic = args.mode == "low_traffic"
+    iterations = args.iterations if args.iterations is not None else (300 if is_low_traffic else 25)
+    delay = args.delay_seconds if args.delay_seconds is not None else (0.3 if is_low_traffic else 0.75)
+    jitter = args.jitter_seconds if args.jitter_seconds is not None else (0.15 if is_low_traffic else 0.35)
+    sessions = min(max(1, args.sessions), len(SESSION_USER_AGENTS))
 
     random.seed(args.seed)
     manifest_path = Path(args.manifest).expanduser().resolve()
@@ -366,70 +537,120 @@ def main() -> int:
         print("No eligible endpoints found in manifest.", file=sys.stderr)
         return 1
 
-    explicit_params = _merge_params(args.param, Path(args.params_file).expanduser().resolve() if args.params_file else None)
+    explicit_params = _merge_params(
+        args.param,
+        Path(args.params_file).expanduser().resolve() if args.params_file else None,
+    )
     auth_payload = _sign_in(
-        args.firebase_api_key,
-        args.email,
-        args.password,
-        timeout=args.timeout,
-        insecure=args.insecure,
+        args.firebase_api_key, args.email, args.password,
+        timeout=args.timeout, insecure=args.insecure,
     )
     token = str(auth_payload["idToken"])
     discovered = _bootstrap_discovery(
-        args.base_url,
-        token,
-        endpoints,
-        explicit_params,
-        auth_payload,
-        timeout=args.timeout,
-        insecure=args.insecure,
+        args.base_url, token, endpoints, explicit_params, auth_payload,
+        timeout=args.timeout, insecure=args.insecure,
     )
 
-    successes = 0
-    skipped = 0
-    failures = 0
-    chosen_endpoints: list[dict[str, Any]] = []
-    endpoint_stats = {_endpoint_key(endpoint): EndpointStats() for endpoint in endpoints}
+    if is_low_traffic:
+        _print_low_traffic_hints(endpoints, sessions, args.warmup_target)
 
-    for _ in range(args.iterations):
-        endpoint = _choose_endpoint(endpoints, endpoint_stats)
+    run_stats = RunStats()
+    chosen_endpoints: list[dict[str, Any]] = []
+    endpoint_stats = {_endpoint_key(ep): EndpointStats() for ep in endpoints}
+
+    # Low-traffic state
+    session_agents = SESSION_USER_AGENTS[:sessions]
+    session_index = 0
+    lt_cycle: list[ManifestEndpoint] = _make_low_traffic_cycle(endpoints) if is_low_traffic else []
+    last_progress_print = 0.0
+
+    i = 0
+    while i < iterations:
+        # Low-traffic: stop early if warmup target reached
+        if is_low_traffic and run_stats.successes >= args.warmup_target:
+            print(f"\n  ✓ Warmup target {args.warmup_target} reached after {i} iterations.", file=sys.stderr)
+            break
+
+        # Select endpoint
+        if is_low_traffic:
+            endpoint, lt_cycle = _choose_endpoint_low_traffic(lt_cycle, endpoints, endpoint_stats)
+        else:
+            endpoint = _choose_endpoint_normal(endpoints, endpoint_stats)
         if endpoint is None:
             break
+
         rendered_path = _render_path(endpoint, explicit_params, discovered, auth_payload)
         if not rendered_path:
-            skipped += 1
+            run_stats.skipped += 1
+            i += 1
             continue
-        status, payload = _request_endpoint(
-            args.base_url,
-            endpoint,
-            token,
-            rendered_path,
+
+        # Rotate User-Agent for session diversity in low-traffic mode
+        if is_low_traffic:
+            ua = session_agents[session_index % sessions]
+            session_index += 1
+        else:
+            ua = "logguard-traffic-generator/1.0"
+
+        status, payload = _http_json(
+            f"{args.base_url.rstrip('/')}{rendered_path}",
+            method=endpoint.method,
+            token=token,
             timeout=args.timeout,
             insecure=args.insecure,
+            user_agent=ua,
         )
-        chosen_endpoints.append({"method": endpoint.method, "path": rendered_path, "status": status})
-        stats = _record_endpoint_result(endpoint, endpoint_stats, status)
+        chosen_endpoints.append({"method": endpoint.method, "path": rendered_path, "status": status, "ua_index": session_index % sessions})
+        _record_endpoint_result(endpoint, endpoint_stats, status)
+
         if status in SUCCESS_STATUSES:
-            successes += 1
+            run_stats.successes += 1
+            run_stats.hours_seen.add(time.localtime().tm_hour)
             _collect_ids(payload, discovered)
         else:
-            failures += 1
+            run_stats.failures += 1
             if status == 429:
                 time.sleep(max(args.backoff_seconds, 0.0))
-        time.sleep(max(args.delay_seconds, 0.0) + random.uniform(0.0, max(args.jitter_seconds, 0.0)))
+
+        # Progress output for low-traffic mode
+        if is_low_traffic:
+            now = time.time()
+            if now - last_progress_print >= 5.0 or run_stats.successes % 25 == 0:
+                print(run_stats.progress_line(args.warmup_target), file=sys.stderr)
+                last_progress_print = now
+
+        time.sleep(max(delay, 0.0) + random.uniform(0.0, max(jitter, 0.0)))
+        i += 1
+
+    # Temporal spread warning
+    if is_low_traffic and len(run_stats.hours_seen) < 2:
+        print(
+            "\n  ⚠  All requests landed in the same clock-hour. "
+            "The detector's min_observed_hours gate may still block training.\n"
+            "  Options:\n"
+            "    1. Re-run this script ≥1 hour from now.\n"
+            "    2. Set MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS=1 in your deployment.",
+            file=sys.stderr,
+        )
 
     print(
         json.dumps(
             {
+                "mode": args.mode,
                 "base_url": args.base_url,
                 "manifest": str(manifest_path),
                 "eligible_endpoint_count": len(endpoints),
-                "requested_iterations": args.iterations,
-                "successful_requests": successes,
-                "failed_requests": failures,
-                "skipped_unresolved": skipped,
-                "suppressed_endpoint_count": sum(1 for stats in endpoint_stats.values() if stats.suppressed),
-                "discovered_placeholders": {key: values[:3] for key, values in sorted(discovered.items())},
+                "sessions_rotated": sessions if is_low_traffic else 1,
+                "requested_iterations": iterations,
+                "actual_iterations": i,
+                "successful_requests": run_stats.successes,
+                "failed_requests": run_stats.failures,
+                "skipped_unresolved": run_stats.skipped,
+                "hours_seen": sorted(run_stats.hours_seen),
+                "warmup_target": args.warmup_target if is_low_traffic else None,
+                "warmup_target_reached": run_stats.successes >= args.warmup_target if is_low_traffic else None,
+                "suppressed_endpoint_count": sum(1 for s in endpoint_stats.values() if s.suppressed),
+                "discovered_placeholders": {k: v[:3] for k, v in sorted(discovered.items())},
                 "endpoint_status_summary": {
                     key: {
                         "successes": stats.successes,
@@ -446,7 +667,7 @@ def main() -> int:
             sort_keys=True,
         )
     )
-    return 0 if successes > 0 else 1
+    return 0 if run_stats.successes > 0 else 1
 
 
 if __name__ == "__main__":

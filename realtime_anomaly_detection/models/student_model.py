@@ -404,7 +404,29 @@ class StudentModel:
             train_cutoff = max(1, int(total_sequences * 0.70))
             calibration_cutoff = max(train_cutoff + 1, int(total_sequences * 0.85))
 
-            train_sequences = _pad_sequences(self.training_sequences[:train_cutoff])
+            raw_train = list(self.training_sequences[:train_cutoff])
+
+            # Sequence augmentation for small training sets.
+            # Only applied to the training split (not calibration/holdout) so
+            # evaluation scores stay unbiased.
+            # Two cheap techniques that preserve the distribution:
+            #   1. Sub-sequence windows: slide a shorter window over longer sequences
+            #   2. Reversal: reversed order is unnatural and helps the model learn
+            #      positional sensitivity without injecting false patterns
+            if len(raw_train) < 60:
+                augmented = []
+                for seq in raw_train:
+                    # Sub-sequence: take the last half if sequence is long enough
+                    if len(seq) >= 6:
+                        mid = len(seq) // 2
+                        augmented.append(seq[mid:])
+                    # Reversal (only for sequences of length ≥ 4)
+                    if len(seq) >= 4:
+                        augmented.append(list(reversed(seq)))
+                raw_train = raw_train + augmented
+                logger.info("  Augmented training set: %d → %d sequences", train_cutoff, len(raw_train))
+
+            train_sequences = _pad_sequences(raw_train)
             calibration_sequences = _pad_sequences(self.training_sequences[train_cutoff:calibration_cutoff])
             holdout_sequences = _pad_sequences(self.training_sequences[calibration_cutoff:])
 
@@ -444,7 +466,9 @@ class StudentModel:
                 self.pad_id,
                 soft_labels
             )
-            loader = DataLoader(dataset, batch_size=32, shuffle=True)
+            # Scale batch size to dataset size so small datasets still get gradient signal.
+            effective_batch = min(32, max(4, len(train_sequences) // 4))
+            loader = DataLoader(dataset, batch_size=effective_batch, shuffle=True, drop_last=False)
             
             # Training
             self.transformer.train()
@@ -528,12 +552,24 @@ class StudentModel:
                 if not calibration_features:
                     calibration_features = self.training_features[-min(16, len(self.training_features)):]
                 calibration_matrix = np.vstack(calibration_features)
-                self.iso_forest = IsolationForest(
-                    n_estimators=100,
-                    contamination=0.1,
-                    random_state=42,
-                    warm_start=False
-                )
+                # Training features are warmup-collected clean baseline by design,
+                # so assuming 10% contamination systematically mislabels normal traffic.
+                # Use 'auto' (scikit-learn ≥1.3) or a low fixed value as fallback.
+                try:
+                    self.iso_forest = IsolationForest(
+                        n_estimators=100,
+                        contamination='auto',
+                        random_state=42,
+                        warm_start=False
+                    )
+                except (TypeError, ValueError):
+                    # scikit-learn < 1.3 does not support contamination='auto'
+                    self.iso_forest = IsolationForest(
+                        n_estimators=100,
+                        contamination=0.05,
+                        random_state=42,
+                        warm_start=False
+                    )
                 self.iso_forest.fit(train_matrix)
                 scores = -self.iso_forest.score_samples(calibration_matrix)
                 self.iso_threshold = float(np.percentile(scores, 95))
@@ -702,7 +738,18 @@ class StudentModel:
         }
         if len(sequence) >= MIN_SEQUENCE_CONTEXT:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
-                transformer_result['status'] = 'insufficient_signal'
+                # High unknown-template ratio signals novel endpoint scanning — treat as anomaly.
+                # Fallback: use transformer_threshold as a proxy for max_nll since per-project
+                # NLL history is not available in this scope.
+                unknown_penalty = unknown_template_ratio * float(self.transformer_threshold)
+                transformer_result = {
+                    'is_anomaly': 1,
+                    'score': unknown_penalty,
+                    'threshold': float(self.transformer_threshold),
+                    'status': 'unknown_penalty',
+                    'sequence_length': len(sequence),
+                    'context': transformer_context,
+                }
             else:
                 transformer_score, transformer_error = self._score_transformer_sequence(sequence)
                 if transformer_error:
@@ -753,7 +800,7 @@ class StudentModel:
         if rule_result.get('is_attack'):
             confidence = float(rule_result.get('confidence', 0.5))
             votes.append(1)
-            weights.append(max(confidence, 1.0))
+            weights.append(confidence)  # severity-tiered weight; no floor
             vote_names.append('rule')
 
         if iso_result.get('status') == 'active':
@@ -761,7 +808,7 @@ class StudentModel:
             weights.append(0.5)
             vote_names.append('iso')
 
-        if transformer_result.get('status') == 'active':
+        if transformer_result.get('status') in ('active', 'unknown_penalty'):
             votes.append(transformer_result['is_anomaly'])
             weights.append(0.7)
             vote_names.append('transformer')
@@ -774,10 +821,6 @@ class StudentModel:
         )
         is_anomaly = ensemble_score > 0.5
 
-        if rule_result.get('is_attack'):
-            ensemble_score = max(ensemble_score, float(rule_result.get('confidence', 1.0)), 0.95)
-            is_anomaly = True
-        
         return {
             'is_anomaly': is_anomaly,
             'anomaly_score': ensemble_score,
