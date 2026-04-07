@@ -132,18 +132,29 @@ class MultiTenantDetector:
             },
             "low_traffic": {
                 "warmup_threshold": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_WARMUP_THRESHOLD", "1000")),
-                "min_training_sequences": 30,
-                "min_if_feature_rows": 50,
+                "min_training_sequences": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_TRAINING_SEQUENCES", "30")),
+                "min_if_feature_rows": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_IF_FEATURE_ROWS", "50")),
                 "min_observed_hours": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS", "3")),
                 "min_calibration_samples": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_CALIBRATION_SAMPLES", "20")),
-                "min_distinct_templates": 5,
-                "max_single_template_ratio": 0.9,
+                "min_distinct_templates": int(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MIN_DISTINCT_TEMPLATES", "5")),
+                # Allow up to 0.95 for test/low-traffic projects where one endpoint dominates.
+                # Set MULTI_TENANT_LOW_TRAFFIC_MAX_TEMPLATE_RATIO=0.99 to bypass entirely.
+                "max_single_template_ratio": float(os.getenv("MULTI_TENANT_LOW_TRAFFIC_MAX_TEMPLATE_RATIO", "0.95")),
             },
         }
         
-        # Thread safety
-        self._lock = threading.RLock()
-        
+        # Thread safety: _registry_lock guards shared cross-project structures;
+        # per-project RLocks (keyed by project_id) guard per-project hot-path state.
+        self._registry_lock = threading.RLock()
+        self._project_locks: Dict[str, threading.RLock] = {}
+
+        # Background session expiry
+        self._last_cleanup: Dict[str, float] = {}   # project_id -> last cleanup timestamp
+        self._cleanup_interval = 60.0               # background sweep every 60s
+        self._cleanup_fallback_age = 300.0          # hot-path fallback if >5 min overdue
+        self._cleanup_stop = threading.Event()
+        self._cleanup_thread: Optional[threading.Thread] = None
+
         # Background training queue
         self._training_queue: List[str] = []
         self._training_thread: Optional[threading.Thread] = None
@@ -353,9 +364,14 @@ class MultiTenantDetector:
         # Remove from cache
         if project_id in self.students:
             del self.students[project_id]
-        if project_id in self.project_sessions:
-            del self.project_sessions[project_id]
-        
+        with self._project_lock(project_id):
+            if project_id in self.project_sessions:
+                del self.project_sessions[project_id]
+            self._last_cleanup.pop(project_id, None)
+        # Release per-project lock entry under registry lock
+        with self._registry_lock:
+            self._project_locks.pop(project_id, None)
+
         return self.project_manager.delete_project(project_id)
     
     # ========================================================================
@@ -697,7 +713,8 @@ class MultiTenantDetector:
 
         policy_score = 0.0
         if rule_result.get("is_attack"):
-            policy_score = max(float(rule_result.get("confidence", 1.0)), 0.95)
+            # Use severity-tiered confidence directly; no floor override
+            policy_score = float(rule_result.get("confidence", 0.5))
 
         normalized_scores = {
             "transformer": self._normalize_component_score("transformer", transformer_result),
@@ -1292,6 +1309,68 @@ class MultiTenantDetector:
         result['endpoint_manifest_class'] = manifest_match.get("classification") if manifest_match else None
         return result
     
+    # ------------------------------------------------------------------
+    # Background session expiry (Fix 5)
+    # ------------------------------------------------------------------
+
+    def start_background_cleanup(self):
+        """Start the background session-expiry thread."""
+        if self._cleanup_thread is not None and self._cleanup_thread.is_alive():
+            return
+        self._cleanup_stop.clear()
+        self._cleanup_thread = threading.Thread(
+            target=self._background_cleanup_loop,
+            daemon=True,
+            name="session-cleanup",
+        )
+        self._cleanup_thread.start()
+        logger.info("Background session-expiry thread started (interval=%ss)", self._cleanup_interval)
+
+    def stop_background_cleanup(self):
+        """Signal the background cleanup thread to stop and wait for it."""
+        self._cleanup_stop.set()
+        if self._cleanup_thread is not None:
+            self._cleanup_thread.join(timeout=5)
+            self._cleanup_thread = None
+
+    def _background_cleanup_loop(self):
+        """Sweep all projects for expired sessions every _cleanup_interval seconds."""
+        while not self._cleanup_stop.wait(timeout=self._cleanup_interval):
+            project_ids = list(self.project_sessions.keys())
+            for pid in project_ids:
+                self._evict_expired_sessions(pid)
+
+    def _evict_expired_sessions(self, project_id: str):
+        """Evict expired and overflow sessions for a single project (caller must not hold lock)."""
+        with self._project_lock(project_id):
+            sessions = self.project_sessions.get(project_id)
+            if not sessions:
+                return
+            now = time.time()
+            expired = [
+                sid for sid, s in sessions.items()
+                if now - s.get('last_seen', now) > self.session_ttl_seconds
+            ]
+            for sid in expired:
+                del sessions[sid]
+                runtime_metrics.increment("session_cache_evictions_total")
+            if len(sessions) > self.max_sessions_per_project:
+                overflow = sorted(sessions.items(), key=lambda kv: kv[1].get('last_seen', 0.0))
+                for sid, _ in overflow[: len(sessions) - self.max_sessions_per_project]:
+                    del sessions[sid]
+                    runtime_metrics.increment("session_cache_evictions_total")
+            self._last_cleanup[project_id] = now
+
+    # ------------------------------------------------------------------
+
+    def _project_lock(self, project_id: str) -> threading.RLock:
+        """Return the per-project RLock, creating it under registry lock if absent."""
+        if project_id not in self._project_locks:
+            with self._registry_lock:
+                if project_id not in self._project_locks:
+                    self._project_locks[project_id] = threading.RLock()
+        return self._project_locks[project_id]
+
     def _get_or_create_session(
         self,
         project_id: str,
@@ -1299,19 +1378,32 @@ class MultiTenantDetector:
         log_data: Dict
     ) -> Tuple[Dict, Dict]:
         """Get or create session tracking for a project/session"""
-        with self._lock:
+        with self._project_lock(project_id):
             if project_id not in self.project_sessions:
                 self.project_sessions[project_id] = {}
             now = time.time()
-            expired_sessions = [
-                existing_session_id
-                for existing_session_id, existing_session in self.project_sessions[project_id].items()
-                if now - existing_session.get('last_seen', now) > self.session_ttl_seconds
-            ]
-            for expired_session_id in expired_sessions:
-                del self.project_sessions[project_id][expired_session_id]
-                runtime_metrics.increment("session_cache_evictions_total")
-            
+
+            # Hot-path cleanup fallback: only run if background thread is overdue (>5 min).
+            # Normal expiry is handled by the background cleanup thread every 60s.
+            last = self._last_cleanup.get(project_id, 0.0)
+            if now - last > self._cleanup_fallback_age:
+                expired_sessions = [
+                    sid for sid, s in self.project_sessions[project_id].items()
+                    if now - s.get('last_seen', now) > self.session_ttl_seconds
+                ]
+                for expired_session_id in expired_sessions:
+                    del self.project_sessions[project_id][expired_session_id]
+                    runtime_metrics.increment("session_cache_evictions_total")
+                if len(self.project_sessions[project_id]) > self.max_sessions_per_project:
+                    oldest_sessions = sorted(
+                        self.project_sessions[project_id].items(),
+                        key=lambda item: item[1].get('last_seen', 0.0),
+                    )[: len(self.project_sessions[project_id]) - self.max_sessions_per_project]
+                    for oldest_session_id, _ in oldest_sessions:
+                        del self.project_sessions[project_id][oldest_session_id]
+                        runtime_metrics.increment("session_cache_evictions_total")
+                self._last_cleanup[project_id] = now
+
             if session_id not in self.project_sessions[project_id]:
                 self.project_sessions[project_id][session_id] = {
                     'templates': deque(maxlen=self.window_size),
@@ -1326,15 +1418,6 @@ class MultiTenantDetector:
                     'known_template_flags',
                     deque(maxlen=self.window_size),
                 )
-
-            if len(self.project_sessions[project_id]) > self.max_sessions_per_project:
-                oldest_sessions = sorted(
-                    self.project_sessions[project_id].items(),
-                    key=lambda item: item[1].get('last_seen', 0.0),
-                )[: len(self.project_sessions[project_id]) - self.max_sessions_per_project]
-                for oldest_session_id, _ in oldest_sessions:
-                    del self.project_sessions[project_id][oldest_session_id]
-                    runtime_metrics.increment("session_cache_evictions_total")
             
             session = self.project_sessions[project_id][session_id]
             
@@ -1435,7 +1518,7 @@ class MultiTenantDetector:
         features: np.ndarray
     ):
         """Collect training data for student model during warmup"""
-        with self._lock:
+        with self._project_lock(project_id):
             # Get or create student model for data collection
             if project_id not in self.students:
                 project_dir = self.project_manager.get_project_storage_path(project_id)
@@ -1471,7 +1554,7 @@ class MultiTenantDetector:
     
     def _maybe_trigger_student_training(self, project_id: str):
         """Check and trigger student training if needed"""
-        with self._lock:
+        with self._registry_lock:
             if project_id in self._training_queue:
                 return  # Already queued
             
@@ -1493,7 +1576,7 @@ class MultiTenantDetector:
     def _process_training_queue(self):
         """Process the training queue in background"""
         while True:
-            with self._lock:
+            with self._registry_lock:
                 if not self._training_queue:
                     return
                 project_id = self._training_queue.pop(0)
@@ -1503,11 +1586,15 @@ class MultiTenantDetector:
                 logger.info(f"\nStarting training for project: {project_id[:8]}...")
                 project = self.project_manager.get_project(project_id)
                 profile_settings = self._profile_settings_for_project(project) if project else self.profile_settings["standard"]
+                is_low_traffic = (project.traffic_profile if project else "standard") == "low_traffic"
                 success = student.train_from_teacher(
                     teacher_model=self.teacher,
-                    epochs=5,
-                    learning_rate=1e-4,
-                    distillation_alpha=0.5,
+                    # Low-traffic projects need more epochs to compensate for small datasets.
+                    epochs=15 if is_low_traffic else 5,
+                    # Slightly lower LR for small datasets to avoid overshooting.
+                    learning_rate=5e-5 if is_low_traffic else 1e-4,
+                    # Lean harder on teacher soft labels when data is scarce.
+                    distillation_alpha=0.7 if is_low_traffic else 0.5,
                     temperature=3.0,
                     min_training_sequences=profile_settings["min_training_sequences"],
                     min_if_feature_rows=profile_settings["min_if_feature_rows"],
@@ -1644,13 +1731,13 @@ class MultiTenantDetector:
     
     def reset_project_session(self, project_id: str, session_id: str):
         """Reset a specific session for a project"""
-        with self._lock:
+        with self._project_lock(project_id):
             if project_id in self.project_sessions:
                 if session_id in self.project_sessions[project_id]:
                     del self.project_sessions[project_id][session_id]
-    
+
     def reset_all_project_sessions(self, project_id: str):
         """Reset all sessions for a project"""
-        with self._lock:
+        with self._project_lock(project_id):
             if project_id in self.project_sessions:
                 self.project_sessions[project_id] = {}

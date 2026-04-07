@@ -40,6 +40,25 @@ spec:
               value: INFO
             - name: ANOMALY_SERVICE_PORT
               value: "8001"
+            # ── Low-traffic profile tuning ──────────────────────────────────
+            # Lower thresholds for projects created with traffic_profile=low_traffic.
+            # Remove or increase these values to tighten gates in production.
+            - name: MULTI_TENANT_LOW_TRAFFIC_WARMUP_THRESHOLD
+              value: "200"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MIN_OBSERVED_HOURS
+              value: "1"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MIN_CALIBRATION_SAMPLES
+              value: "10"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MIN_TRAINING_SEQUENCES
+              value: "20"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MIN_IF_FEATURE_ROWS
+              value: "30"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MIN_DISTINCT_TEMPLATES
+              value: "3"
+            - name: MULTI_TENANT_LOW_TRAFFIC_MAX_TEMPLATE_RATIO
+              value: "0.97"
+            - name: MULTI_TENANT_MAX_DAILY_THRESHOLD_DELTA
+              value: "0.3"
           volumeMounts:
             - name: model-artifacts
               mountPath: /app/artifacts/ensemble_model_export
