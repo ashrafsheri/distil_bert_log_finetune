@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -14,6 +15,11 @@ os.environ.setdefault(
 )
 
 from app.services.log_service import LogService
+
+
+def _now_iso() -> str:
+    """Return the current UTC time as an ISO-8601 string (no microseconds)."""
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def test_extract_log_candidates_rejects_arbitrary_json_records() -> None:
@@ -86,20 +92,21 @@ def test_should_skip_detection_for_health_checks() -> None:
 
 
 def test_classify_traffic_marks_probe_and_known_attack_flags() -> None:
+    now = _now_iso()
     probe = LogService.classify_traffic(
-        parsed_log={"path": "/health", "timestamp": "2026-04-01T12:00:00+00:00"},
+        parsed_log={"path": "/health", "timestamp": now},
         source_record={"path": "/health"},
         raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /health HTTP/1.1" 200 0',
-        event_time="2026-04-01T12:00:00+00:00",
+        event_time=now,
     )
     attack = LogService.classify_traffic(
         parsed_log={
             "path": "/index.php?lang=../../../../../../etc/passwd",
-            "timestamp": "2026-04-01T12:00:00+00:00",
+            "timestamp": now,
         },
         source_record={"tag": "edge"},
         raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /index.php?lang=../../../../../../etc/passwd HTTP/1.1" 404 0',
-        event_time="2026-04-01T12:00:00+00:00",
+        event_time=now,
     )
 
     assert probe["traffic_class"] == "internal_probe"
@@ -112,17 +119,18 @@ def test_classify_traffic_marks_probe_and_known_attack_flags() -> None:
 
 
 def test_classify_traffic_excludes_transport_and_signed_asset_noise() -> None:
+    now = _now_iso()
     transport = LogService.classify_traffic(
-        parsed_log={"path": "/socket.io/?EIO=4&transport=polling", "timestamp": "2026-04-01T12:00:00+00:00"},
+        parsed_log={"path": "/socket.io/?EIO=4&transport=polling", "timestamp": now},
         source_record={"path": "/socket.io/?EIO=4&transport=polling"},
         raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /socket.io/?EIO=4&transport=polling HTTP/1.1" 200 0',
-        event_time="2026-04-01T12:00:00+00:00",
+        event_time=now,
     )
     signed_asset = LogService.classify_traffic(
-        parsed_log={"path": "/storage/v1/object/sign/a/b.png?token=abc", "timestamp": "2026-04-01T12:00:00+00:00"},
+        parsed_log={"path": "/storage/v1/object/sign/a/b.png?token=abc", "timestamp": now},
         source_record={"path": "/storage/v1/object/sign/a/b.png?token=abc"},
         raw_log='127.0.0.1 - - [01/Apr/2026:12:00:00 +0000] "GET /storage/v1/object/sign/a/b.png?token=abc HTTP/1.1" 200 0',
-        event_time="2026-04-01T12:00:00+00:00",
+        event_time=now,
     )
 
     assert transport["traffic_class"] == "transport_noise"
