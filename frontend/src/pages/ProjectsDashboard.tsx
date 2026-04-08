@@ -14,6 +14,12 @@ const phaseBadgeClass = (phase?: string) => {
   return 'border-sky-400/18 bg-sky-500/10 text-sky-200';
 };
 
+const phaseAccentColor = (phase?: string): string => {
+  if (!phase || phase === 'warmup') return 'rgba(251,191,36,0.55)';
+  if (phase === 'ready' || phase === 'active') return 'rgba(52,211,153,0.55)';
+  return 'rgba(56,189,248,0.45)';
+};
+
 const ProjectsDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -446,116 +452,150 @@ const ProjectsDashboard: React.FC = () => {
                 const orgLabel = organizationMap.get(project.org_id) || project.org_id;
                 const blockers = health?.student_training_blockers || [];
 
+                const warmupPct = health ? Math.max(0, Math.min(100, health.warmup_progress)) : 0;
+                const accentColor = phaseAccentColor(phase);
+
                 return (
                   <article
                     key={project.id}
-                    className="rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(12,20,38,0.96),rgba(8,15,29,0.94))] p-6 shadow-[0_20px_48px_rgba(2,8,23,0.38)]"
+                    className="overflow-hidden rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(12,20,38,0.96),rgba(8,15,29,0.94))] shadow-[0_20px_48px_rgba(2,8,23,0.38)]"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h2 className="text-xl font-semibold text-slate-50">{project.name}</h2>
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${phaseBadgeClass(phase)}`}>
-                            {phase}
-                          </span>
-                          {health?.has_student_model && (
-                            <span className="inline-flex rounded-full border border-emerald-400/18 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-200">
-                              Student model active
+                    {/* Phase accent bar */}
+                    <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${accentColor}, transparent 70%)` }} />
+
+                    <div className="p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h2 className="text-xl font-semibold text-slate-50">{project.name}</h2>
+                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${phaseBadgeClass(phase)}`}>
+                              {phase}
                             </span>
+                            {health?.has_student_model && (
+                              <span className="inline-flex rounded-full border border-emerald-400/18 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200">
+                                Student model
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                            <span>{orgLabel}</span>
+                            <span>·</span>
+                            <span className="font-mono truncate max-w-[200px]">{project.id}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Warmup progress bar */}
+                      {health && (
+                        <div className="mt-5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs uppercase tracking-[0.16em] text-slate-500">Warmup progress</span>
+                            <span className={`text-xs font-semibold font-mono ${phase === 'active' ? 'text-emerald-300' : 'text-amber-300'}`}>
+                              {warmupPct.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${warmupPct}%`,
+                                background: phase === 'active'
+                                  ? 'linear-gradient(90deg, rgba(52,211,153,0.9), rgba(16,185,129,0.7))'
+                                  : 'linear-gradient(90deg, rgba(251,191,36,0.9), rgba(245,158,11,0.6))',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Log type</div>
+                          <div className="mt-1.5 text-sm font-semibold text-slate-100 capitalize">{project.log_type}</div>
+                        </div>
+                        <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Traffic profile</div>
+                          <div className="mt-1.5 text-sm font-semibold text-slate-100 capitalize">{(health?.traffic_profile || project.traffic_profile || 'standard').replace('_', ' ')}</div>
+                        </div>
+                        <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Members</div>
+                          <div className="mt-1.5 text-sm font-semibold text-slate-100">
+                            {project.member_count} member{project.member_count === 1 ? '' : 's'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {health && (
+                        <div className="mt-4 rounded-2xl border border-white/6 bg-white/[0.02] px-4 py-3">
+                          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
+                            <span>Baseline eligible: <strong className="text-slate-200">{health.baseline_eligible_count.toLocaleString()}</strong></span>
+                            <span>Parse failure: <strong className="text-slate-200">{(health.parse_failure_rate * 100).toFixed(1)}%</strong></span>
+                            {health.calibration_sample_count !== undefined && (
+                              <span>Calibration: <strong className="text-slate-200">{health.calibration_sample_count}</strong></span>
+                            )}
+                          </div>
+                          {blockers.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {blockers.map(b => (
+                                <span key={b} className="inline-flex items-center gap-1 rounded-full border border-amber-400/22 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-amber-300">
+                                  <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                  {b.replace(/_/g, ' ')}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-400">
-                          <span>{orgLabel}</span>
-                          <span>•</span>
-                          <span className="font-mono">{project.id}</span>
-                        </div>
-                      </div>
-                    </div>
+                      )}
 
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Log type</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-100">{project.log_type}</div>
-                      </div>
-                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Traffic</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-100">{health?.traffic_profile || project.traffic_profile || 'standard'}</div>
-                      </div>
-                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Warmup</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-100">
-                          {health ? `${health.warmup_progress.toFixed(1)}%` : 'N/A'}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Members</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-100">
-                          {project.member_count} member{project.member_count === 1 ? '' : 's'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {health && (
-                      <div className="mt-4 rounded-2xl border border-white/6 bg-white/[0.02] p-4 text-sm text-slate-300">
-                        <div className="flex flex-wrap gap-4">
-                          <span>Baseline eligible: <strong className="text-slate-100">{health.baseline_eligible_count.toLocaleString()}</strong></span>
-                          <span>Parse failure rate: <strong className="text-slate-100">{(health.parse_failure_rate * 100).toFixed(1)}%</strong></span>
-                          {health.calibration_sample_count !== undefined && (
-                            <span>Calibration samples: <strong className="text-slate-100">{health.calibration_sample_count}</strong></span>
-                          )}
-                        </div>
-                        {blockers.length > 0 && (
-                          <div className="mt-3 text-amber-200">Blockers: {blockers.join(', ')}</div>
+                      <div className="mt-5 flex flex-wrap gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/dashboard/${project.id}`)}
+                          className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px]"
+                        >
+                          View Dashboard
+                        </button>
+                        {(isAdmin || isManager) && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/projects/${project.id}/members`)}
+                            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+                          >
+                            Members
+                          </button>
+                        )}
+                        {(isAdmin || isManager) && (
+                          <button
+                            type="button"
+                            onClick={() => handleChangeLogType(project)}
+                            className="rounded-2xl border border-amber-400/18 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/16"
+                          >
+                            Log Type
+                          </button>
+                        )}
+                        {(isAdmin || isManager) && health && health.phase === 'warmup' && !health.has_student_model && (
+                          <button
+                            type="button"
+                            onClick={() => handleOptimizeWarmup(project)}
+                            disabled={optimizingWarmupFor === project.id}
+                            className="rounded-2xl border border-sky-400/18 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {optimizingWarmupFor === project.id ? 'Optimizing…' : 'Optimize Warmup'}
+                          </button>
+                        )}
+                        {(isAdmin || isManager) && (
+                          <button
+                            type="button"
+                            onClick={() => handleRegenerateApiKey(project.id, project.name)}
+                            disabled={regeneratingKeyFor === project.id}
+                            className="rounded-2xl border border-emerald-400/18 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/16 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {regeneratingKeyFor === project.id ? 'Regenerating…' : 'Regen Key'}
+                          </button>
                         )}
                       </div>
-                    )}
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/dashboard/${project.id}`)}
-                        className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(14,165,233,0.22)] transition hover:translate-y-[-1px]"
-                      >
-                        View Dashboard
-                      </button>
-                      {(isAdmin || isManager) && (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/projects/${project.id}/members`)}
-                          className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
-                        >
-                          Manage Members
-                        </button>
-                      )}
-                      {(isAdmin || isManager) && (
-                        <button
-                          type="button"
-                          onClick={() => handleChangeLogType(project)}
-                          className="rounded-2xl border border-amber-400/18 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/16"
-                        >
-                          Change Log Type
-                        </button>
-                      )}
-                      {(isAdmin || isManager) && health && health.phase === 'warmup' && !health.has_student_model && (
-                        <button
-                          type="button"
-                          onClick={() => handleOptimizeWarmup(project)}
-                          disabled={optimizingWarmupFor === project.id}
-                          className="rounded-2xl border border-sky-400/18 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/16 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {optimizingWarmupFor === project.id ? 'Optimizing...' : 'Optimize Warmup'}
-                        </button>
-                      )}
-                      {(isAdmin || isManager) && (
-                        <button
-                          type="button"
-                          onClick={() => handleRegenerateApiKey(project.id, project.name)}
-                          disabled={regeneratingKeyFor === project.id}
-                          className="rounded-2xl border border-emerald-400/18 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/16 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {regeneratingKeyFor === project.id ? 'Regenerating...' : 'Regenerate Key'}
-                        </button>
-                      )}
                     </div>
                   </article>
                 );

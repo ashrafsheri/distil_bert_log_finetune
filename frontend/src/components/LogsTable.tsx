@@ -21,26 +21,6 @@ const getStatusColor = (decisionState: DecisionState, statusCode: number): strin
   return 'var(--vt-muted)';
 };
 
-// Helper function to calculate row classes
-const getRowClasses = (
-  decisionState: DecisionState,
-  expandedRow: number | null,
-  index: number,
-  isFocused: boolean,
-  highlightTransformerTrail: boolean,
-  isTransformerAnomaly: boolean
-): string => {
-  const classes = [
-    'group border-b border-white/6 transition-all duration-200 hover:bg-white/[0.03]',
-    decisionState === 'threat' ? 'bg-rose-500/[0.07] shadow-[inset_3px_0_0_rgba(251,113,133,0.9)]' : '',
-    decisionState === 'parse_failed' ? 'bg-cyan-400/[0.06] shadow-[inset_3px_0_0_rgba(34,211,238,0.85)]' : '',
-    decisionState === 'detection_failed' ? 'bg-amber-400/[0.06] shadow-[inset_3px_0_0_rgba(251,191,36,0.85)]' : '',
-    expandedRow === index ? 'bg-sky-500/[0.05]' : '',
-    isFocused ? 'bg-amber-400/[0.05] ring-1 ring-amber-400/20' : '',
-    highlightTransformerTrail && isTransformerAnomaly ? 'shadow-[inset_3px_0_0_rgba(251,191,36,0.75)]' : '',
-  ];
-  return classes.filter(Boolean).join(' ');
-};
 
 // Helper function to get progress bar gradient
 const getProgressGradient = (decisionState: DecisionState): string => {
@@ -136,16 +116,17 @@ const calculateThresholdPercentage = (score: number, threshold: number): string 
 
 // Helper component for action buttons
 const ActionButtons: React.FC<{
-  index: number;
-  expandedRow: number | null;
+  rowId: string;
+  expandedRowId: string | null;
   isFocused: boolean;
   ipAddress: string;
   correctingLogs: Set<string>;
   canCorrectLogs: boolean;
-  onToggleRow: (index: number) => void;
+  onToggleRow: (id: string) => void;
   onFocusIp?: (ip: string | null) => void;
   onCorrectLog?: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
-}> = ({ index, expandedRow, isFocused, ipAddress, correctingLogs, canCorrectLogs, onToggleRow, onFocusIp, onCorrectLog }) => {
+}> = ({ rowId, expandedRowId, isFocused, ipAddress, correctingLogs, canCorrectLogs, onToggleRow, onFocusIp, onCorrectLog }) => {
+  const isExpanded = expandedRowId === rowId;
   const handleFocusClick = () => {
     if (onFocusIp) {
       onFocusIp(isFocused ? null : ipAddress);
@@ -155,11 +136,11 @@ const ActionButtons: React.FC<{
   return (
     <div className="flex items-center gap-2">
       <button
-        onClick={() => onToggleRow(index)}
+        onClick={() => onToggleRow(rowId)}
         className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
-        title={expandedRow === index ? "Hide details" : "Show details"}
+        title={isExpanded ? "Hide details" : "Show details"}
       >
-        {expandedRow === index ? (
+        {isExpanded ? (
           <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -247,38 +228,44 @@ const CorrectLogButtons: React.FC<{
   );
 };
 
+// Stable per-log ID that doesn't shift when new logs arrive
+const getLogRowId = (log: LogEntry): string =>
+  `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-${log.statusCode}`;
+
 // Helper function to render table row
 const renderLogRow = (
   log: LogEntry,
-  index: number,
   props: {
-    expandedRow: number | null;
+    expandedRowId: string | null;
     focusedIp: string | null;
     highlightTransformerTrail: boolean;
     trailLookup: Map<string, LogEntry[]>;
     correctingLogs: Set<string>;
     canCorrectLogs: boolean;
-    toggleRow: (index: number) => void;
+    toggleRow: (id: string) => void;
     onFocusIp?: (ip: string | null) => void;
     handleCorrectLog: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
   }
 ) => {
+  const rowId = getLogRowId(log);
+  const isExpanded = props.expandedRowId === rowId;
   const isTransformerAnomaly = log.anomaly_details?.transformer?.is_anomaly === 1;
   const transformerSequenceLength = log.anomaly_details?.transformer?.sequence_length ?? 0;
   const transformerContext = log.anomaly_details?.transformer?.context;
   const decisionState = getDecisionState(log);
   const isFocused = props.focusedIp ? log.ipAddress === props.focusedIp : false;
   const relatedActivity = props.trailLookup.get(log.ipAddress) ?? [];
-  const rowClasses = getRowClasses(
-    decisionState,
-    props.expandedRow,
-    index,
-    isFocused,
-    props.highlightTransformerTrail,
-    isTransformerAnomaly
-  );
+  const rowClasses = [
+    'group border-b border-white/6 transition-all duration-200 hover:bg-white/[0.03]',
+    decisionState === 'threat' ? 'bg-rose-500/[0.07] shadow-[inset_3px_0_0_rgba(251,113,133,0.9)]' : '',
+    decisionState === 'parse_failed' ? 'bg-cyan-400/[0.06] shadow-[inset_3px_0_0_rgba(34,211,238,0.85)]' : '',
+    decisionState === 'detection_failed' ? 'bg-amber-400/[0.06] shadow-[inset_3px_0_0_rgba(251,191,36,0.85)]' : '',
+    isExpanded ? 'bg-sky-500/[0.05]' : '',
+    isFocused ? 'bg-amber-400/[0.05] ring-1 ring-amber-400/20' : '',
+    props.highlightTransformerTrail && isTransformerAnomaly ? 'shadow-[inset_3px_0_0_rgba(251,191,36,0.75)]' : '',
+  ].filter(Boolean).join(' ');
 
-  return { decisionState, isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
+  return { rowId, isExpanded, decisionState, isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
 };
 
 interface LogsTableProps {
@@ -300,10 +287,10 @@ const LogsTable: React.FC<LogsTableProps> = ({
   onCorrectLog,
   canCorrectLogs = false,
 }) => {
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  // Use stable string ID so the expanded row doesn't jump when new logs prepend
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [correctingLogs, setCorrectingLogs] = useState<Set<string>>(new Set());
   const datasetForTrail = sourceLogs ?? logs;
-
 
   const trailLookup = useMemo(() => {
     const map = new Map<string, LogEntry[]>();
@@ -317,8 +304,8 @@ const LogsTable: React.FC<LogsTableProps> = ({
     return map;
   }, [datasetForTrail]);
 
-  const toggleRow = (index: number) => {
-    setExpandedRow(expandedRow === index ? null : index);
+  const toggleRow = (id: string) => {
+    setExpandedRowId(expandedRowId === id ? null : id);
   };
 
   const handleCorrectLog = async (ip: string, status: 'clean' | 'malicious') => {
@@ -390,9 +377,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {logs.map((log, index) => {
-              const rowData = renderLogRow(log, index, {
-                expandedRow,
+            {logs.map((log) => {
+              const rowData = renderLogRow(log, {
+                expandedRowId,
                 focusedIp,
                 highlightTransformerTrail,
                 trailLookup,
@@ -402,10 +389,10 @@ const LogsTable: React.FC<LogsTableProps> = ({
                 onFocusIp,
                 handleCorrectLog,
               });
-              
-              const { decisionState, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
+
+              const { rowId, isExpanded, decisionState, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses } = rowData;
               const decisionBadge = getDecisionBadge(decisionState);
-              const rowKey = `${log.timestamp}-${log.ipAddress}-${log.apiAccessed}-${log.statusCode}`;
+              const rowKey = rowId;
               const anomalyDetails = log.anomaly_details;
               const ruleBased = anomalyDetails?.rule_based;
               const isolationForest = anomalyDetails?.isolation_forest;
@@ -527,8 +514,8 @@ const LogsTable: React.FC<LogsTableProps> = ({
                   </td>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
                     <ActionButtons
-                      index={index}
-                      expandedRow={expandedRow}
+                      rowId={rowId}
+                      expandedRowId={expandedRowId}
                       isFocused={isFocused}
                       ipAddress={log.ipAddress}
                       correctingLogs={correctingLogs}
@@ -539,7 +526,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
                     />
                   </td>
                 </tr>
-                {expandedRow === index && (
+                {isExpanded && (
                   <tr className="animate-slide-down bg-[linear-gradient(180deg,rgba(8,15,29,0.96),rgba(12,20,38,0.92))]">
                     <td colSpan={7} className="px-3 sm:px-4 lg:px-6 py-6">
                       <div className="space-y-6">
