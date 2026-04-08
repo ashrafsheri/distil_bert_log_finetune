@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: read      # needed to download artifacts from the CI workflow run
 
 env:
   GHCR_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
@@ -19,10 +20,30 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      # 1 Checkout the repo
+      # ── 1. Download the build matrix written by CI ──────────────────────
+      - name: Download build matrix
+        uses: actions/download-artifact@v4
+        with:
+          name: build-matrix
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      # ── 2. Parse what was actually built ─────────────────────────────────
+      - name: Parse build matrix
+        id: matrix
+        run: |
+          BACKEND=$(jq -r '.backend' build-matrix.json)
+          FRONTEND=$(jq -r '.frontend' build-matrix.json)
+          ANOMALY=$(jq -r '.anomaly'  build-matrix.json)
+          echo "backend=$BACKEND"  >> $GITHUB_OUTPUT
+          echo "frontend=$FRONTEND" >> $GITHUB_OUTPUT
+          echo "anomaly=$ANOMALY"   >> $GITHUB_OUTPUT
+          echo "Built → backend=${BACKEND}  frontend=${FRONTEND}  anomaly=${ANOMALY}"
+
+      # ── 3. Checkout repo (for k8s manifests) ─────────────────────────────
       - uses: actions/checkout@v4
 
-      # 2 Deploy to k3s server via SSH
+      # ── 4. Deploy to k3s via SSH ──────────────────────────────────────────
       - name: Deploy to K3s Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -32,8 +53,10 @@ jobs:
           script: |
             set -e
 
-            # Navigate to project directory
-            cd ${{ secrets.PROJECT_DIR || '~/distil_bert_log_finetune' }}
+            BACKEND_CHANGED=${{ steps.matrix.outputs.backend }}
+            FRONTEND_CHANGED=${{ steps.matrix.outputs.frontend }}
+            ANOMALY_CHANGED=${{ steps.matrix.outputs.anomaly }}
+            COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
 
             rollout_or_debug() {
               local deployment="$1"
@@ -49,13 +72,14 @@ jobs:
               fi
             }
 
-            # Pull latest code
+            # Navigate to project directory and pull latest manifests
+            cd ${{ secrets.PROJECT_DIR || '~/distil_bert_log_finetune' }}
             git pull origin main
 
             # Ensure namespace exists
             sudo kubectl create namespace logguard 2>/dev/null || true
 
-            # Create/update GHCR image pull secret
+            # Refresh GHCR pull secret
             sudo kubectl delete secret ghcr-secret -n logguard 2>/dev/null || true
             sudo kubectl create secret docker-registry ghcr-secret \
               --docker-server=ghcr.io \
@@ -63,7 +87,7 @@ jobs:
               --docker-password=${{ secrets.GHCR_PAT }} \
               -n logguard
 
-            # Create/update Firebase service account secret (if provided)
+            # Refresh Firebase service account secret if present
             if [ -f backend/app/serviceAccountKey.json ]; then
               sudo kubectl delete secret firebase-secret -n logguard 2>/dev/null || true
               sudo kubectl create secret generic firebase-secret \
@@ -71,7 +95,7 @@ jobs:
                 -n logguard
             fi
 
-            # Apply all K8s manifests
+            # Apply all k8s manifests (idempotent; cheap even when nothing changed)
             sudo kubectl apply -f k8s/namespace.yaml
             sudo kubectl apply -f k8s/postgres-secret.yaml
             sudo kubectl apply -f k8s/backend-secret.yaml
@@ -91,27 +115,44 @@ jobs:
             sudo kubectl apply -f k8s/frontend-service.yaml
             sudo kubectl apply -f k8s/ingress.yaml
 
-            # Update images with the specific commit SHA
-            COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
-            sudo kubectl set image deployment/backend \
-              backend=${{ env.GHCR_IMAGE_PREFIX }}/backend:${COMMIT_SHA} \
-              -n logguard
-            sudo kubectl set image deployment/frontend \
-              frontend=${{ env.GHCR_IMAGE_PREFIX }}/frontend:${COMMIT_SHA} \
-              -n logguard
-            sudo kubectl set image deployment/anomaly-detection \
-              anomaly-detection=${{ env.GHCR_IMAGE_PREFIX }}/anomaly-detection:${COMMIT_SHA} \
-              -n logguard
+            # Update images only for services that were rebuilt in this CI run
+            if [ "$BACKEND_CHANGED" = "true" ]; then
+              echo "→ Updating backend image to ${COMMIT_SHA}"
+              sudo kubectl set image deployment/backend \
+                backend=${{ env.GHCR_IMAGE_PREFIX }}/backend:${COMMIT_SHA} \
+                -n logguard
+            fi
 
-            # Wait for rollouts to complete
-            rollout_or_debug postgres 180s
-            rollout_or_debug elasticsearch 300s
-            rollout_or_debug backend 300s
-            rollout_or_debug frontend 180s
-            rollout_or_debug anomaly-detection 300s
+            if [ "$FRONTEND_CHANGED" = "true" ]; then
+              echo "→ Updating frontend image to ${COMMIT_SHA}"
+              sudo kubectl set image deployment/frontend \
+                frontend=${{ env.GHCR_IMAGE_PREFIX }}/frontend:${COMMIT_SHA} \
+                -n logguard
+            fi
 
-            # Show deployment status
+            if [ "$ANOMALY_CHANGED" = "true" ]; then
+              echo "→ Updating anomaly-detection image to ${COMMIT_SHA}"
+              sudo kubectl set image deployment/anomaly-detection \
+                anomaly-detection=${{ env.GHCR_IMAGE_PREFIX }}/anomaly-detection:${COMMIT_SHA} \
+                -n logguard
+            fi
+
+            # Wait for infra rollouts (always — these are lightweight if unchanged)
+            rollout_or_debug postgres       180s
+            rollout_or_debug elasticsearch  300s
+
+            # Wait for app rollouts only for services that were updated
+            if [ "$BACKEND_CHANGED" = "true" ]; then
+              rollout_or_debug backend 300s
+            fi
+            if [ "$FRONTEND_CHANGED" = "true" ]; then
+              rollout_or_debug frontend 180s
+            fi
+            if [ "$ANOMALY_CHANGED" = "true" ]; then
+              rollout_or_debug anomaly-detection 300s
+            fi
+
             echo "=== Deployment Status ==="
-            sudo kubectl get pods -n logguard
+            sudo kubectl get pods     -n logguard
             sudo kubectl get services -n logguard
-            sudo kubectl get ingress -n logguard
+            sudo kubectl get ingress  -n logguard
