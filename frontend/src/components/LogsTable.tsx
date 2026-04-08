@@ -125,7 +125,9 @@ const ActionButtons: React.FC<{
   onToggleRow: (id: string) => void;
   onFocusIp?: (ip: string | null) => void;
   onCorrectLog?: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
-}> = ({ rowId, expandedRowId, isFocused, ipAddress, correctingLogs, canCorrectLogs, onToggleRow, onFocusIp, onCorrectLog }) => {
+  /** When provided, the expand button opens the detail panel instead of the inline row */
+  onSelectRow?: () => void;
+}> = ({ rowId, expandedRowId, isFocused, ipAddress, correctingLogs, canCorrectLogs, onToggleRow, onFocusIp, onCorrectLog, onSelectRow }) => {
   const isExpanded = expandedRowId === rowId;
   const handleFocusClick = () => {
     if (onFocusIp) {
@@ -138,12 +140,20 @@ const ActionButtons: React.FC<{
       <button
         onClick={(event) => {
           event.stopPropagation();
-          onToggleRow(rowId);
+          if (onSelectRow) {
+            onSelectRow();
+          } else {
+            onToggleRow(rowId);
+          }
         }}
         className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
-        title={isExpanded ? "Hide details" : "Show details"}
+        title={onSelectRow ? "Open log detail" : isExpanded ? "Hide details" : "Show details"}
       >
-        {isExpanded ? (
+        {onSelectRow ? (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        ) : isExpanded ? (
           <svg className="w-5 h-5 transform rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -546,10 +556,11 @@ const LogsTable: React.FC<LogsTableProps> = ({
                       onToggleRow={toggleRow}
                       onFocusIp={onFocusIp}
                       onCorrectLog={handleCorrectLog}
+                      onSelectRow={onRowClick ? () => onRowClick(log) : undefined}
                     />
                   </td>
                 </tr>
-                {isExpanded && (
+                {isExpanded && !onRowClick && (
                   <tr className="animate-slide-down bg-[linear-gradient(180deg,rgba(8,15,29,0.96),rgba(12,20,38,0.92))]">
                     <td colSpan={7} className="px-3 sm:px-4 lg:px-6 py-6">
                       <div className="space-y-6">
