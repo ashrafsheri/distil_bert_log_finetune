@@ -136,7 +136,10 @@ const ActionButtons: React.FC<{
   return (
     <div className="flex items-center gap-2">
       <button
-        onClick={() => onToggleRow(rowId)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleRow(rowId);
+        }}
         className="p-2 text-vt-primary hover:text-vt-primary/80 hover:bg-vt-primary/10 rounded-lg transition-all duration-200"
         title={isExpanded ? "Hide details" : "Show details"}
       >
@@ -151,7 +154,10 @@ const ActionButtons: React.FC<{
         )}
       </button>
       <button
-        onClick={handleFocusClick}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleFocusClick();
+        }}
         className={`p-2 rounded-lg transition-all duration-200 ${
           isFocused
             ? 'bg-vt-warning/20 text-vt-warning hover:bg-vt-warning/30'
@@ -185,7 +191,10 @@ const CorrectLogButtons: React.FC<{
   return (
     <div className="flex items-center gap-1 ml-1 border-l border-vt-muted/20 pl-1.5">
       <button
-        onClick={() => onCorrectLog(ipAddress, 'clean')}
+        onClick={(event) => {
+          event.stopPropagation();
+          onCorrectLog(ipAddress, 'clean');
+        }}
         disabled={isLoading}
         className={`p-1.5 rounded transition-all duration-200 ${
           isLoading
@@ -205,7 +214,10 @@ const CorrectLogButtons: React.FC<{
         )}
       </button>
       <button
-        onClick={() => onCorrectLog(ipAddress, 'malicious')}
+        onClick={(event) => {
+          event.stopPropagation();
+          onCorrectLog(ipAddress, 'malicious');
+        }}
         disabled={isLoading}
         className={`p-1.5 rounded transition-all duration-200 ${
           isLoading
@@ -237,6 +249,8 @@ const renderLogRow = (
   log: LogEntry,
   props: {
     expandedRowId: string | null;
+    clickable?: boolean;
+    selectedLogId?: string;
     focusedIp: string | null;
     highlightTransformerTrail: boolean;
     trailLookup: Map<string, LogEntry[]>;
@@ -254,15 +268,18 @@ const renderLogRow = (
   const transformerContext = log.anomaly_details?.transformer?.context;
   const decisionState = getDecisionState(log);
   const isFocused = props.focusedIp ? log.ipAddress === props.focusedIp : false;
+  const isSelected = props.selectedLogId === rowId;
   const relatedActivity = props.trailLookup.get(log.ipAddress) ?? [];
   const rowClasses = [
     'group border-b border-white/6 transition-all duration-200 hover:bg-white/[0.03]',
+    props.clickable ? 'cursor-pointer' : '',
     decisionState === 'threat' ? 'bg-rose-500/[0.07] shadow-[inset_3px_0_0_rgba(251,113,133,0.9)]' : '',
     decisionState === 'parse_failed' ? 'bg-cyan-400/[0.06] shadow-[inset_3px_0_0_rgba(34,211,238,0.85)]' : '',
     decisionState === 'detection_failed' ? 'bg-amber-400/[0.06] shadow-[inset_3px_0_0_rgba(251,191,36,0.85)]' : '',
     isExpanded ? 'bg-sky-500/[0.05]' : '',
     isFocused ? 'bg-amber-400/[0.05] ring-1 ring-amber-400/20' : '',
     props.highlightTransformerTrail && isTransformerAnomaly ? 'shadow-[inset_3px_0_0_rgba(251,191,36,0.75)]' : '',
+    isSelected ? 'log-row--selected' : '',
   ].filter(Boolean).join(' ');
 
   return { rowId, isExpanded, decisionState, isTransformerAnomaly, transformerSequenceLength, transformerContext, isFocused, relatedActivity, rowClasses };
@@ -276,6 +293,8 @@ interface LogsTableProps {
   highlightTransformerTrail?: boolean;
   onCorrectLog?: (ip: string, status: 'clean' | 'malicious') => Promise<void>;
   canCorrectLogs?: boolean; // Whether user has permission to correct logs
+  onRowClick?: (log: LogEntry) => void;
+  selectedLogId?: string;
 }
 
 const LogsTable: React.FC<LogsTableProps> = ({
@@ -286,6 +305,8 @@ const LogsTable: React.FC<LogsTableProps> = ({
   highlightTransformerTrail = false,
   onCorrectLog,
   canCorrectLogs = false,
+  onRowClick,
+  selectedLogId,
 }) => {
   // Use stable string ID so the expanded row doesn't jump when new logs prepend
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -380,6 +401,8 @@ const LogsTable: React.FC<LogsTableProps> = ({
             {logs.map((log) => {
               const rowData = renderLogRow(log, {
                 expandedRowId,
+                clickable: Boolean(onRowClick),
+                selectedLogId,
                 focusedIp,
                 highlightTransformerTrail,
                 trailLookup,
@@ -413,7 +436,7 @@ const LogsTable: React.FC<LogsTableProps> = ({
 
               return (
                 <React.Fragment key={rowKey}>
-                  <tr className={rowClasses}>
+                  <tr className={rowClasses} onClick={onRowClick ? () => onRowClick(log) : undefined}>
                   <td className="px-3 sm:px-4 lg:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-vt-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
