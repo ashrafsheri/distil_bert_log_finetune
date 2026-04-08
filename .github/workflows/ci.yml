@@ -2,13 +2,13 @@ name: CI-GHCR
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - backend/**
       - frontend/**
       - k8s/**
       - realtime_anomaly_detection/**
-      - .github/workflows/**
+      - .github/workflows/ci.yml
 
 permissions:
   contents: read
@@ -18,21 +18,45 @@ env:
   GHCR_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  build:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Detect which service directories changed so we only build what's needed.
+  # ──────────────────────────────────────────────────────────────────────────
+  detect-changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      anomaly:  ${{ steps.filter.outputs.anomaly }}
     steps:
-      # 1 Checkout repository
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2        # paths-filter needs at least 2 commits
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            anomaly:
+              - 'realtime_anomaly_detection/**'
+              - '.github/workflows/ci.yml'
 
-      # 2 Set up Docker Buildx
+  # ──────────────────────────────────────────────────────────────────────────
+  # Per-service build jobs — each runs only when its paths changed.
+  # ──────────────────────────────────────────────────────────────────────────
+  build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-
-      # 3 Login to GHCR
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # 4 Build & Push Backend
       - name: Build & Push Backend
         run: |
           docker buildx build \
@@ -40,7 +64,15 @@ jobs:
             -t $GHCR_IMAGE_PREFIX/backend:latest \
             --push backend
 
-      # 5 Build & Push Frontend
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build & Push Frontend
         run: |
           docker buildx build \
@@ -55,10 +87,44 @@ jobs:
             -t $GHCR_IMAGE_PREFIX/frontend:latest \
             --push frontend
 
-      # 6 Build & Push Anomaly Detection
+  build-anomaly-detection:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.anomaly == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build & Push Anomaly Detection
         run: |
           docker buildx build \
             -t $GHCR_IMAGE_PREFIX/anomaly-detection:${{ github.sha }} \
             -t $GHCR_IMAGE_PREFIX/anomaly-detection:latest \
             --push realtime_anomaly_detection
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Publish a small JSON artifact recording what changed so the CD job can
+  # decide which deployments to roll out.  Runs even if build jobs are
+  # skipped; does NOT run if the workflow was cancelled.
+  # ──────────────────────────────────────────────────────────────────────────
+  write-build-matrix:
+    needs: [detect-changes, build-backend, build-frontend, build-anomaly-detection]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write build matrix JSON
+        run: |
+          cat > build-matrix.json << 'ENDJSON'
+          {
+            "backend": "${{ needs.detect-changes.outputs.backend }}",
+            "frontend": "${{ needs.detect-changes.outputs.frontend }}",
+            "anomaly":  "${{ needs.detect-changes.outputs.anomaly }}",
+            "sha":      "${{ github.sha }}"
+          }
+          ENDJSON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-matrix
+          path: build-matrix.json
+          retention-days: 7
