@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: anomaly-detection
-          image: ghcr.io/YOUR_GITHUB_ORG_OR_USER/anomaly-detection:main
+          image: ghcr.io/YOUR_GITHUB_ORG_OR_USER/anomaly-detection:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8001

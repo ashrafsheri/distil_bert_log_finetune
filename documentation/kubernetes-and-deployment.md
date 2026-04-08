@@ -16,7 +16,7 @@ Main services:
 
 `k8s/backend-deployment.yaml` currently defines:
 
-- image: `ghcr.io/OWNER/backend:main`
+- image: `ghcr.io/OWNER/backend:latest`
 - `imagePullPolicy: Always`
 - container port `8000`
 - readiness and liveness on `/health`
@@ -30,7 +30,7 @@ There is an init container that waits for Postgres using `nc -z postgres 5432`.
 
 `k8s/frontend-deployment.yaml` currently defines:
 
-- image: `ghcr.io/OWNER/frontend:main`
+- image: `ghcr.io/OWNER/frontend:latest`
 - `imagePullPolicy: Always`
 - container port `3000`
 - readiness and liveness on `/`
@@ -39,7 +39,7 @@ There is an init container that waits for Postgres using `nc -z postgres 5432`.
 
 `k8s/anomaly-detection-deployment.yaml` currently defines:
 
-- image: `ghcr.io/OWNER/anomaly-detection:main`
+- image: `ghcr.io/OWNER/anomaly-detection:latest`
 - `imagePullPolicy: Always`
 - container port `8001`
 - startup, readiness, and liveness on `/health`
