@@ -3,7 +3,8 @@
     "allow": [
       "Bash(grep:*)",
       "Bash(python3:*)",
-      "Bash(python -m pytest realtime_anomaly_detection/tests/test_roadmap_fixes.py -v)"
+      "Bash(python -m pytest realtime_anomaly_detection/tests/test_roadmap_fixes.py -v)",
+      "Bash(npm run:*)"
     ]
   }
 }

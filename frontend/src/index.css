@@ -585,6 +585,10 @@ body {
   border: 1px solid rgba(244, 193, 93, 0.2);
 }
 
+.sidebar-ctrl-btn--warning:hover:not(:disabled) {
+  background: rgba(244, 193, 93, 0.18);
+}
+
 .sidebar-queue-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -852,7 +856,6 @@ body {
 }
 
 .ops-panel,
-.ops-hero,
 .ops-pagination {
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(8, 15, 29, 0.94) 100%);
   border: 1px solid var(--vt-border-soft);
@@ -862,15 +865,8 @@ body {
   border-radius: 1.5rem;
 }
 
-.ops-hero,
 .ops-panel {
   padding: 1.5rem;
-}
-
-.ops-hero {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
 }
 
 .ops-breadcrumbs,
@@ -878,7 +874,6 @@ body {
 .ops-muted-copy,
 .ops-list__copy,
 .ops-chart__meta,
-.ops-hero__meta-copy,
 .ops-empty-state p,
 .ops-alert__copy p,
 .ops-threat-strip__item span,
@@ -900,13 +895,6 @@ body {
   margin-bottom: 0.9rem;
 }
 
-.ops-hero__title-row {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.ops-hero__badge,
 .ops-kpi-card__icon,
 .ops-alert__icon,
 .ops-empty-state__icon {
@@ -916,27 +904,6 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-}
-
-.ops-hero__badge {
-  background: linear-gradient(135deg, rgba(79, 141, 249, 0.26), rgba(113, 199, 255, 0.12));
-  border: 1px solid rgba(113, 199, 255, 0.24);
-  color: var(--vt-info);
-}
-
-.ops-hero__title {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.15rem);
-  line-height: 1;
-  color: var(--vt-text);
-}
-
-.ops-hero__subtitle {
-  margin: 0.45rem 0 0;
-  max-width: 44rem;
-  color: #b9c4de;
-  font-size: 1rem;
-  line-height: 1.6;
 }
 
 .ops-chip-row,
@@ -999,28 +966,7 @@ body {
   box-shadow: 0 0 0.75rem rgba(244, 193, 93, 0.45);
 }
 
-.ops-hero__meta {
-  display: grid;
-  gap: 0.9rem;
-}
 
-.ops-hero__meta-card {
-  border-radius: 1.1rem;
-  border: 1px solid var(--vt-border-soft);
-  background: linear-gradient(180deg, rgba(8, 15, 29, 0.9) 0%, rgba(12, 21, 39, 0.7) 100%);
-  padding: 1rem 1.1rem;
-}
-
-.ops-hero__meta-value {
-  margin: 0.35rem 0 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--vt-text);
-}
-
-.ops-hero__action {
-  min-height: 3rem;
-}
 
 .ops-kpi-grid {
   display: grid;
@@ -1030,12 +976,12 @@ body {
 
 .ops-kpi-card {
   border-radius: 1.35rem;
-  padding: 1.2rem;
+  padding: 1rem 1.1rem 1.05rem;
   border: 1px solid var(--vt-border-soft);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.94) 0%, rgba(9, 17, 33, 0.92) 100%),
-    radial-gradient(circle at top left, rgba(79, 141, 249, 0.16), transparent 50%);
-  min-height: 11rem;
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-top-color: transparent;
+  background: #0e1930;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1051,23 +997,24 @@ body {
 .ops-kpi-card__label {
   margin: 0;
   color: var(--vt-muted);
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .ops-kpi-card__value {
-  margin: 0.65rem 0 0;
+  margin: 0.55rem 0 0;
   color: var(--vt-text);
-  font-size: clamp(2rem, 3vw, 2.6rem);
+  font-size: clamp(1.8rem, 2vw, 2.2rem);
   font-weight: 700;
   line-height: 1;
 }
 
 .ops-kpi-card__helper {
-  margin: 1rem 0 0;
-  font-size: 0.88rem;
-  color: #c7d0e7;
+  margin: 0.75rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #aeb9d4;
 }
 
 .ops-kpi-card__icon {
@@ -1076,10 +1023,18 @@ body {
   color: #d7e3ff;
 }
 
+.ops-kpi-card--primary {
+  border-top-color: #4f8df9;
+}
+
 .ops-kpi-card--primary .ops-kpi-card__icon {
   color: var(--vt-primary);
   background: rgba(79, 141, 249, 0.12);
   border-color: rgba(79, 141, 249, 0.2);
+}
+
+.ops-kpi-card--danger {
+  border-top-color: #f87171;
 }
 
 .ops-kpi-card--danger .ops-kpi-card__icon {
@@ -1088,10 +1043,34 @@ body {
   border-color: rgba(248, 113, 113, 0.2);
 }
 
+.ops-kpi-card--danger .ops-kpi-card__value {
+  color: #f87171;
+}
+
+.ops-kpi-card--warning {
+  border-top-color: #f4c15d;
+}
+
 .ops-kpi-card--warning .ops-kpi-card__icon {
   color: var(--vt-warning);
   background: rgba(244, 193, 93, 0.12);
   border-color: rgba(244, 193, 93, 0.2);
+}
+
+.ops-kpi-card--warning .ops-kpi-card__value {
+  color: #f4c15d;
+}
+
+.ops-kpi-card--muted {
+  border-top-color: rgba(148, 163, 184, 0.45);
+}
+
+.ops-kpi-card--muted .ops-kpi-card__icon {
+  color: #c0cae4;
+}
+
+.ops-kpi-card--success {
+  border-top-color: #22d3a6;
 }
 
 .ops-kpi-card--success .ops-kpi-card__icon {
@@ -1100,75 +1079,11 @@ body {
   border-color: rgba(34, 211, 166, 0.18);
 }
 
-.ops-kpi-card--muted .ops-kpi-card__icon {
-  color: #c0cae4;
-}
-
-.ops-kpi-card {
-  min-height: 0;
-  padding: 1rem 1.1rem 1.05rem;
-  border-top-width: 3px;
-  border-top-style: solid;
-  background: #0e1930;
-}
-
-.ops-kpi-card__label {
-  font-size: 0.56rem;
-  letter-spacing: 0.16em;
-}
-
-.ops-kpi-card__value {
-  margin-top: 0.55rem;
-  font-size: clamp(1.8rem, 2vw, 2.2rem);
-}
-
-.ops-kpi-card__helper {
-  margin-top: 0.75rem;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  color: #aeb9d4;
-}
-
-.ops-kpi-card--primary {
-  border-top-color: #4f8df9;
-}
-
-.ops-kpi-card--danger {
-  border-top-color: #f87171;
-}
-
-.ops-kpi-card--warning {
-  border-top-color: #f4c15d;
-}
-
-.ops-kpi-card--muted {
-  border-top-color: rgba(148, 163, 184, 0.45);
-}
-
-.ops-kpi-card--success {
-  border-top-color: #22d3a6;
-}
-
-.ops-kpi-card--danger .ops-kpi-card__value {
-  color: #f87171;
-}
-
-.ops-kpi-card--warning .ops-kpi-card__value {
-  color: #f4c15d;
-}
-
 .ops-kpi-card--success .ops-kpi-card__value {
   color: #22d3a6;
 }
 
-.ops-main-grid {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.92fr);
-}
-
-.ops-panel--chart,
-.ops-panel--stack {
+.ops-panel--chart {
   display: grid;
   gap: 1.25rem;
 }
@@ -1587,11 +1502,6 @@ body {
     width: 100%;
   }
 
-  .ops-main-grid,
-  .ops-hero {
-    grid-template-columns: 1fr;
-  }
-
   .ops-filter-grid--advanced {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1638,7 +1548,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .ops-hero,
   .ops-panel,
   .ops-pagination {
     padding: 1rem;
