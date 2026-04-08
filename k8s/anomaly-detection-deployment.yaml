@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: anomaly-detection
-          image: ghcr.io/ashrafsheri/anomaly-detection:main
+          image: ghcr.io/ashrafsheri/anomaly-detection:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8001

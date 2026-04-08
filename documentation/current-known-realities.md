@@ -51,7 +51,7 @@ Treat it as a concrete environment config, not a clean universal template.
 
 The checked-in manifests reference images like:
 
-- `ghcr.io/OWNER/backend:main`
+- `ghcr.io/OWNER/backend:latest`
 
 Production deployment therefore depends on CI or some templating/substitution step outside the plain YAML files.
 
