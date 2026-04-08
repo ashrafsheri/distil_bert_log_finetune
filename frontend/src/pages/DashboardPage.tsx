@@ -283,6 +283,7 @@ const DashboardPage: React.FC = () => {
   const displayedIncidentCount = isSearchMode ? searchIncidentCount : incidentCount;
   const totalResults = isSearchMode ? searchTotal : browseTotal;
   const canGoNext = page * pageSize < totalResults;
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
   const streamLockedByPagination = page > 1 && !isSearchMode;
   const streamIsPaused = streamLockedByPagination || manualStreamPaused || isStreamPaused;
   const correctionCountSuffix = correctionSuccess?.count === 1 ? '' : 's';
@@ -307,7 +308,10 @@ const DashboardPage: React.FC = () => {
       setBrowseResults(res.logs as typeof logs);
       setBrowseTotal(res.total_count || 0);
     })();
-  }, [isSearchMode, logs, page, pageSize, projectId]);
+    // NOTE: `logs` is intentionally excluded from deps — including it would
+    // trigger a server fetch on every websocket event, causing a request storm.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchMode, page, pageSize, projectId]);
 
   const handleFocusIp = useCallback((ip: string | null) => {
     setFocusedIp(ip);
@@ -529,8 +533,8 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="ops-chip-row">
               <span className={cx('ops-chip', streamIsPaused ? 'ops-chip--warning' : 'ops-chip--success')}>
-                <span className={cx('ops-chip__dot', streamIsPaused ? 'ops-chip__dot--warning' : 'ops-chip__dot--success')} />
-                {streamIsPaused ? 'Stream paused' : 'Live monitoring active'}
+                <span className={cx('ops-chip__dot', streamIsPaused ? 'ops-chip__dot--warning' : 'ops-chip__dot--success ops-chip__dot--pulse')} />
+                {streamIsPaused ? 'Stream paused' : 'Live'}
               </span>
               {projectId && <span className="ops-chip">Project ID: {projectId}</span>}
               <span className="ops-chip">{projectMode}</span>
@@ -1002,7 +1006,7 @@ const DashboardPage: React.FC = () => {
             <Button onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1 || searchLoading} variant="secondary" size="sm">
               Prev
             </Button>
-            <span>Page {page}</span>
+            <span>Page {page} of {totalPages}</span>
             <Button onClick={() => setPage(current => (canGoNext ? current + 1 : current))} disabled={!canGoNext || searchLoading} variant="secondary" size="sm">
               Next
             </Button>

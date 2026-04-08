@@ -451,6 +451,15 @@ body {
   box-shadow: 0 0 0.75rem rgba(34, 211, 166, 0.55);
 }
 
+.ops-chip__dot--pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0.45rem rgba(34, 211, 166, 0.4); }
+  50%       { box-shadow: 0 0 1rem rgba(34, 211, 166, 0.8), 0 0 1.8rem rgba(34, 211, 166, 0.3); }
+}
+
 .ops-chip__dot--warning {
   background: var(--vt-warning);
   box-shadow: 0 0 0.75rem rgba(244, 193, 93, 0.45);
