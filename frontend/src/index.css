@@ -625,9 +625,9 @@ body {
 }
 
 .ops-chart {
-  min-height: 14rem;
+  min-height: 9rem;
   border-radius: 1.2rem;
-  padding: 1.3rem 1rem 0.85rem;
+  padding: 0.9rem 1rem 0.7rem;
   border: 1px solid rgba(148, 163, 184, 0.08);
   background:
     linear-gradient(180deg, rgba(5, 11, 22, 0.7), rgba(9, 17, 33, 0.76)),
@@ -1024,7 +1024,7 @@ body {
   }
 
   .ops-chart {
-    min-height: 11rem;
+    min-height: 7.5rem;
     padding-inline: 0.6rem;
   }
 }
