@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #07101f; color: #e8f1ff; font-size: 13px; }
+  @keyframes dot-pulse {
+    0%,100% { box-shadow: 0 0 4px rgba(34,211,166,0.5); }
+    50% { box-shadow: 0 0 10px rgba(34,211,166,0.9), 0 0 18px rgba(34,211,166,0.3); }
+  }
+
+  /* Navbar */
+  .navbar {
+    height: 56px;
+    background: rgba(7,12,24,0.95);
+    border-bottom: 1px solid rgba(148,163,184,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .navbar-icon {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, rgba(79,141,249,0.25), rgba(139,92,246,0.15));
+    border: 1px solid rgba(79,141,249,0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #71c7ff;
+  }
+  .navbar-title { font-size: 15px; font-weight: 700; color: #f0f6ff; }
+  .navbar-sub { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #4b5e80; }
+  .navbar-nav {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+  .navbar-nav-inner {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7a9e;
+    cursor: pointer;
+  }
+  .nav-link.active {
+    background: rgba(79,141,249,0.12);
+    border: 1px solid rgba(79,141,249,0.22);
+    color: #a5c4ff;
+  }
+  .navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 999px;
+    padding: 5px 12px 5px 5px;
+  }
+  .user-avatar {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #4f8df9, #22d3a6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .user-name { font-size: 12px; font-weight: 500; color: #c8d8f0; }
+  .user-role { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #4b5e80; }
+
+  /* App body */
+  .app-body {
+    display: flex;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: #080f1e;
+    border-right: 1px solid rgba(79,141,249,0.1);
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 12px;
+    gap: 4px;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(79,141,249,0.3); border-radius: 2px; }
+
+  .sidebar-project {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  .sidebar-project-icon {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, rgba(79,141,249,0.25), rgba(139,92,246,0.15));
+    border: 1px solid rgba(79,141,249,0.3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #71c7ff;
+    flex-shrink: 0;
+  }
+  .sidebar-project-name { font-size: 13px; font-weight: 700; color: #e8f1ff; }
+  .sidebar-project-sub { font-size: 9px; color: #4b5e80; text-transform: uppercase; letter-spacing: 0.12em; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(34,211,166,0.08);
+    border: 1px solid rgba(34,211,166,0.2);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #22d3a6;
+    margin-bottom: 2px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: #22d3a6;
+    border-radius: 50%;
+    animation: dot-pulse 2s ease-in-out infinite;
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: rgba(148,163,184,0.08);
+    margin: 8px 0;
+  }
+
+  .sidebar-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #4f8df9;
+    padding: 0 4px;
+    margin-bottom: 6px;
+  }
+
+  .sidebar-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 4px;
+    font-size: 11px;
+  }
+  .sidebar-stat-row span:first-child { color: #6b7a9e; }
+  .sidebar-stat-row span:last-child { font-weight: 600; color: #e8f1ff; }
+  .sidebar-stat-row .val-green { color: #22d3a6; }
+  .sidebar-stat-row .val-blue { color: #4f8df9; }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(148,163,184,0.1);
+    border-radius: 2px;
+    margin: 4px 4px 8px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f8df9, #22d3a6);
+    border-radius: 2px;
+  }
+
+  .ctrl-btn {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    margin-bottom: 4px;
+  }
+  .ctrl-btn-primary {
+    background: #4f8df9;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(79,141,249,0.3);
+  }
+  .ctrl-btn-ghost {
+    background: rgba(255,255,255,0.04);
+    color: #8899bb;
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+  .ctrl-btn-ghost.active-warning {
+    background: rgba(244,193,93,0.1);
+    color: #f4c15d;
+    border-color: rgba(244,193,93,0.2);
+  }
+  .ctrl-btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .ctrl-btn-sm {
+    padding: 5px 6px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    color: #6b7a9e;
+    border: 1px solid rgba(148,163,184,0.1);
+  }
+  .ctrl-btn-sm.success {
+    background: rgba(34,211,166,0.08);
+    color: #22d3a6;
+    border-color: rgba(34,211,166,0.2);
+  }
+
+  .queue-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .queue-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.08);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .queue-item-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.12em; color: #4b5e80; }
+  .queue-item-val { font-size: 16px; font-weight: 700; color: #e8f1ff; line-height: 1.2; }
+
+  .endpoint-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 4px;
+    border-bottom: 1px solid rgba(148,163,184,0.05);
+    font-size: 10px;
+  }
+  .endpoint-name { color: #c0cfe8; font-family: monospace; }
+  .endpoint-threats { color: #f87171; font-weight: 600; font-size: 10px; }
+
+  /* Main content */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Page header */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .breadcrumb {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #4b5e80;
+    margin-bottom: 4px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .breadcrumb-sep { color: #2a3a55; }
+  .page-title { font-size: 22px; font-weight: 800; color: #f0f6ff; line-height: 1; }
+  .page-header-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 500;
+    border: 1px solid rgba(148,163,184,0.14);
+    background: rgba(15,23,42,0.7);
+    color: #c0cfe8;
+  }
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: rgba(79,141,249,0.1);
+    border: 1px solid rgba(79,141,249,0.25);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #71c7ff;
+    cursor: pointer;
+  }
+
+  /* KPI row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .kpi-card {
+    background: #0e1930;
+    border: 1px solid rgba(148,163,184,0.1);
+    border-radius: 10px;
+    padding: 14px;
+    border-top: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    opacity: 0.07;
+    transform: translate(20px, -20px);
+  }
+  .kpi-card.blue { border-top-color: #4f8df9; } .kpi-card.blue::after { background: #4f8df9; }
+  .kpi-card.red { border-top-color: #f87171; } .kpi-card.red::after { background: #f87171; }
+  .kpi-card.amber { border-top-color: #f4c15d; } .kpi-card.amber::after { background: #f4c15d; }
+  .kpi-card.muted { border-top-color: #98a4c4; }
+  .kpi-card.green { border-top-color: #22d3a6; } .kpi-card.green::after { background: #22d3a6; }
+  .kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: #4b5e80; margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 800; line-height: 1; color: #f0f6ff; }
+  .kpi-card.red .kpi-value { color: #f87171; }
+  .kpi-card.amber .kpi-value { color: #f4c15d; }
+  .kpi-card.green .kpi-value { color: #22d3a6; }
+  .kpi-helper { font-size: 10px; color: #4b5e80; margin-top: 8px; line-height: 1.4; }
+
+  /* Chart panel */
+  .chart-panel {
+    background: #0e1930;
+    border: 1px solid rgba(148,163,184,0.1);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .chart-title-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; color: #4b5e80; margin-bottom: 4px; }
+  .chart-title { font-size: 16px; font-weight: 700; color: #e8f1ff; }
+  .legend { display: flex; gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7a9e; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 120px;
+    padding-bottom: 0;
+  }
+  .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; }
+  .chart-col-bars { display: flex; gap: 2px; align-items: flex-end; width: 100%; height: calc(100% - 28px); }
+  .chart-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 3px; }
+  .bar-red { background: rgba(248,113,113,0.85); }
+  .bar-green { background: rgba(34,211,166,0.85); }
+  .chart-col-label { font-size: 9px; color: #4b5e80; text-align: center; line-height: 1.3; margin-top: 6px; }
+  .chart-footer {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(148,163,184,0.07);
+  }
+  .chart-stat-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.12em; color: #4b5e80; margin-bottom: 2px; }
+  .chart-stat-val { font-size: 14px; font-weight: 700; color: #e8f1ff; }
+  .chart-stat-val.red { color: #f87171; }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<header class="navbar">
+  <div class="navbar-brand">
+    <div class="navbar-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div>
+      <div class="navbar-title">LogGuard</div>
+      <div class="navbar-sub">AI Security Operations</div>
+    </div>
+  </div>
+  <nav class="navbar-nav">
+    <div class="navbar-nav-inner">
+      <div class="nav-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> Home</div>
+      <div class="nav-link active"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg> Projects</div>
+      <div class="nav-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-1a4 4 0 00-5.356-3.77M9 20H4v-1a4 4 0 015.356-3.77M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Users</div>
+      <div class="nav-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg> Admin</div>
+    </div>
+  </nav>
+  <div class="navbar-user">
+    <div class="user-avatar">M</div>
+    <div>
+      <div class="user-name">maazkshf123</div>
+      <div class="user-role">Admin</div>
+    </div>
+  </div>
+</header>
+
+<!-- App body -->
+<div class="app-body">
+
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <!-- Project -->
+    <div class="sidebar-project">
+      <div class="sidebar-project-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div>
+        <div class="sidebar-project-name">BarterEase</div>
+        <div class="sidebar-project-sub">Active project</div>
+      </div>
+    </div>
+
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      Live stream
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Protection State -->
+    <div class="sidebar-section-label">Protection</div>
+    <div class="sidebar-stat-row"><span>Detection mode</span><span class="val-green">Active</span></div>
+    <div class="sidebar-stat-row"><span>Warmup</span><span class="val-blue">100%</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    <div class="sidebar-stat-row"><span>Student model</span><span class="val-green">Ready</span></div>
+    <div class="sidebar-stat-row"><span>Members</span><span>2</span></div>
+    <div class="sidebar-stat-row"><span>Traffic profile</span><span>Standard</span></div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Stream Controls -->
+    <div class="sidebar-section-label">Stream Controls</div>
+    <button class="ctrl-btn ctrl-btn-primary">Pause stream</button>
+    <button class="ctrl-btn ctrl-btn-ghost">Show anomalies only</button>
+    <div class="ctrl-btn-grid">
+      <div class="ctrl-btn-sm">Step queue</div>
+      <div class="ctrl-btn-sm success">Apply pending</div>
+    </div>
+    <div class="ctrl-btn-sm" style="margin-bottom:8px;text-align:center;">Clear queue</div>
+
+    <div class="queue-card">
+      <div class="queue-item">
+        <div class="queue-item-label">Pending</div>
+        <div class="queue-item-val">0</div>
+      </div>
+      <div class="queue-item">
+        <div class="queue-item-label">In queue</div>
+        <div class="queue-item-val">0</div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Hot Endpoints -->
+    <div class="sidebar-section-label">Hot Endpoints</div>
+    <div class="endpoint-item"><span class="endpoint-name">/api/login</span><span class="endpoint-threats">842</span></div>
+    <div class="endpoint-item"><span class="endpoint-name">/api/items</span><span class="endpoint-threats">613</span></div>
+    <div class="endpoint-item"><span class="endpoint-name">/api/users</span><span class="endpoint-threats">407</span></div>
+    <div class="endpoint-item"><span class="endpoint-name">/api/barter</span><span class="endpoint-threats">291</span></div>
+    <div class="endpoint-item" style="border-bottom:none"><span class="endpoint-name">/api/search</span><span class="endpoint-threats">188</span></div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">
+          <span>Projects</span><span class="breadcrumb-sep">/</span><span>BarterEase</span>
+        </div>
+        <div class="page-title">Security Dashboard</div>
+      </div>
+      <div class="page-header-meta">
+        <div class="chip">Project ID: 4271eb95</div>
+        <div class="chip">Active</div>
+        <div class="chip">Log type: API</div>
+        <div class="chip" style="color:#6b7a9e;">Last update: 8:13 PM</div>
+        <button class="export-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Logs</div>
+        <div class="kpi-value">7,094</div>
+        <div class="kpi-helper">Fresh traffic arrived</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Threats</div>
+        <div class="kpi-value">3,383</div>
+        <div class="kpi-helper">47.7% of total flagged</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Incidents</div>
+        <div class="kpi-value">3,022</div>
+        <div class="kpi-helper">Grouped attack events</div>
+      </div>
+      <div class="kpi-card muted">
+        <div class="kpi-label">Parse Failures</div>
+        <div class="kpi-value">0</div>
+        <div class="kpi-helper">100% parse success</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Detection Health</div>
+        <div class="kpi-value">99.1%</div>
+        <div class="kpi-helper">63 detector failures</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title-label">Traffic Analysis</div>
+          <div class="chart-title">Threat vs. clean traffic</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#f87171;"></div>Threats</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22d3a6;"></div>Clean</div>
+        </div>
+      </div>
+      <div class="chart-bars">
+        <div class="chart-col"><div class="chart-col-bars"><div class="chart-bar bar-red" style="height:38%;"></div><div class="chart-bar bar-green" style="height:72%;"></div></div><div class="chart-col-label">8:00<br/>1,240</div></div>
+        <div class="chart-col"><div class="chart-col-bars"><div class="chart-bar bar-red" style="height:55%;"></div><div class="chart-bar bar-green" style="height:88%;"></div></div><div class="chart-col-label">8:05<br/>2,105</div></div>
+        <div class="chart-col"><div class="chart-col-bars"><div class="chart-bar bar-red" style="height:30%;"></div><div class="chart-bar bar-green" style="height:60%;"></div></div><div class="chart-col-label">8:10<br/>985</div></div>
+        <div class="chart-col"><div class="chart-col-bars"><div class="chart-bar bar-red" style="height:68%;"></div><div class="chart-bar bar-green" style="height:100%;"></div></div><div class="chart-col-label">8:13<br/>1,764</div></div>
+        <div class="chart-col"><div class="chart-col-bars"><div class="chart-bar bar-red" style="height:22%;"></div><div class="chart-bar bar-green" style="height:50%;"></div></div><div class="chart-col-label">Now<br/>762</div></div>
+      </div>
+      <div class="chart-footer">
+        <div>
+          <div class="chart-stat-label">Window</div>
+          <div class="chart-stat-val">7,094 <span style="font-size:11px;font-weight:400;color:#4b5e80;">logs</span></div>
+        </div>
+        <div>
+          <div class="chart-stat-label">Threat rate</div>
+          <div class="chart-stat-val red">47.7%</div>
+        </div>
+        <div>
+          <div class="chart-stat-label">Clean</div>
+          <div class="chart-stat-val" style="color:#22d3a6;">52.3%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs table placeholder -->
+    <div style="background:#0e1930;border:1px solid rgba(148,163,184,0.1);border-radius:12px;padding:20px;">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:#4b5e80;margin-bottom:8px;">Event Log</div>
+      <div style="font-size:15px;font-weight:700;color:#e8f1ff;margin-bottom:12px;">Live log stream</div>
+      <div style="background:rgba(148,163,184,0.05);border:1px solid rgba(148,163,184,0.06);border-radius:8px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:120px 110px 1fr 90px 80px 80px;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(148,163,184,0.06);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#4b5e80;">
+          <span>Timestamp</span><span>IP Address</span><span>Endpoint</span><span>Status</span><span>Detection</span><span>Score</span>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 110px 1fr 90px 80px 80px;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(148,163,184,0.04);font-size:11px;color:#c0cfe8;">
+          <span style="color:#4b5e80;font-family:monospace;">08:13:42</span><span style="font-family:monospace;">192.168.1.45</span><span style="font-family:monospace;color:#6b7a9e;">/api/login</span><span><span style="background:rgba(248,113,113,0.12);color:#f87171;padding:2px 7px;border-radius:4px;font-size:10px;">401</span></span><span style="color:#f87171;font-weight:600;">Threat</span><span style="font-family:monospace;">0.94</span>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 110px 1fr 90px 80px 80px;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(148,163,184,0.04);font-size:11px;color:#c0cfe8;">
+          <span style="color:#4b5e80;font-family:monospace;">08:13:39</span><span style="font-family:monospace;">10.0.0.12</span><span style="font-family:monospace;color:#6b7a9e;">/api/items</span><span><span style="background:rgba(34,211,166,0.1);color:#22d3a6;padding:2px 7px;border-radius:4px;font-size:10px;">200</span></span><span style="color:#22d3a6;font-weight:600;">Clean</span><span style="font-family:monospace;">0.11</span>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 110px 1fr 90px 80px 80px;gap:8px;padding:7px 12px;font-size:11px;color:#c0cfe8;">
+          <span style="color:#4b5e80;font-family:monospace;">08:13:37</span><span style="font-family:monospace;">172.16.8.3</span><span style="font-family:monospace;color:#6b7a9e;">/api/users</span><span><span style="background:rgba(248,113,113,0.12);color:#f87171;padding:2px 7px;border-radius:4px;font-size:10px;">403</span></span><span style="color:#f87171;font-weight:600;">Threat</span><span style="font-family:monospace;">0.87</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div style="font-size:10px;color:#4b5e80;">Showing 3 of 7,094 events</div>
+        <div style="display:flex;gap:6px;">
+          <div style="padding:4px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(148,163,184,0.1);border-radius:5px;font-size:10px;color:#6b7a9e;">← Prev</div>
+          <div style="padding:4px 10px;background:rgba(79,141,249,0.1);border:1px solid rgba(79,141,249,0.2);border-radius:5px;font-size:10px;color:#71c7ff;">Next →</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

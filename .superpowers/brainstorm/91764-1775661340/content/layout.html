@@ -1,0 +1,196 @@
+<h2>Which dashboard layout feels right?</h2>
+<p class="subtitle">Each option rearranges the same content — KPI cards, traffic chart, protection state, stream controls, and hot endpoints.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:1rem;background:#0d1526;border-radius:8px;font-size:11px;color:#8899bb;font-family:monospace;">
+      <div style="height:22px;background:#1a2540;border-radius:4px;margin-bottom:6px;display:flex;align-items:center;padding:0 8px;gap:8px;">
+        <span style="color:#4f8df9;font-weight:700;">LogGuard</span>
+        <span style="flex:1;"></span>
+        <span style="color:#7fd3a8;font-size:9px;">● BarterEase</span>
+        <span style="background:#4f8df920;color:#4f8df9;padding:2px 6px;border-radius:4px;font-size:9px;">Export</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px;">
+        <div style="background:#1a2540;border-radius:4px;padding:5px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#e8f1ff;">7,094</div>
+          <div style="font-size:8px;color:#6b7a9e;">TOTAL LOGS</div>
+        </div>
+        <div style="background:#1a2540;border-left:2px solid #f87171;border-radius:4px;padding:5px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#f87171;">3,383</div>
+          <div style="font-size:8px;color:#6b7a9e;">THREATS</div>
+        </div>
+        <div style="background:#1a2540;border-left:2px solid #f4c15d;border-radius:4px;padding:5px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#f4c15d;">3,022</div>
+          <div style="font-size:8px;color:#6b7a9e;">INCIDENTS</div>
+        </div>
+        <div style="background:#1a2540;border-left:2px solid #98a4c4;border-radius:4px;padding:5px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#e8f1ff;">0</div>
+          <div style="font-size:8px;color:#6b7a9e;">PARSE FAIL</div>
+        </div>
+        <div style="background:#1a2540;border-left:2px solid #22d3a6;border-radius:4px;padding:5px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#22d3a6;">99.1%</div>
+          <div style="font-size:8px;color:#6b7a9e;">HEALTH</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.6fr 1fr 0.9fr;gap:4px;">
+        <div style="background:#1a2540;border-radius:4px;padding:6px;min-height:60px;">
+          <div style="font-size:8px;color:#6b7a9e;margin-bottom:4px;">TRAFFIC CHART</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:36px;">
+            <div style="width:10px;background:#f87171;border-radius:2px 2px 0 0;height:40%;"></div>
+            <div style="width:10px;background:#22d3a6;border-radius:2px 2px 0 0;height:80%;"></div>
+            <div style="width:10px;background:#f87171;border-radius:2px 2px 0 0;height:35%;"></div>
+            <div style="width:10px;background:#22d3a6;border-radius:2px 2px 0 0;height:90%;"></div>
+            <div style="width:10px;background:#f87171;border-radius:2px 2px 0 0;height:25%;"></div>
+            <div style="width:10px;background:#22d3a6;border-radius:2px 2px 0 0;height:70%;"></div>
+          </div>
+        </div>
+        <div style="background:#1a2540;border-radius:4px;padding:6px;min-height:60px;">
+          <div style="font-size:8px;color:#6b7a9e;margin-bottom:4px;">PROTECTION STATE</div>
+          <div style="font-size:9px;color:#22d3a6;margin:2px 0;">● Active</div>
+          <div style="background:#0d1526;border-radius:2px;height:4px;margin:2px 0;"><div style="width:100%;height:100%;background:#4f8df9;border-radius:2px;"></div></div>
+          <div style="font-size:8px;color:#e8f1ff;margin-top:2px;">Warmup: 100%</div>
+        </div>
+        <div style="background:#1a2540;border-radius:4px;padding:6px;min-height:60px;">
+          <div style="font-size:8px;color:#6b7a9e;margin-bottom:4px;">HOT ENDPOINTS</div>
+          <div style="font-size:8px;color:#e8f1ff;">/api/login</div>
+          <div style="font-size:8px;color:#e8f1ff;">/api/users</div>
+          <div style="font-size:8px;color:#e8f1ff;">/api/items</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — 3-Column Wide</h3>
+      <p>Chart, protection state, and hot endpoints side by side. Slim header bar. Maximum info visible without scrolling.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:1rem;background:#0d1526;border-radius:8px;font-size:11px;color:#8899bb;font-family:monospace;">
+      <div style="display:flex;gap:6px;height:130px;">
+        <div style="width:56px;background:#111d35;border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:4px;">
+          <div style="color:#4f8df9;font-size:9px;font-weight:700;margin-bottom:2px;">LG</div>
+          <div style="font-size:8px;color:#22d3a6;">● Live</div>
+          <div style="font-size:8px;color:#e8f1ff;margin-top:4px;">PROTECTION</div>
+          <div style="font-size:8px;color:#6b7a9e;">Active</div>
+          <div style="background:#0d1526;border-radius:2px;height:3px;margin:2px 0;"><div style="width:100%;height:100%;background:#4f8df9;border-radius:2px;"></div></div>
+          <div style="font-size:8px;color:#e8f1ff;margin-top:2px;">CONTROLS</div>
+          <div style="background:#4f8df920;color:#4f8df9;padding:2px 4px;border-radius:3px;font-size:8px;text-align:center;">Pause</div>
+          <div style="background:#1a2540;color:#8899bb;padding:2px 4px;border-radius:3px;font-size:8px;text-align:center;">Anomalies</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;">
+            <div style="background:#1a2540;border-radius:3px;padding:4px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#e8f1ff;">7,094</div>
+              <div style="font-size:7px;color:#6b7a9e;">LOGS</div>
+            </div>
+            <div style="background:#1a2540;border-left:2px solid #f87171;border-radius:3px;padding:4px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#f87171;">3,383</div>
+              <div style="font-size:7px;color:#6b7a9e;">THREATS</div>
+            </div>
+            <div style="background:#1a2540;border-left:2px solid #f4c15d;border-radius:3px;padding:4px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#f4c15d;">3,022</div>
+              <div style="font-size:7px;color:#6b7a9e;">INCIDENTS</div>
+            </div>
+            <div style="background:#1a2540;border-radius:3px;padding:4px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#e8f1ff;">0</div>
+              <div style="font-size:7px;color:#6b7a9e;">FAILS</div>
+            </div>
+            <div style="background:#1a2540;border-left:2px solid #22d3a6;border-radius:3px;padding:4px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#22d3a6;">99.1%</div>
+              <div style="font-size:7px;color:#6b7a9e;">HEALTH</div>
+            </div>
+          </div>
+          <div style="flex:1;background:#1a2540;border-radius:4px;padding:6px;">
+            <div style="font-size:8px;color:#6b7a9e;margin-bottom:4px;">TRAFFIC CHART — full width</div>
+            <div style="display:flex;align-items:flex-end;gap:4px;height:50px;">
+              <div style="flex:1;background:#f87171;border-radius:2px 2px 0 0;height:40%;"></div>
+              <div style="flex:1;background:#22d3a6;border-radius:2px 2px 0 0;height:90%;"></div>
+              <div style="flex:1;background:#f87171;border-radius:2px 2px 0 0;height:30%;"></div>
+              <div style="flex:1;background:#22d3a6;border-radius:2px 2px 0 0;height:80%;"></div>
+              <div style="flex:1;background:#f87171;border-radius:2px 2px 0 0;height:50%;"></div>
+              <div style="flex:1;background:#22d3a6;border-radius:2px 2px 0 0;height:70%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Left Sidebar</h3>
+      <p>Sticky sidebar with protection state & stream controls. Main area gets full width for the chart and table. SOC-tool feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:1rem;background:#0d1526;border-radius:8px;font-size:11px;color:#8899bb;font-family:monospace;">
+      <div style="height:22px;background:#1a2540;border-radius:4px;margin-bottom:6px;display:flex;align-items:center;padding:0 8px;gap:6px;">
+        <span style="color:#4f8df9;font-weight:700;font-size:10px;">LogGuard</span>
+        <span style="color:#6b7a9e;font-size:9px;">/</span>
+        <span style="color:#e8f1ff;font-size:9px;">BarterEase</span>
+        <span style="flex:1;"></span>
+        <span style="background:#22d3a620;color:#22d3a6;padding:2px 5px;border-radius:4px;font-size:8px;">● Live</span>
+        <span style="background:#4f8df920;color:#4f8df9;padding:2px 5px;border-radius:4px;font-size:8px;">Active</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:5px;">
+        <div style="background:linear-gradient(135deg,#1e2d4a,#1a2540);border:1px solid #4f8df930;border-radius:4px;padding:5px;">
+          <div style="font-size:13px;font-weight:700;color:#e8f1ff;">7,094</div>
+          <div style="font-size:7px;color:#6b7a9e;letter-spacing:0.1em;">TOTAL LOGS</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#2a1a1a,#231616);border:1px solid #f8717130;border-radius:4px;padding:5px;">
+          <div style="font-size:13px;font-weight:700;color:#f87171;">3,383</div>
+          <div style="font-size:7px;color:#6b7a9e;letter-spacing:0.1em;">THREATS</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#2a2110,#231d0d);border:1px solid #f4c15d30;border-radius:4px;padding:5px;">
+          <div style="font-size:13px;font-weight:700;color:#f4c15d;">3,022</div>
+          <div style="font-size:7px;color:#6b7a9e;letter-spacing:0.1em;">INCIDENTS</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#1a1e2a,#16192a);border:1px solid #98a4c430;border-radius:4px;padding:5px;">
+          <div style="font-size:13px;font-weight:700;color:#e8f1ff;">0</div>
+          <div style="font-size:7px;color:#6b7a9e;letter-spacing:0.1em;">PARSE FAIL</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#102a22,#0d2219);border:1px solid #22d3a630;border-radius:4px;padding:5px;">
+          <div style="font-size:13px;font-weight:700;color:#22d3a6;">99.1%</div>
+          <div style="font-size:7px;color:#6b7a9e;letter-spacing:0.1em;">HEALTH</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.8fr 1fr;gap:4px;">
+        <div style="background:#1a2540;border-radius:4px;padding:6px;">
+          <div style="font-size:8px;color:#6b7a9e;margin-bottom:4px;">TRAFFIC ANALYSIS</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:44px;">
+            <div style="width:12px;background:#f87171aa;border-radius:2px 2px 0 0;height:35%;"></div>
+            <div style="width:12px;background:#22d3a6aa;border-radius:2px 2px 0 0;height:75%;"></div>
+            <div style="width:12px;background:#f87171aa;border-radius:2px 2px 0 0;height:45%;"></div>
+            <div style="width:12px;background:#22d3a6aa;border-radius:2px 2px 0 0;height:90%;"></div>
+            <div style="width:12px;background:#f87171aa;border-radius:2px 2px 0 0;height:20%;"></div>
+            <div style="width:12px;background:#22d3a6aa;border-radius:2px 2px 0 0;height:65%;"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;font-size:8px;color:#6b7a9e;">
+            <span>Threat rate: <span style="color:#f87171;">47.7%</span></span>
+            <span>Window: <span style="color:#e8f1ff;">30min</span></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="background:#1a2540;border-radius:4px;padding:5px;">
+            <div style="font-size:8px;color:#6b7a9e;margin-bottom:2px;">PROTECTION</div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;"><span style="color:#98a4c4;">Mode</span><span style="color:#22d3a6;">Active</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;margin-top:2px;"><span style="color:#98a4c4;">Model</span><span style="color:#4f8df9;">Ready</span></div>
+            <div style="background:#0d1526;border-radius:2px;height:3px;margin:3px 0;"><div style="width:100%;height:100%;background:linear-gradient(90deg,#4f8df9,#22d3a6);border-radius:2px;"></div></div>
+          </div>
+          <div style="background:#1a2540;border-radius:4px;padding:5px;flex:1;">
+            <div style="font-size:8px;color:#6b7a9e;margin-bottom:3px;">STREAM CONTROLS</div>
+            <div style="background:#4f8df9;color:#fff;padding:3px 6px;border-radius:3px;font-size:8px;text-align:center;margin-bottom:2px;">Pause stream</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+              <div style="background:#1e2d4a;color:#98a4c4;padding:2px 4px;border-radius:2px;font-size:7px;text-align:center;">Step</div>
+              <div style="background:#22d3a620;color:#22d3a6;padding:2px 4px;border-radius:2px;font-size:7px;text-align:center;">Apply</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Refined Current (2-Col)</h3>
+      <p>Keeps today's 2-column layout but with color-coded KPI cards, a taller chart, and cleaner stream controls. Lowest disruption.</p>
+    </div>
+  </div>
+
+</div>

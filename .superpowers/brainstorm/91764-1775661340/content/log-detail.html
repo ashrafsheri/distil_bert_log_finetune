@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Log Detail Options</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: #07101f; color: #e8f1ff; font-size: 13px; padding: 24px; }
+h2 { font-size: 20px; font-weight: 800; color: #f0f6ff; margin-bottom: 6px; }
+.subtitle { font-size: 13px; color: #4b5e80; margin-bottom: 24px; }
+
+.options { display: flex; flex-direction: column; gap: 20px; }
+.option {
+  background: rgba(14,25,48,0.8);
+  border: 2px solid rgba(148,163,184,0.12);
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.option:hover { border-color: rgba(79,141,249,0.4); }
+.option.selected { border-color: #4f8df9; background: rgba(79,141,249,0.06); }
+.option-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #4b5e80; margin-bottom: 4px; }
+.option-title { font-size: 16px; font-weight: 700; color: #e8f1ff; margin-bottom: 4px; }
+.option-desc { font-size: 12px; color: #6b7a9e; margin-bottom: 16px; }
+
+/* shared table styles */
+.log-table { width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(148,163,184,0.08); }
+.log-thead { display: grid; padding: 7px 12px; background: rgba(148,163,184,0.04); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5e80; border-bottom: 1px solid rgba(148,163,184,0.06); }
+.log-row { display: grid; padding: 8px 12px; font-size: 11px; color: #c0cfe8; border-bottom: 1px solid rgba(148,163,184,0.04); align-items: center; }
+.log-row.clickable { cursor: pointer; }
+.log-row.clickable:hover { background: rgba(79,141,249,0.04); }
+.log-row.active-row { background: rgba(79,141,249,0.07); border-bottom: none; }
+.cols-5 { grid-template-columns: 90px 100px 1fr 80px 70px; gap: 8px; }
+.cols-5-wide { grid-template-columns: 90px 100px 1fr 80px 70px 28px; gap: 8px; }
+.badge { display: inline-flex; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+.badge-red { background: rgba(248,113,113,0.12); color: #f87171; }
+.badge-green { background: rgba(34,211,166,0.1); color: #22d3a6; }
+.expand-icon { color: #4b5e80; font-size: 10px; text-align: center; transition: transform 0.2s; }
+.expand-icon.open { transform: rotate(180deg); color: #4f8df9; }
+
+/* Option A - inline row expansion */
+.expanded-row {
+  background: rgba(9,18,35,0.95);
+  border: 1px solid rgba(79,141,249,0.15);
+  border-top: 2px solid rgba(79,141,249,0.3);
+  border-radius: 0 0 8px 8px;
+  padding: 16px;
+  margin-bottom: 4px;
+}
+.model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.model-card {
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+.model-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.model-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6b7a9e; }
+.model-verdict { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.verdict-anomaly { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+.verdict-clean { background: rgba(34,211,166,0.1); color: #22d3a6; border: 1px solid rgba(34,211,166,0.2); }
+.verdict-na { background: rgba(148,163,184,0.08); color: #6b7a9e; border: 1px solid rgba(148,163,184,0.15); }
+.score-bar-wrap { margin-top: 6px; }
+.score-label { display: flex; justify-content: space-between; font-size: 9px; color: #4b5e80; margin-bottom: 3px; }
+.score-track { height: 5px; background: rgba(148,163,184,0.1); border-radius: 3px; overflow: hidden; }
+.score-fill { height: 100%; border-radius: 3px; }
+.score-red { background: linear-gradient(90deg, #f8717180, #f87171); }
+.score-green { background: linear-gradient(90deg, #22d3a680, #22d3a6); }
+.score-blue { background: linear-gradient(90deg, #4f8df980, #4f8df9); }
+.model-detail { font-size: 10px; color: #8899bb; margin-top: 6px; line-height: 1.5; }
+
+.raw-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.raw-field { background: rgba(15,23,42,0.6); border: 1px solid rgba(148,163,184,0.08); border-radius: 6px; padding: 8px 10px; }
+.raw-field-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.12em; color: #4b5e80; margin-bottom: 3px; }
+.raw-field-val { font-size: 11px; font-family: monospace; color: #c0cfe8; word-break: break-all; }
+
+/* Option B - side panel */
+.panel-demo {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,0.08);
+  min-height: 260px;
+}
+.panel-table-side { flex: 1; background: #0a1424; }
+.panel-side-panel {
+  width: 280px;
+  background: #080f1e;
+  border-left: 1px solid rgba(79,141,249,0.18);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.panel-header { display: flex; align-items: center; justify-content: space-between; }
+.panel-title { font-size: 12px; font-weight: 700; color: #e8f1ff; }
+.panel-close { width: 22px; height: 22px; background: rgba(255,255,255,0.06); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6b7a9e; cursor: pointer; }
+.panel-divider { height: 1px; background: rgba(148,163,184,0.08); }
+.panel-model { background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.1); border-radius: 7px; padding: 10px; }
+.pm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pm-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #4f8df9; }
+.pm-score-label { font-size: 9px; color: #4b5e80; margin-bottom: 2px; }
+.pm-score-track { height: 4px; background: rgba(148,163,184,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.pm-detail { font-size: 9px; color: #6b7a9e; line-height: 1.5; }
+</style>
+<script>
+function toggleRow() {
+  var row = document.getElementById('expanded-row');
+  var icon = document.getElementById('expand-icon');
+  var activeRow = document.getElementById('active-row');
+  if (row.style.display === 'none') {
+    row.style.display = 'block';
+    icon.classList.add('open');
+    icon.innerHTML = '▲';
+    activeRow.classList.add('active-row');
+  } else {
+    row.style.display = 'none';
+    icon.classList.remove('open');
+    icon.innerHTML = '▼';
+    activeRow.classList.remove('active-row');
+  }
+}
+function selectOption(el, choice) {
+  document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.parent && window.parent.recordChoice) window.parent.recordChoice(choice);
+  // Try superpowers helper
+  try { toggleSelect && toggleSelect(el); } catch(e) {}
+  // Store choice
+  window.__choice = choice;
+  var bar = document.getElementById('choice-bar');
+  if (bar) { bar.textContent = 'Selected: ' + (choice === 'a' ? 'A — Inline expand' : 'B — Side panel'); bar.style.display = 'block'; }
+}
+</script>
+</head>
+<body>
+<h2>How should model details be shown?</h2>
+<p class="subtitle">When you click a log row, how should the transformer / isolation forest / rule-based model breakdown appear?</p>
+
+<div id="choice-bar" style="display:none;background:rgba(79,141,249,0.15);border:1px solid rgba(79,141,249,0.3);border-radius:8px;padding:8px 14px;font-size:12px;color:#71c7ff;margin-bottom:16px;"></div>
+
+<div class="options">
+
+  <!-- Option A -->
+  <div class="option" id="opt-a" onclick="selectOption(this,'a')">
+    <div class="option-label">Option A</div>
+    <div class="option-title">Inline row expansion</div>
+    <div class="option-desc">Click the ▼ arrow on any log row. A panel drops down beneath it showing the 3 model scores + raw log fields. Click again to collapse.</div>
+
+    <div class="log-table">
+      <div class="log-thead cols-5-wide">
+        <span>Time</span><span>IP</span><span>Endpoint</span><span>Status</span><span>Detection</span><span></span>
+      </div>
+      <div class="log-row cols-5-wide" style="color:#4b5e80;font-size:10px;">
+        <span style="font-family:monospace;">08:13:39</span><span style="font-family:monospace;">10.0.0.12</span>
+        <span style="font-family:monospace;">/api/items</span>
+        <span><span class="badge badge-green">200</span></span>
+        <span style="color:#22d3a6;font-weight:600;">Clean</span>
+        <span class="expand-icon">▼</span>
+      </div>
+      <div id="active-row" class="log-row cols-5-wide clickable" onclick="toggleRow()">
+        <span style="font-family:monospace;color:#4b5e80;">08:13:42</span>
+        <span style="font-family:monospace;">192.168.1.45</span>
+        <span style="font-family:monospace;">/api/login</span>
+        <span><span class="badge badge-red">401</span></span>
+        <span style="color:#f87171;font-weight:600;">Threat</span>
+        <span id="expand-icon" class="expand-icon open" style="color:#4f8df9;">▲</span>
+      </div>
+
+      <!-- Expanded detail panel -->
+      <div id="expanded-row" class="expanded-row">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.14em;color:#4b5e80;margin-bottom:10px;">Model breakdown — 192.168.1.45 → /api/login</div>
+        <div class="model-grid">
+          <div class="model-card">
+            <div class="model-card-header">
+              <span class="model-name">Transformer</span>
+              <span class="model-verdict verdict-anomaly">Anomaly</span>
+            </div>
+            <div class="score-bar-wrap">
+              <div class="score-label"><span>Novelty score</span><span style="color:#f87171;">0.94</span></div>
+              <div class="score-track"><div class="score-fill score-red" style="width:94%;"></div></div>
+            </div>
+            <div class="model-detail">High sequence novelty. Pattern diverges from trained baseline. Template: <span style="font-family:monospace;color:#c0cfe8;">AUTH_FAIL_BURST</span></div>
+          </div>
+          <div class="model-card">
+            <div class="model-card-header">
+              <span class="model-name">Isolation Forest</span>
+              <span class="model-verdict verdict-anomaly">Anomaly</span>
+            </div>
+            <div class="score-bar-wrap">
+              <div class="score-label"><span>Outlier score</span><span style="color:#f87171;">0.88</span></div>
+              <div class="score-track"><div class="score-fill score-red" style="width:88%;"></div></div>
+            </div>
+            <div class="model-detail">Feature vector is an outlier. High request frequency + 401 rate from this IP in the window.</div>
+          </div>
+          <div class="model-card">
+            <div class="model-card-header">
+              <span class="model-name">Rule-based</span>
+              <span class="model-verdict verdict-anomaly">Matched</span>
+            </div>
+            <div class="score-bar-wrap">
+              <div class="score-label"><span>Rules matched</span><span style="color:#f4c15d;">2</span></div>
+              <div class="score-track"><div class="score-fill" style="width:100%;background:#f4c15d;"></div></div>
+            </div>
+            <div class="model-detail">Rules: <span style="font-family:monospace;color:#f4c15d;">BRUTE_FORCE_LOGIN</span>, <span style="font-family:monospace;color:#f4c15d;">REPEATED_AUTH_FAIL</span></div>
+          </div>
+        </div>
+        <div class="raw-row">
+          <div class="raw-field"><div class="raw-field-label">IP Address</div><div class="raw-field-val">192.168.1.45</div></div>
+          <div class="raw-field"><div class="raw-field-label">Timestamp</div><div class="raw-field-val">2026-04-08 08:13:42</div></div>
+          <div class="raw-field"><div class="raw-field-label">Status Code</div><div class="raw-field-val">401 Unauthorized</div></div>
+          <div class="raw-field"><div class="raw-field-label">Incident ID</div><div class="raw-field-val">INC-8821a3f</div></div>
+        </div>
+      </div>
+
+      <div class="log-row cols-5-wide" style="color:#4b5e80;font-size:10px;">
+        <span style="font-family:monospace;">08:13:37</span><span style="font-family:monospace;">172.16.8.3</span>
+        <span style="font-family:monospace;">/api/users</span>
+        <span><span class="badge badge-red">403</span></span>
+        <span style="color:#f87171;font-weight:600;">Threat</span>
+        <span class="expand-icon">▼</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="option" id="opt-b" onclick="selectOption(this,'b')">
+    <div class="option-label">Option B</div>
+    <div class="option-title">Right slide-in panel</div>
+    <div class="option-desc">Click any row to open a fixed right-side detail panel. Table stays fully visible on the left, detail fills the right. No layout shift.</div>
+
+    <div class="panel-demo">
+      <div class="panel-table-side">
+        <div class="log-thead cols-5" style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#4b5e80;display:grid;padding:7px 12px;border-bottom:1px solid rgba(148,163,184,0.06);">
+          <span>Time</span><span>IP</span><span>Endpoint</span><span>Status</span><span>Detection</span>
+        </div>
+        <div class="log-row cols-5" style="color:#4b5e80;font-size:11px;">
+          <span style="font-family:monospace;">08:13:39</span><span style="font-family:monospace;">10.0.0.12</span><span style="font-family:monospace;">/api/items</span><span><span class="badge badge-green">200</span></span><span style="color:#22d3a6;font-weight:600;">Clean</span>
+        </div>
+        <div class="log-row cols-5" style="font-size:11px;background:rgba(79,141,249,0.08);border-left:2px solid #4f8df9;">
+          <span style="font-family:monospace;color:#4b5e80;">08:13:42</span><span style="font-family:monospace;">192.168.1.45</span><span style="font-family:monospace;">/api/login</span><span><span class="badge badge-red">401</span></span><span style="color:#f87171;font-weight:600;">Threat</span>
+        </div>
+        <div class="log-row cols-5" style="color:#4b5e80;font-size:11px;">
+          <span style="font-family:monospace;">08:13:37</span><span style="font-family:monospace;">172.16.8.3</span><span style="font-family:monospace;">/api/users</span><span><span class="badge badge-red">403</span></span><span style="color:#f87171;font-weight:600;">Threat</span>
+        </div>
+        <div class="log-row cols-5" style="color:#4b5e80;font-size:11px;">
+          <span style="font-family:monospace;">08:13:31</span><span style="font-family:monospace;">10.0.0.99</span><span style="font-family:monospace;">/api/search</span><span><span class="badge badge-green">200</span></span><span style="color:#22d3a6;font-weight:600;">Clean</span>
+        </div>
+      </div>
+      <div class="panel-side-panel">
+        <div class="panel-header">
+          <div class="panel-title">Log detail</div>
+          <div class="panel-close">✕</div>
+        </div>
+        <div style="font-size:10px;font-family:monospace;color:#6b7a9e;">192.168.1.45 → /api/login</div>
+        <div class="panel-divider"></div>
+        <div class="panel-model">
+          <div class="pm-header">
+            <span class="pm-name">Transformer</span>
+            <span class="model-verdict verdict-anomaly" style="font-size:9px;padding:2px 6px;">Anomaly</span>
+          </div>
+          <div class="pm-score-label">Novelty score: <strong style="color:#f87171;">0.94</strong></div>
+          <div class="pm-score-track"><div class="score-fill score-red" style="width:94%;height:100%;border-radius:2px;"></div></div>
+          <div class="pm-detail">AUTH_FAIL_BURST pattern. High divergence from trained baseline.</div>
+        </div>
+        <div class="panel-model">
+          <div class="pm-header">
+            <span class="pm-name">Isolation Forest</span>
+            <span class="model-verdict verdict-anomaly" style="font-size:9px;padding:2px 6px;">Anomaly</span>
+          </div>
+          <div class="pm-score-label">Outlier score: <strong style="color:#f87171;">0.88</strong></div>
+          <div class="pm-score-track"><div class="score-fill score-red" style="width:88%;height:100%;border-radius:2px;"></div></div>
+          <div class="pm-detail">High 401 rate + freq outlier in current window.</div>
+        </div>
+        <div class="panel-model">
+          <div class="pm-header">
+            <span class="pm-name">Rule-based</span>
+            <span class="model-verdict verdict-anomaly" style="font-size:9px;padding:2px 6px;">2 matched</span>
+          </div>
+          <div class="pm-detail" style="margin-top:4px;">
+            <span style="font-family:monospace;font-size:9px;color:#f4c15d;">BRUTE_FORCE_LOGIN</span><br/>
+            <span style="font-family:monospace;font-size:9px;color:#f4c15d;">REPEATED_AUTH_FAIL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
