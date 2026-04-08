@@ -312,7 +312,7 @@ body {
 .dashboard-shell__inner {
   max-width: 1640px;
   margin: 0 auto;
-  padding: 2rem 1rem 3rem;
+  padding: 2rem clamp(1rem, 2vw, 2rem) 3rem;
   display: grid;
   gap: 1.5rem;
 }
@@ -323,6 +323,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 1.25rem;
+  min-width: 0;
 }
 
 .dashboard-sidebar {
