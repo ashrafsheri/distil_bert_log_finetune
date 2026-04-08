@@ -380,5 +380,187 @@ class TestBackgroundSessionExpiry(unittest.TestCase):
         self.assertIn('.join(', body2)
 
 
+# ---------------------------------------------------------------------------
+# Fix 6: Adaptive contamination for Isolation Forest
+# ---------------------------------------------------------------------------
+
+class TestAdaptiveIFContamination(unittest.TestCase):
+
+    def test_contamination_auto_present_in_student(self):
+        """Student model must use contamination='auto', not fixed 0.1."""
+        src = _src('student_model.py')
+        self.assertIn("contamination='auto'", src)
+
+    def test_old_fixed_0_1_contamination_removed(self):
+        """The old contamination=0.1 default must be gone."""
+        src = _src('student_model.py')
+        self.assertNotIn("contamination=0.1", src)
+
+    def test_fallback_contamination_is_low(self):
+        """Fallback for sklearn < 1.3 must use a low value (≤ 0.05), not 0.1."""
+        src = _src('student_model.py')
+        # Find the fallback IsolationForest block
+        match = re.search(
+            r'contamination=(\d+\.\d+)',
+            src[src.find('scikit-learn < 1.3'):] if 'scikit-learn < 1.3' in src else src
+        )
+        if match:
+            fallback = float(match.group(1))
+            self.assertLessEqual(fallback, 0.05,
+                "Fallback contamination should be ≤ 0.05 (training data is clean baseline)")
+
+    def test_iso_forest_calibration_uses_percentile(self):
+        """Threshold must be set via np.percentile on calibration scores, not fixed."""
+        src = _src('student_model.py')
+        self.assertIn('np.percentile(scores', src)
+
+    def test_training_features_collected_only_for_clean_logs(self):
+        """Features appended to training_features only when collect_for_training is True."""
+        src = _src('student_model.py')
+        # The collect_for_training guard should precede the append
+        append_idx = src.rfind('training_features.append')
+        guard_idx  = src.rfind('collect_for_training', 0, append_idx)
+        self.assertGreater(guard_idx, 0,
+            "training_features.append must be guarded by collect_for_training")
+
+
+# ---------------------------------------------------------------------------
+# Fix 7: Debounced _save_projects()
+# ---------------------------------------------------------------------------
+
+PM_SRC_FILE = REPO_ROOT / 'realtime_anomaly_detection' / 'models' / 'project_manager.py'
+
+def _pm_src() -> str:
+    return PM_SRC_FILE.read_text()
+
+
+class TestDebouncedSaveProjects(unittest.TestCase):
+
+    def test_dirty_flag_added(self):
+        src = _pm_src()
+        self.assertIn('self._dirty', src)
+
+    def test_mark_dirty_method_exists(self):
+        src = _pm_src()
+        self.assertIn('def _mark_dirty(self)', src)
+
+    def test_save_interval_configurable(self):
+        src = _pm_src()
+        self.assertIn('_save_interval', src)
+
+    def test_background_flush_loop_exists(self):
+        src = _pm_src()
+        self.assertIn('def _background_flush_loop(self)', src)
+
+    def test_start_stop_flush_methods_exist(self):
+        src = _pm_src()
+        self.assertIn('def start_background_flush(self)', src)
+        self.assertIn('def stop_background_flush(self)', src)
+
+    def test_flush_thread_is_daemon(self):
+        src = _pm_src()
+        match = re.search(r'def start_background_flush.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        self.assertIn('daemon=True', match.group(0))
+
+    def test_stop_flush_does_final_save_on_shutdown(self):
+        """stop_background_flush must call _save_projects() synchronously."""
+        src = _pm_src()
+        match = re.search(r'def stop_background_flush.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('_save_projects()', body)
+
+    def test_increment_log_count_uses_mark_dirty(self):
+        src = _pm_src()
+        match = re.search(r'def increment_log_count.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('_mark_dirty()', body)
+        # Must NOT call _save_projects() directly (that would re-introduce the bug)
+        self.assertNotIn('_save_projects()', body)
+
+    def test_record_ingest_stats_uses_mark_dirty(self):
+        src = _pm_src()
+        match = re.search(r'def record_ingest_stats.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('_mark_dirty()', body)
+
+    def test_update_reservoir_counts_uses_mark_dirty(self):
+        src = _pm_src()
+        match = re.search(r'def update_reservoir_counts.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('_mark_dirty()', body)
+        self.assertNotIn('_save_projects()', body)
+
+    def test_critical_ops_still_save_immediately(self):
+        """create_project, delete_project, regenerate_api_key must call _save_projects()."""
+        src = _pm_src()
+        for fn in ('def create_project', 'def delete_project', 'def regenerate_api_key',
+                   'def mark_student_trained'):
+            idx = src.find(fn)
+            self.assertGreater(idx, 0, f"{fn} not found")
+            # Find the next def to bound the search
+            next_def = src.find('\n    def ', idx + len(fn))
+            body = src[idx:next_def if next_def > 0 else idx + 1000]
+            self.assertIn('_save_projects()', body,
+                f"{fn} must call _save_projects() directly (critical mutation)")
+
+    def test_server_starts_background_flush(self):
+        server_src = (REPO_ROOT / 'realtime_anomaly_detection' / 'api' / 'server_multi_tenant.py').read_text()
+        self.assertIn('start_background_flush()', server_src)
+
+    def test_server_stops_background_flush(self):
+        server_src = (REPO_ROOT / 'realtime_anomaly_detection' / 'api' / 'server_multi_tenant.py').read_text()
+        self.assertIn('stop_background_flush()', server_src)
+
+    def test_background_flush_loop_checks_dirty_flag(self):
+        src = _pm_src()
+        match = re.search(r'def _background_flush_loop.*?(?=\n    def |\Z)', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('_dirty', body)
+        self.assertIn('_save_projects()', body)
+
+    def test_flush_interval_is_30s(self):
+        """Default flush interval should be 30 seconds."""
+        src = _pm_src()
+        self.assertIn("'30'", src)   # the env-var default
+
+    def test_dirty_reset_after_save(self):
+        """_save_projects() must reset _dirty to False."""
+        src = _pm_src()
+        match = re.search(r'def _save_projects.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('self._dirty = False', body)
+
+    def test_mark_dirty_sets_flag(self):
+        """_mark_dirty must set self._dirty = True."""
+        src = _pm_src()
+        match = re.search(r'def _mark_dirty.*?(?=\n    def )', src, re.DOTALL)
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        self.assertIn('self._dirty = True', body)
+
+    def test_functional_background_flush(self):
+        """Integration: mark_dirty → background flush actually writes to disk."""
+        import tempfile, json as _json
+        tmp = tempfile.mkdtemp()
+        with patch.dict(sys.modules, _mock_torch_module()):
+            from realtime_anomaly_detection.models.project_manager import ProjectManager
+        pm = ProjectManager(storage_dir=Path(tmp))
+        pm._dirty = True
+        # Run one flush cycle manually (without the thread)
+        with pm._lock:
+            if pm._dirty:
+                pm._save_projects()
+        self.assertFalse(pm._dirty, "_dirty should be False after _save_projects()")
+        saved = _json.loads(pm.projects_file.read_text())
+        self.assertIn('saved_at', saved)
+
+
 if __name__ == '__main__':
     unittest.main()

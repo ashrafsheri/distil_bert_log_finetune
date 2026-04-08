@@ -9,6 +9,7 @@ import uuid
 import hashlib
 import secrets
 import threading
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -209,7 +210,16 @@ class ProjectManager:
         # Paths
         self.projects_file = self.storage_dir / 'projects.json'
         self.manager_state_file = self.storage_dir / 'manager_state.pkl'
-        
+
+        # Debounced-save infrastructure (item 7)
+        # Hot-path calls mark dirty; a background thread flushes every 30 s.
+        # Critical mutations (create, delete, phase transitions, key ops) still
+        # call _save_projects() directly so they are durable immediately.
+        self._dirty: bool = False
+        self._save_interval: float = float(os.getenv('PM_SAVE_INTERVAL', '30'))
+        self._flush_stop: threading.Event = threading.Event()
+        self._flush_thread: Optional[threading.Thread] = None
+
         # Load existing projects
         self._load_projects()
         
@@ -367,7 +377,7 @@ class ProjectManager:
             
             project.current_log_count += count
             project.last_activity = datetime.now().isoformat()
-            self._save_projects()
+            self._mark_dirty()   # hot path — deferred flush
             return project
 
     def record_ingest_stats(
@@ -419,7 +429,7 @@ class ProjectManager:
             if traffic_profile:
                 project.traffic_profile = traffic_profile
             project.last_activity = datetime.now().isoformat()
-            self._save_projects()
+            self._mark_dirty()   # hot path — deferred flush
             return project
 
     def update_calibration_threshold(self, project_id: str, threshold: float) -> Optional[ProjectConfig]:
@@ -428,7 +438,7 @@ class ProjectManager:
             if not project:
                 return None
             project.calibration_threshold = threshold
-            self._save_projects()
+            self._mark_dirty()   # deferred — threshold recalculated per-batch
             return project
 
     def update_threshold_metadata(
@@ -451,7 +461,7 @@ class ProjectManager:
             project.calibration_sample_count = calibration_sample_count
             project.score_normalization_version = score_normalization_version
             project.feature_schema_version = feature_schema_version
-            self._save_projects()
+            self._mark_dirty()   # deferred — updated per-training, not per-log
             return project
 
     def set_student_training_blockers(self, project_id: str, blockers: List[str]) -> Optional[ProjectConfig]:
@@ -461,8 +471,12 @@ class ProjectManager:
                 return None
             project.student_training_blockers = blockers
             if blockers and project.phase == ProjectPhase.TRAINING.value:
+                # Phase reversion is critical — save immediately so a crash
+                # doesn't leave the project stuck in the TRAINING phase.
                 project.phase = ProjectPhase.WARMUP.value
-            self._save_projects()
+                self._save_projects()
+            else:
+                self._mark_dirty()   # blocker list update — deferred is fine
             return project
     
     def update_training_stats(
@@ -494,7 +508,7 @@ class ProjectManager:
             project.clean_normal_reservoir_count = clean_normal_reservoir_count
             project.suspicious_reservoir_count = suspicious_reservoir_count
             project.confirmed_malicious_reservoir_count = confirmed_malicious_reservoir_count
-            self._save_projects()
+            self._mark_dirty()   # hot path — deferred flush
     
     def _trigger_student_training(self, project_id: str):
         """Mark project for student model training"""
@@ -682,7 +696,15 @@ class ProjectManager:
             return new_api_key
     
     def _save_projects(self):
-        """Save all projects to disk"""
+        """Write all projects to disk immediately.
+
+        Call directly for critical mutations (create, delete, phase transitions,
+        API key operations).  Hot-path callers should call _mark_dirty() instead
+        so the write is deferred to the background flush thread.
+
+        Must be called while self._lock is held (or before the lock is released,
+        if the caller holds it for the entire critical section).
+        """
         try:
             data = {
                 'projects': {pid: p.to_dict() for pid, p in self.projects.items()},
@@ -691,8 +713,54 @@ class ProjectManager:
             }
             with open(self.projects_file, 'w') as f:
                 json.dump(data, f, indent=2)
+            self._dirty = False
         except Exception as e:
             logger.warning(f"Failed to save projects: {e}")
+
+    def _mark_dirty(self) -> None:
+        """Mark in-memory project state as needing a flush.
+
+        Used by hot-path callers (per-batch stat updates) to avoid a synchronous
+        JSON write on every incoming log batch.  The background flush thread
+        (started by start_background_flush) drains this flag every _save_interval
+        seconds.  If the flush thread is not running the flag is ignored; a
+        synchronous save still happens on shutdown via stop_background_flush().
+        """
+        self._dirty = True
+
+    # ------------------------------------------------------------------
+    # Background flush thread (item 7 — debounced _save_projects)
+    # ------------------------------------------------------------------
+
+    def start_background_flush(self) -> None:
+        """Start the background thread that periodically flushes dirty state."""
+        self._flush_stop.clear()
+        self._flush_thread = threading.Thread(
+            target=self._background_flush_loop,
+            name='pm-flush',
+            daemon=True,
+        )
+        self._flush_thread.start()
+        logger.info(f"ProjectManager: background flush started (interval={self._save_interval}s)")
+
+    def stop_background_flush(self) -> None:
+        """Stop the flush thread and do a final synchronous save if dirty."""
+        self._flush_stop.set()
+        if self._flush_thread and self._flush_thread.is_alive():
+            self._flush_thread.join(timeout=5.0)
+        # Synchronous save on graceful shutdown so no data is lost.
+        with self._lock:
+            if self._dirty:
+                logger.info("ProjectManager: flushing dirty state on shutdown")
+                self._save_projects()
+
+    def _background_flush_loop(self) -> None:
+        """Run by the flush daemon thread.  Sleeps _save_interval seconds between
+        checks and writes to disk only when the dirty flag is set."""
+        while not self._flush_stop.wait(timeout=self._save_interval):
+            with self._lock:
+                if self._dirty:
+                    self._save_projects()
     
     def _load_projects(self):
         """Load projects from disk"""

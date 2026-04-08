@@ -313,8 +313,11 @@ async def startup_event():
         # Start background scheduler
         update_scheduler.start_background_scheduler()
 
-        # Start background session-expiry thread
+        # Start background session-expiry thread (fix 5)
         detector.start_background_cleanup()
+
+        # Start background project-state flush thread (fix 7)
+        detector.project_manager.start_background_flush()
 
         teacher_info = detector.teacher.get_model_info()
         logger.info("Teacher startup summary:")
@@ -353,6 +356,8 @@ async def shutdown_event():
         update_scheduler.stop_background_scheduler()
     if detector:
         detector.stop_background_cleanup()
+        # Flush any pending dirty state synchronously before the process exits (fix 7)
+        detector.project_manager.stop_background_flush()
 
 
 # ============================================================================
