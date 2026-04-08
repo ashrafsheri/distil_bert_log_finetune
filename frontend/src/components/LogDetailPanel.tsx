@@ -9,14 +9,14 @@ interface LogDetailPanelProps {
 const clampPercent = (value: number): number => Math.max(0, Math.min(100, value));
 
 const formatScore = (value: number | null | undefined, digits = 3): string => {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return 'N/A';
-  }
-
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'N/A';
   return value.toFixed(digits);
 };
 
-const verdictClass = (isAnomaly: boolean): string => (isAnomaly ? 'log-detail-model__badge log-detail-model__badge--anomaly' : 'log-detail-model__badge log-detail-model__badge--clean');
+const verdictClass = (isAnomaly: boolean): string =>
+  isAnomaly
+    ? 'log-detail-model__badge log-detail-model__badge--anomaly'
+    : 'log-detail-model__badge log-detail-model__badge--clean';
 
 const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
   const ruleBased = log.anomaly_details?.rule_based;
@@ -26,6 +26,9 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
   const transformerIsAnomaly = transformer?.is_anomaly === 1;
   const isolationIsAnomaly = isolationForest?.is_anomaly === 1;
   const ruleIsAnomaly = Boolean(ruleBased?.is_attack);
+  const isWarmupTeacher = log.detectorPhase === 'warmup' && log.modelType === 'teacher';
+  const transformerSuppressed = transformer?.status === 'insufficient_signal';
+  const transformerErrored = transformer?.status === 'error';
 
   const transformerFill = transformer?.threshold && typeof transformer.score === 'number'
     ? clampPercent((transformer.score / transformer.threshold) * 100)
@@ -33,18 +36,18 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
   const isolationFill = clampPercent((isolationForest?.score || 0) * 20);
   const ruleFill = clampPercent((ruleBased?.confidence || 0) * 100);
 
-  const transformerDetail = transformer?.status === 'insufficient_signal'
-    ? 'Signal was suppressed because the sequence is dominated by unseen templates.'
-    : transformer?.status === 'error'
-      ? (transformer.error || 'Transformer scoring failed for this event.')
-      : log.normalizedTemplate || log.decisionReason || 'Scored against the active sequence model.';
+  const transformerScoreLabel = transformerSuppressed
+    ? 'Suppressed'
+    : transformerErrored
+      ? 'Unavailable'
+      : formatScore(transformer?.score);
 
-  const isolationDetail = isolationForest?.status || log.incidentReason || 'Isolation Forest evaluated the event against the current baseline.';
+  const isolationDetail = isolationForest?.status || log.incidentReason || 'Evaluated against current baseline.';
   const ruleDetail = ruleBased?.attack_types?.length
     ? `Matched rules: ${ruleBased.attack_types.join(', ')}`
     : log.topContributingSignals?.length
       ? `Signals: ${log.topContributingSignals.join(', ')}`
-      : 'No rule signature was attached to this event.';
+      : 'No rule signature attached to this event.';
 
   return (
     <aside className="log-detail-panel">
@@ -74,6 +77,7 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
 
       <div className="log-detail-panel__divider" />
 
+      {/* Transformer */}
       <div className="log-detail-model">
         <div className="log-detail-model__head">
           <span className="log-detail-model__name">Transformer</span>
@@ -81,16 +85,86 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
             {transformerIsAnomaly ? 'Anomaly' : 'Clean'}
           </span>
         </div>
+
         <div className="log-detail-model__score-row">
-          <span>Score</span>
-          <strong>{formatScore(transformer?.score)}</strong>
+          <span>{isWarmupTeacher ? 'Warmup score' : 'NLL score'}</span>
+          <strong>{transformerScoreLabel}</strong>
         </div>
+
+        {transformer?.threshold && (
+          <div className="log-detail-model__score-row">
+            <span>Threshold</span>
+            <strong>{formatScore(transformer.threshold)}</strong>
+          </div>
+        )}
+
         <div className="log-detail-model__bar">
-          <div className={`log-detail-model__fill ${transformerIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`} style={{ width: `${transformerFill}%` }} />
+          <div
+            className={`log-detail-model__fill ${transformerIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`}
+            style={{ width: (transformerSuppressed || transformerErrored) ? '0%' : `${transformerFill}%` }}
+          />
         </div>
-        <p className="log-detail-model__detail">{transformerDetail}</p>
+
+        {(transformer?.sequence_length || transformer?.context) && (
+          <>
+            <div className="log-detail-model__stat-divider" />
+            {transformer.sequence_length != null && (
+              <div className="log-detail-model__stat-row">
+                <span>Sequence length</span>
+                <strong>{transformer.sequence_length}</strong>
+              </div>
+            )}
+            {transformer.context && (
+              <div className="log-detail-model__stat-row">
+                <span>Context</span>
+                <strong>{transformer.context}</strong>
+              </div>
+            )}
+          </>
+        )}
+
+        {typeof log.unknownTemplateRatio === 'number' && (
+          <>
+            <div className="log-detail-model__stat-divider" />
+            <div className="log-detail-model__stat-row">
+              <span>Unknown template ratio</span>
+              <strong style={{ color: log.unknownTemplateRatio >= 0.5 ? '#f4c15d' : undefined }}>
+                {(log.unknownTemplateRatio * 100).toFixed(1)}%
+              </strong>
+            </div>
+          </>
+        )}
+
+        {transformer?.status && (
+          <div className="log-detail-model__stat-row" style={{ marginTop: '0.4rem' }}>
+            <span>Status</span>
+            <strong>{transformer.status}</strong>
+          </div>
+        )}
+
+        {isWarmupTeacher && (
+          <p className="log-detail-model__note log-detail-model__note--info">
+            Warmup teacher score — treat as low-confidence until a student model is trained.
+          </p>
+        )}
+        {transformerSuppressed && (
+          <p className="log-detail-model__note log-detail-model__note--warning">
+            Suppressed: sequence dominated by unseen templates.
+          </p>
+        )}
+        {transformerErrored && (
+          <p className="log-detail-model__note log-detail-model__note--error">
+            {transformer?.error || 'Transformer scoring failed for this event.'}
+          </p>
+        )}
+        {!transformerSuppressed && !transformerErrored && !isWarmupTeacher && (
+          <p className="log-detail-model__detail">
+            {log.normalizedTemplate || log.decisionReason || 'Scored against the active sequence model.'}
+          </p>
+        )}
       </div>
 
+      {/* Isolation Forest */}
       <div className="log-detail-model">
         <div className="log-detail-model__head">
           <span className="log-detail-model__name">Isolation Forest</span>
@@ -103,11 +177,15 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
           <strong>{formatScore(isolationForest?.score)}</strong>
         </div>
         <div className="log-detail-model__bar">
-          <div className={`log-detail-model__fill ${isolationIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`} style={{ width: `${isolationFill}%` }} />
+          <div
+            className={`log-detail-model__fill ${isolationIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`}
+            style={{ width: `${isolationFill}%` }}
+          />
         </div>
         <p className="log-detail-model__detail">{isolationDetail}</p>
       </div>
 
+      {/* Rule-Based */}
       <div className="log-detail-model">
         <div className="log-detail-model__head">
           <span className="log-detail-model__name">Rule-Based</span>
@@ -120,7 +198,10 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
           <strong>{`${((ruleBased?.confidence || 0) * 100).toFixed(1)}%`}</strong>
         </div>
         <div className="log-detail-model__bar">
-          <div className={`log-detail-model__fill ${ruleIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`} style={{ width: `${ruleFill}%` }} />
+          <div
+            className={`log-detail-model__fill ${ruleIsAnomaly ? 'log-detail-model__fill--anomaly' : 'log-detail-model__fill--clean'}`}
+            style={{ width: `${ruleFill}%` }}
+          />
         </div>
         <p className="log-detail-model__detail">{ruleDetail}</p>
       </div>
