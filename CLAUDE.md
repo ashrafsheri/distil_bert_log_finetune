@@ -41,10 +41,12 @@ npm run lint       # ESLint
 npm run preview    # Preview production build
 ```
 
-### ML Training (top-level)
+### Production Scripts
 ```bash
-pip install -r requirements.txt
-# Training configs in configs/train_hdfs.yaml and configs/train_openstack.yaml
+# Check running service health and model performance:
+python scripts/check_model_health.py
+# Offline model state analysis:
+python scripts/evaluate_model_performance.py --storage-dir ./data/detector
 ```
 
 ## Architecture: Main Request Flow
@@ -81,7 +83,9 @@ The detector is a **hybrid system**, not a pure ML classifier:
 - **Transformer** — sequence novelty scoring; suppressed when unknown-template ratio is too high
 - **Isolation Forest** — feature-based scoring
 
-Project phases: `warmup → training → active → suspended/error`. Warmup uses the teacher; active phase uses project-specific student models.
+Project phases: `warmup → training → active → suspended/error`. Warmup uses the teacher; active phase uses project-specific student models. When a student has low confidence (high unknown template ratio, few active ensemble models), detection is **escalated to the teacher** at runtime for a second opinion.
+
+**Online learning**: Student models are not frozen after initial training. Every `ONLINE_UPDATE_INTERVAL` logs (default 500), the student fine-tunes on its clean_normal_reservoir with a KL-divergence safety guard that rolls back if the model drifts too far.
 
 Traffic profiles (`standard` / `low_traffic`) control warmup thresholds and minimum training requirements.
 

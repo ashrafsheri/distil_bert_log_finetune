@@ -44,7 +44,17 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
 sys.path.insert(0, str(REPO_ROOT / "backend"))
+
+from metrics import (
+    compute_pr_auc,
+    compute_roc_auc,
+    compute_ece,
+    compute_latency_histogram,
+    compute_per_class_metrics,
+    compute_threshold_sweep,
+)
 
 from app.services.log_parser_service import LogParserService
 
@@ -490,6 +500,10 @@ class AdaptiveAdapter(DetectorAdapter):
         )
 
 
+    def set_ablation(self, ablation: str) -> None:
+        self.detector._ablation_mode = ablation
+
+
 class MultiTenantAdapter(DetectorAdapter):
     def __init__(self, *, model_dir: Path, storage_root: Path, warmup_threshold: int, device: str) -> None:
         sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
@@ -537,6 +551,9 @@ class MultiTenantAdapter(DetectorAdapter):
             metadata=event.metadata,
         )
 
+    def set_ablation(self, ablation: str) -> None:
+        self.detector._ablation_mode = ablation
+
 
 def build_adapter(name: str, *, model_dir: Path, storage_root: Path, warmup_threshold: int, device: str) -> DetectorAdapter:
     if name == "adaptive":
@@ -571,10 +588,14 @@ def replay_detector(
     bucket_minutes: int,
 ) -> Dict[str, Any]:
     replay_rows: List[Dict[str, Any]] = []
+    event_latencies: List[float] = []
     start = time.perf_counter()
 
     for index, event in enumerate(events):
+        t0 = time.perf_counter()
         result = adapter.detect(event)
+        t1 = time.perf_counter()
+        event_latencies.append(t1 - t0)
         predicted = bool(result.get("is_anomaly", False))
         predicted_incident_id = result.get("incident_id") or derive_incident_key(
             project_id=event.project_id,
@@ -618,6 +639,10 @@ def replay_detector(
 
     duration = time.perf_counter() - start
     eval_rows = [row for row in replay_rows if row["eval"]]
+    eval_latencies = event_latencies[eval_start_index:]
+    labeled_eval = [r for r in eval_rows if r.get("label") is not None]
+    eval_labels = [int(bool(r["label"])) for r in labeled_eval]
+    eval_scores = [float(r.get("anomaly_score", 0.0)) for r in labeled_eval]
     false_positive_rows = [row for row in eval_rows if row.get("label") is False and row.get("predicted")]
     false_negative_rows = [row for row in eval_rows if row.get("label") is True and not row.get("predicted")]
     predicted_rows = [row for row in eval_rows if row.get("predicted")]
@@ -628,6 +653,12 @@ def replay_detector(
         "eval_events": len(eval_rows),
         "binary_metrics": compute_binary_metrics(eval_rows),
         "incident_metrics": compute_incident_metrics(eval_rows),
+        "pr_auc": compute_pr_auc(eval_labels, eval_scores),
+        "roc_auc": compute_roc_auc(eval_labels, eval_scores),
+        "ece": compute_ece(eval_labels, eval_scores),
+        "latency": compute_latency_histogram(eval_latencies),
+        "per_traffic_class": compute_per_class_metrics(eval_rows),
+        "threshold_sweep": compute_threshold_sweep(eval_labels, eval_scores),
         "projects_seen": sorted({row["project_id"] for row in replay_rows}),
         "avg_events_per_second": round(len(replay_rows) / duration, 2) if duration else None,
         "alert_volume": {
@@ -667,6 +698,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--train-fraction", type=float, default=0.7)
     parser.add_argument("--incident-bucket-minutes", type=int, default=15)
     parser.add_argument("--output", default=None, help="Optional JSON report path")
+    parser.add_argument(
+        "--ablation",
+        choices=["none", "rule_only", "iso_only", "transformer_only", "no_manifest", "no_canonicalization", "student_only", "teacher_only"],
+        default="none",
+        help="Ablation mode: disable components to measure their contribution",
+    )
     return parser
 
 
@@ -717,8 +754,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
         )
 
-    for _, adapter in adapter_specs:
+    for name, adapter in adapter_specs:
         adapter.prime_projects(project_stats)
+        if hasattr(adapter, 'set_ablation'):
+            adapter.set_ablation(args.ablation)
 
     reports = [
         replay_detector(
