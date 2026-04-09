@@ -1,12 +1,17 @@
 """
 Log Parser Service
 Parses supported access log formats and extracts structured data.
+Falls back to Drain3 template mining for non-Apache/Nginx formats.
 """
 
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 import logging
+
+from drain3 import TemplateMiner
+from drain3.template_miner_config import TemplateMinerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +34,14 @@ class LogParserService:
             "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%SZ",
         )
+
+        # Drain3 miner for non-Apache/Nginx formats
+        drain_config = TemplateMinerConfig()
+        drain3_ini = Path(__file__).resolve().parents[3] / "configs" / "drain3.ini"
+        if drain3_ini.exists():
+            drain_config.load(str(drain3_ini))
+        drain_config.profiling_enabled = False
+        self._drain_miner = TemplateMiner(config=drain_config)
 
     @staticmethod
     def _find_request_bounds(log_line: str) -> tuple[int, int]:
@@ -116,6 +129,35 @@ class LogParserService:
             "raw_log": raw_log
         }
 
+    def parse_drain3_log(self, log_line: str) -> Optional[Dict]:
+        """Parse a log line using Drain3 template mining (fallback for non-Apache/Nginx)."""
+        try:
+            log_line = log_line.strip()
+            if not log_line:
+                return None
+
+            result = self._drain_miner.add_log_message(log_line)
+            template = result["template_mined"]
+
+            return {
+                "ip_address": "",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "method": "",
+                "path": template,
+                "protocol": "",
+                "status_code": 0,
+                "size": 0,
+                "auth_user": "",
+                "referer": "",
+                "user_agent": "",
+                "raw_log": log_line,
+                "drain3_template": template,
+                "drain3_cluster_id": result.get("cluster_id"),
+            }
+        except Exception as e:
+            logger.warning("Drain3 parse failed: %s", e)
+            return None
+
     def parse_log_with_error(
         self,
         log_line: str,
@@ -123,14 +165,25 @@ class LogParserService:
         fallback_event_time: Optional[str] = None,
     ) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
         """Parse a supported access log and return a structured error code on failure."""
-        parsed_log = self.parse_nginx_log(log_line) if log_type == "nginx" else self.parse_apache_log(log_line)
+        if log_type == "nginx":
+            parsed_log = self.parse_nginx_log(log_line)
+        elif log_type == "apache":
+            parsed_log = self.parse_apache_log(log_line)
+        else:
+            # Drain3 fallback for syslog, generic, and unknown formats
+            parsed_log = self.parse_drain3_log(log_line)
+
         if parsed_log is None:
-            return None, f"unable_to_parse_{log_type}_access_log"
+            # If Apache/Nginx regex failed, try Drain3 as last resort
+            if log_type in ("apache", "nginx"):
+                parsed_log = self.parse_drain3_log(log_line)
+            if parsed_log is None:
+                return None, f"unable_to_parse_{log_type}_access_log"
 
         parsed_log["log_type"] = log_type
         if fallback_event_time and not parsed_log.get("timestamp"):
             parsed_log["timestamp"] = self.normalize_record_timestamp(fallback_event_time)
-        parsed_log["normalized_event"] = self.build_normalized_event(parsed_log)
+        parsed_log["normalized_event"] = parsed_log.get("drain3_template") or self.build_normalized_event(parsed_log)
         return parsed_log, None
     
     def parse_apache_log(self, log_line: str) -> Optional[Dict]:

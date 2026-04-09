@@ -420,6 +420,46 @@ async def metrics():
     return runtime_metrics.snapshot()
 
 
+@app.get("/metrics/detailed", response_model=Dict[str, Any])
+async def metrics_detailed(
+    admin_key: Annotated[Optional[str], Query(description=ADMIN_API_KEY_DESCRIPTION)] = None,
+):
+    """Detailed metrics including per-project online learning and escalation stats."""
+    if detector is None:
+        raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
+
+    require_admin(admin_key)
+
+    base = runtime_metrics.snapshot()
+    student_stats = {}
+    for pid, student in detector.students.items():
+        info = student.get_model_info()
+        student_stats[pid] = {
+            "logs_processed": info.get("logs_processed", 0),
+            "online_update_count": info.get("online_update_count", 0),
+            "logs_since_last_update": info.get("logs_since_last_update", 0),
+            "last_online_update_at": info.get("last_online_update_at"),
+            "clean_reservoir_size": info.get("clean_normal_reservoir_count", 0),
+            "transformer_threshold": info.get("transformer_threshold"),
+            "is_trained": info.get("is_trained", False),
+        }
+
+    base["student_models"] = student_stats
+    base["escalation"] = {
+        "enabled": detector.teacher_escalation_enabled,
+        "entropy_threshold": detector.escalation_entropy_threshold,
+        "unknown_ratio_threshold": detector.escalation_unknown_ratio_threshold,
+        "max_rate": detector.escalation_max_rate,
+        "recent_window_size": len(detector._escalation_window),
+        "recent_escalation_count": sum(detector._escalation_window) if detector._escalation_window else 0,
+    }
+    base["online_updates"] = {
+        "enabled": detector.online_update_enabled,
+        "interval": detector.online_update_interval,
+    }
+    return base
+
+
 # ============================================================================
 # PROJECT MANAGEMENT ENDPOINTS
 # ============================================================================

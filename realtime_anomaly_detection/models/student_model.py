@@ -26,6 +26,7 @@ from sklearn.utils.validation import check_is_fitted
 from .ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
+from .calibrator import EnsembleCalibrator
 
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,17 @@ class StudentModel:
         self.transformer: Optional[TemplateTransformer] = None
         self.iso_forest: Optional[IsolationForest] = None
         self.rule_detector = RuleBasedDetector()
-        
+
+        # Calibrator (loaded if available, otherwise falls back to ensemble threshold)
+        self.calibrator: Optional[EnsembleCalibrator] = None
+        calibrator_path = self.storage_dir / 'calibrator.pkl'
+        if calibrator_path.exists():
+            try:
+                self.calibrator = EnsembleCalibrator.load(calibrator_path)
+                logger.info("Loaded fitted calibrator for student %s", project_id[:8])
+            except Exception as e:
+                logger.warning("Failed to load student calibrator: %s", e)
+
         # Vocabulary (project-specific)
         self.template_to_id: Dict[str, int] = {}
         self.id_to_template: List[str] = []
@@ -132,7 +143,10 @@ class StudentModel:
         self.is_training = False
         self.logs_processed = 0
         self.last_trained_at: Optional[str] = None
-        
+        self.online_update_count: int = 0
+        self.logs_since_last_update: int = 0
+        self.last_online_update_at: Optional[str] = None
+
         # Thread safety
         self._lock = threading.RLock()
         
@@ -173,6 +187,9 @@ class StudentModel:
                 self.iso_threshold = state.get('iso_threshold')
                 self.logs_processed = state.get('logs_processed', 0)
                 self.last_trained_at = state.get('last_trained_at')
+                self.online_update_count = state.get('online_update_count', 0)
+                self.logs_since_last_update = state.get('logs_since_last_update', 0)
+                self.last_online_update_at = state.get('last_online_update_at')
                 self.clean_normal_reservoir = state.get('clean_normal_reservoir', [])
                 self.suspicious_reservoir = state.get('suspicious_reservoir', [])
                 self.confirmed_malicious_reservoir = state.get('confirmed_malicious_reservoir', [])
@@ -249,6 +266,9 @@ class StudentModel:
                     'iso_threshold': self.iso_threshold,
                     'logs_processed': self.logs_processed,
                     'last_trained_at': self.last_trained_at,
+                    'online_update_count': self.online_update_count,
+                    'logs_since_last_update': self.logs_since_last_update,
+                    'last_online_update_at': self.last_online_update_at,
                     'clean_normal_reservoir': self.clean_normal_reservoir[-512:],
                     'suspicious_reservoir': self.suspicious_reservoir[-512:],
                     'confirmed_malicious_reservoir': self.confirmed_malicious_reservoir[-512:],
@@ -704,7 +724,8 @@ class StudentModel:
             Detection result dictionary
         """
         self.logs_processed += 1
-        
+        self.logs_since_last_update += 1
+
         # 1. Rule-based detection
         rule_result = self.rule_detector.detect(
             log_data.get('path', '/'),
@@ -738,15 +759,16 @@ class StudentModel:
         }
         if len(sequence) >= MIN_SEQUENCE_CONTEXT:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
-                # High unknown-template ratio signals novel endpoint scanning — treat as anomaly.
-                # Fallback: use transformer_threshold as a proxy for max_nll since per-project
-                # NLL history is not available in this scope.
-                unknown_penalty = unknown_template_ratio * float(self.transformer_threshold)
+                # High unknown-template ratio signals novel endpoints, NOT necessarily malicious.
+                # Emit novel_score separately; malicious_score stays 0.
+                novel_penalty = unknown_template_ratio * float(self.transformer_threshold)
                 transformer_result = {
-                    'is_anomaly': 1,
-                    'score': unknown_penalty,
+                    'is_anomaly': 0,
+                    'score': novel_penalty,
+                    'novel_score': novel_penalty,
+                    'malicious_score': 0.0,
                     'threshold': float(self.transformer_threshold),
-                    'status': 'unknown_penalty',
+                    'status': 'novel_penalty',
                     'sequence_length': len(sequence),
                     'context': transformer_context,
                 }
@@ -793,22 +815,23 @@ class StudentModel:
                     iso_result['status'] = f'error: {str(e)[:50]}'
         
         # 4. Ensemble voting
+        ablation = getattr(self, '_ablation_mode', 'none')
         votes = []
         weights = []
         vote_names = []
 
-        if rule_result.get('is_attack'):
+        if rule_result.get('is_attack') and ablation not in ('iso_only', 'transformer_only'):
             confidence = float(rule_result.get('confidence', 0.5))
             votes.append(1)
             weights.append(confidence)  # severity-tiered weight; no floor
             vote_names.append('rule')
 
-        if iso_result.get('status') == 'active':
+        if iso_result.get('status') == 'active' and ablation not in ('rule_only', 'transformer_only'):
             votes.append(iso_result.get('is_anomaly', 0))
             weights.append(0.5)
             vote_names.append('iso')
 
-        if transformer_result.get('status') in ('active', 'unknown_penalty'):
+        if transformer_result.get('status') in ('active', 'novel_penalty') and ablation not in ('rule_only', 'iso_only'):
             votes.append(transformer_result['is_anomaly'])
             weights.append(0.7)
             vote_names.append('transformer')
@@ -821,9 +844,34 @@ class StudentModel:
         )
         is_anomaly = ensemble_score > 0.5
 
+        # Calibrated score (overrides ensemble threshold when calibrator is fitted)
+        calibrated_score = None
+        if self.calibrator is not None and self.calibrator.is_fitted:
+            try:
+                feat_vec = EnsembleCalibrator.build_feature_vector(
+                    {
+                        'transformer': transformer_result,
+                        'isolation_forest': iso_result,
+                        'rule_based': rule_result,
+                        'unknown_template_ratio': unknown_template_ratio,
+                        'ensemble': {'active_models': len(weights)},
+                    },
+                    session_stats,
+                )
+                calibrated_score = self.calibrator.predict_proba(feat_vec)
+                if calibrated_score is not None:
+                    is_anomaly = calibrated_score > 0.5
+                    ensemble_score = calibrated_score
+            except Exception as e:
+                logger.warning("Calibrator failed, falling back to ensemble: %s", e)
+
+        novel_score = float(transformer_result.get('novel_score', 0.0) or 0.0)
+
         return {
             'is_anomaly': is_anomaly,
             'anomaly_score': ensemble_score,
+            'novel_score': novel_score,
+            'calibrated_score': calibrated_score,
             'model_type': 'student',
             'project_id': self.project_id,
             'rule_based': rule_result,
@@ -837,7 +885,142 @@ class StudentModel:
             },
             'unknown_template_ratio': float(unknown_template_ratio),
         }
-    
+
+    def online_update(
+        self,
+        min_reservoir_size: int = 500,
+        epochs: int = 2,
+        learning_rate: float = 5e-5,
+        max_kl_divergence: float = 2.0,
+    ) -> bool:
+        """
+        Update student model online using clean_normal_reservoir.
+
+        Performs a short fine-tuning pass on recent clean data. A KL divergence
+        guard rolls back the update if the model drifts too far from the prior
+        checkpoint.
+
+        Returns True if the update was applied, False if skipped or rolled back.
+        """
+        if not self.is_trained or self.transformer is None:
+            return False
+        if len(self.clean_normal_reservoir) < min_reservoir_size:
+            logger.info(
+                "Online update skipped: reservoir %d < %d",
+                len(self.clean_normal_reservoir),
+                min_reservoir_size,
+            )
+            return False
+        if self.is_training:
+            return False
+
+        self.is_training = True
+        try:
+            # Snapshot current weights for rollback
+            prior_state = {k: v.clone() for k, v in self.transformer.state_dict().items()}
+
+            # Prepare data from reservoir
+            sequences = list(self.clean_normal_reservoir[-min_reservoir_size:])
+            padded: List[List[int]] = []
+            for seq in sequences:
+                sanitized = []
+                for t in seq:
+                    if t is None or t >= self.vocab_size:
+                        sanitized.append(self.unknown_id)
+                    elif t >= self.pad_id:
+                        sanitized.append(self.pad_id - 1 if self.pad_id > 0 else 0)
+                    else:
+                        sanitized.append(t)
+                if len(sanitized) < self.window_size:
+                    sanitized += [self.pad_id] * (self.window_size - len(sanitized))
+                else:
+                    sanitized = sanitized[-self.window_size:]
+                padded.append(sanitized)
+
+            # Compute reference logits for KL check
+            ref_sample = padded[:64]
+            ref_input = torch.tensor(ref_sample, dtype=torch.long).to(self.device)
+            ref_mask = torch.tensor(
+                [[1 if t != self.pad_id else 0 for t in s] for s in ref_sample],
+                dtype=torch.long,
+            ).to(self.device)
+            with torch.no_grad():
+                ref_logits = self.transformer(ref_input, ref_mask)
+                ref_probs = F.softmax(ref_logits, dim=-1)
+
+            # Fine-tune
+            dataset = StudentTrainingDataset(padded, self.pad_id)
+            batch_size = min(32, max(4, len(padded) // 4))
+            loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+
+            self.transformer.train()
+            optimizer = torch.optim.AdamW(self.transformer.parameters(), lr=learning_rate)
+
+            for epoch in range(epochs):
+                total_loss = 0.0
+                for batch in loader:
+                    input_ids = batch["input_ids"].to(self.device)
+                    attention_mask = batch["attention_mask"].to(self.device)
+                    logits = self.transformer(input_ids, attention_mask)
+                    targets = input_ids[:, 1:]
+                    logits_shifted = logits[:, :-1, :]
+                    loss = F.cross_entropy(
+                        logits_shifted.reshape(-1, self.vocab_size),
+                        targets.reshape(-1),
+                        ignore_index=self.pad_id,
+                    )
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    total_loss += loss.item()
+                logger.info(
+                    "  Online update epoch %d/%d loss: %.4f",
+                    epoch + 1,
+                    epochs,
+                    total_loss / max(len(loader), 1),
+                )
+
+            self.transformer.eval()
+
+            # KL divergence check
+            with torch.no_grad():
+                new_logits = self.transformer(ref_input, ref_mask)
+                new_probs = F.softmax(new_logits, dim=-1)
+                kl = F.kl_div(
+                    new_probs.log().reshape(-1, self.vocab_size),
+                    ref_probs.reshape(-1, self.vocab_size),
+                    reduction="batchmean",
+                ).item()
+
+            if kl > max_kl_divergence:
+                logger.warning(
+                    "Online update rolled back: KL=%.4f > max=%.4f",
+                    kl,
+                    max_kl_divergence,
+                )
+                self.transformer.load_state_dict(prior_state)
+                self.transformer.eval()
+                return False
+
+            # Update threshold from new model
+            self._update_threshold(padded)
+            self.last_trained_at = datetime.now().isoformat()
+            self.last_online_update_at = datetime.now().isoformat()
+            self.online_update_count += 1
+            self.logs_since_last_update = 0
+            self.save()
+            logger.info(
+                "Online student update #%d applied (KL=%.4f, reservoir=%d)",
+                self.online_update_count, kl, len(self.clean_normal_reservoir),
+            )
+            return True
+
+        except Exception as e:
+            logger.error("Online student update failed: %s", e)
+            return False
+        finally:
+            self.is_training = False
+
     def get_training_data_for_teacher(self) -> Tuple[List[List[int]], Optional[np.ndarray]]:
         """
         Get accumulated training data for teacher model updates.
@@ -869,4 +1052,7 @@ class StudentModel:
             'clean_normal_reservoir_count': len(self.clean_normal_reservoir),
             'suspicious_reservoir_count': len(self.suspicious_reservoir),
             'confirmed_malicious_reservoir_count': len(self.confirmed_malicious_reservoir),
+            'online_update_count': self.online_update_count,
+            'logs_since_last_update': self.logs_since_last_update,
+            'last_online_update_at': self.last_online_update_at,
         }

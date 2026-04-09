@@ -69,26 +69,26 @@ class TestUnknownTemplatePenalty(unittest.TestCase):
 
     def test_unknown_penalty_branch_present_teacher(self):
         src = _src('teacher_model.py')
-        self.assertIn('unknown_penalty', src)
-        self.assertIn("'status': 'unknown_penalty'", src)
+        self.assertIn('novel_penalty', src)
+        self.assertIn("'status': 'novel_penalty'", src)
 
     def test_unknown_penalty_branch_present_student(self):
         src = _src('student_model.py')
-        self.assertIn('unknown_penalty', src)
-        self.assertIn("'status': 'unknown_penalty'", src)
+        self.assertIn('novel_penalty', src)
+        self.assertIn("'status': 'novel_penalty'", src)
 
     def test_penalty_uses_threshold_as_fallback(self):
         """Penalty must scale by transformer_threshold (the NLL proxy)."""
         src = _src('teacher_model.py')
         self.assertIn('unknown_template_ratio * float(self.transformer_threshold)', src)
 
-    def test_ensemble_includes_unknown_penalty_status_teacher(self):
+    def test_ensemble_includes_novel_penalty_status_teacher(self):
         src = _src('teacher_model.py')
-        self.assertIn("('active', 'unknown_penalty')", src)
+        self.assertIn("('active', 'novel_penalty')", src)
 
-    def test_ensemble_includes_unknown_penalty_status_student(self):
+    def test_ensemble_includes_novel_penalty_status_student(self):
         src = _src('student_model.py')
-        self.assertIn("('active', 'unknown_penalty')", src)
+        self.assertIn("('active', 'novel_penalty')", src)
 
     def test_penalty_score_nonzero_logic(self):
         """penalty = ratio * threshold > 0 when ratio > 0 and threshold > 0."""

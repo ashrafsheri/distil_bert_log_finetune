@@ -158,7 +158,18 @@ class MultiTenantDetector:
         # Background training queue
         self._training_queue: List[str] = []
         self._training_thread: Optional[threading.Thread] = None
-        
+
+        # Online student update settings
+        self.online_update_interval: int = int(os.getenv("ONLINE_UPDATE_INTERVAL", "500"))
+        self.online_update_enabled: bool = os.getenv("ONLINE_UPDATE_ENABLED", "true").lower() == "true"
+
+        # Teacher escalation settings
+        self.teacher_escalation_enabled: bool = os.getenv("TEACHER_ESCALATION_ENABLED", "true").lower() == "true"
+        self.escalation_entropy_threshold: float = float(os.getenv("ESCALATION_ENTROPY_THRESHOLD", "0.85"))
+        self.escalation_unknown_ratio_threshold: float = float(os.getenv("ESCALATION_UNKNOWN_RATIO_THRESHOLD", "0.3"))
+        self.escalation_max_rate: float = float(os.getenv("ESCALATION_MAX_RATE", "0.15"))  # max 15% of traffic
+        self._escalation_window: deque = deque(maxlen=1000)  # track recent escalation decisions
+
         # Load existing student models
         self._load_existing_students()
         
@@ -677,7 +688,11 @@ class MultiTenantDetector:
             score = float(component.get("score") or 0.0)
             return float(min(max(score / max(threshold, 1e-6), 0.0), 2.0) / 2.0)
         if component_name == "isolation_forest":
-            threshold = float(component.get("threshold") or 1.0)
+            raw_threshold = component.get("threshold")
+            if raw_threshold is None:
+                # iso_threshold not yet calibrated; trust sklearn's binary prediction
+                return float(component.get("is_anomaly", 0))
+            threshold = float(raw_threshold)
             score = float(component.get("score") or 0.0)
             if threshold <= 0:
                 return float(component.get("is_anomaly", 0))
@@ -1104,6 +1119,27 @@ class MultiTenantDetector:
                 suspicious_reservoir_count=len(student.suspicious_reservoir),
                 confirmed_malicious_reservoir_count=len(student.confirmed_malicious_reservoir),
             )
+            # Trigger online student update when enough new logs have accumulated
+            if (
+                self.online_update_enabled
+                and student.is_trained
+                and not student.is_training
+                and len(student.clean_normal_reservoir) >= self.online_update_interval
+                and student.logs_since_last_update >= self.online_update_interval
+            ):
+                logger.info(
+                    "Triggering online update for %s (logs_since_update=%d, reservoir=%d)",
+                    project_id[:8],
+                    student.logs_since_last_update,
+                    len(student.clean_normal_reservoir),
+                )
+                runtime_metrics.increment('online_updates_triggered')
+                threading.Thread(
+                    target=student.online_update,
+                    kwargs={"min_reservoir_size": self.online_update_interval},
+                    daemon=True,
+                    name=f"online-update-{project_id[:8]}",
+                ).start()
 
         self._maybe_promote_project(project_id)
         project = self.project_manager.get_project(project_id) or project
@@ -1288,6 +1324,29 @@ class MultiTenantDetector:
                 suspicious_reservoir_count=len(student.suspicious_reservoir),
                 confirmed_malicious_reservoir_count=len(student.confirmed_malicious_reservoir),
             )
+            # Trigger online student update when enough new logs have accumulated
+            # since the last update. Uses logs_since_last_update instead of modulo
+            # to guarantee updates fire reliably every N logs.
+            if (
+                self.online_update_enabled
+                and student.is_trained
+                and not student.is_training
+                and len(student.clean_normal_reservoir) >= self.online_update_interval
+                and student.logs_since_last_update >= self.online_update_interval
+            ):
+                logger.info(
+                    "Triggering online update for %s (logs_since_update=%d, reservoir=%d)",
+                    project_id[:8],
+                    student.logs_since_last_update,
+                    len(student.clean_normal_reservoir),
+                )
+                runtime_metrics.increment('online_updates_triggered')
+                threading.Thread(
+                    target=student.online_update,
+                    kwargs={"min_reservoir_size": self.online_update_interval},
+                    daemon=True,
+                    name=f"online-update-{project_id[:8]}",
+                ).start()
         self._maybe_promote_project(project_id)
         project = self.project_manager.get_project(project_id) or project
         runtime_metrics.increment('structured_detections_total')
@@ -1461,6 +1520,7 @@ class MultiTenantDetector:
         known_template_mask = list(session['known_template_flags'])
         
         # Perform detection
+        self.teacher._ablation_mode = getattr(self, '_ablation_mode', 'none')
         result = self.teacher.detect(
             log_data,
             sequence,
@@ -1474,6 +1534,44 @@ class MultiTenantDetector:
         
         return result
     
+    def _should_escalate_to_teacher(self, student_result: Dict) -> bool:
+        """
+        Decide whether a student result warrants teacher escalation.
+
+        Escalation triggers:
+        1. High unknown template ratio — student vocab doesn't cover these logs well
+        2. Low ensemble agreement — few active models contributed to the score
+        3. Transformer not active — the student's main signal source is missing
+
+        A rate limiter prevents more than ``escalation_max_rate`` of recent
+        traffic from being escalated (sliding window of last 1000 decisions).
+        """
+        if not self.teacher_escalation_enabled:
+            return False
+
+        # Rate limiter: don't exceed budget
+        if self._escalation_window:
+            recent_escalations = sum(self._escalation_window)
+            if recent_escalations / len(self._escalation_window) >= self.escalation_max_rate:
+                return False
+
+        # Trigger 1: high unknown template ratio
+        unknown_ratio = student_result.get('unknown_template_ratio', 0.0)
+        if unknown_ratio >= self.escalation_unknown_ratio_threshold:
+            return True
+
+        # Trigger 2: few active ensemble models (student has gaps)
+        ensemble = student_result.get('ensemble', {})
+        if ensemble.get('active_models', 0) <= 1:
+            return True
+
+        # Trigger 3: transformer couldn't score (insufficient context, error, etc.)
+        transformer = student_result.get('transformer', {})
+        if transformer.get('status') not in ('active', 'novel_penalty'):
+            return True
+
+        return False
+
     def _detect_with_student(
         self,
         project_id: str,
@@ -1484,19 +1582,27 @@ class MultiTenantDetector:
         features: np.ndarray,
         manifest_known: bool = False,
     ) -> Dict:
-        """Perform detection using student model"""
+        """
+        Perform detection using student model, with teacher escalation.
+
+        If the student result is low-confidence (high unknown ratio, few active
+        ensemble members, or transformer not scoring), re-score with the teacher
+        and pick the result with more ensemble coverage. This gives production
+        quality a safety net without paying teacher cost on every request.
+        """
         student = self.students[project_id]
-        
+
         # Get template ID from student vocabulary
         template_id = student.get_template_id(normalized_template)
-        
+
         # Update session templates
         session['templates'].append(template_id)
         session['known_template_flags'].append(bool(manifest_known))
         sequence = list(session['templates'])
         known_template_mask = list(session['known_template_flags'])
-        
-        # Perform detection
+
+        # Perform student detection
+        student._ablation_mode = getattr(self, '_ablation_mode', 'none')
         result = student.detect(
             log_data,
             sequence,
@@ -1505,9 +1611,48 @@ class MultiTenantDetector:
             known_template_mask=known_template_mask,
         )
         result['using_model'] = 'student'
+        result['escalated_to_teacher'] = False
         result['log_data'] = log_data
         result['model_version'] = self.model_version
-        
+
+        # Teacher escalation check
+        if self._should_escalate_to_teacher(result):
+            self._escalation_window.append(1)
+            runtime_metrics.increment('teacher_escalations_total')
+            try:
+                teacher_template_id = self.teacher.get_template_id(normalized_template)
+                teacher_sequence = list(session['templates'])
+                # Re-map the last entry to teacher vocabulary for the teacher's scoring
+                teacher_sequence[-1] = teacher_template_id
+
+                self.teacher._ablation_mode = getattr(self, '_ablation_mode', 'none')
+                teacher_result = self.teacher.detect(
+                    log_data,
+                    teacher_sequence,
+                    session_stats,
+                    features,
+                    known_template_mask=known_template_mask,
+                )
+
+                # Use teacher result if it has better ensemble coverage
+                teacher_active = teacher_result.get('ensemble', {}).get('active_models', 0)
+                student_active = result.get('ensemble', {}).get('active_models', 0)
+                if teacher_active >= student_active:
+                    teacher_result['using_model'] = 'teacher_escalated'
+                    teacher_result['escalated_to_teacher'] = True
+                    teacher_result['student_original_score'] = result.get('anomaly_score', 0.0)
+                    teacher_result['log_data'] = log_data
+                    teacher_result['model_version'] = self.model_version
+                    result = teacher_result
+                else:
+                    result['escalated_to_teacher'] = True
+                    result['escalation_reason'] = 'student_retained_better_coverage'
+            except Exception as e:
+                logger.warning("Teacher escalation failed for %s: %s", project_id[:8], e)
+                result['escalation_error'] = str(e)[:100]
+        else:
+            self._escalation_window.append(0)
+
         return result
     
     def _collect_training_data(

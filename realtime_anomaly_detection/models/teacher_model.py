@@ -26,6 +26,8 @@ from sklearn.utils.validation import check_is_fitted
 from .ensemble_detector import (
     TemplateTransformer, RuleBasedDetector, ApacheLogNormalizer
 )
+from .calibrator import EnsembleCalibrator
+
 logger = logging.getLogger(__name__)
 
 MIN_SEQUENCE_CONTEXT = 3
@@ -91,7 +93,17 @@ class TeacherModel:
         self.transformer: Optional[TemplateTransformer] = None
         self.iso_forest = None
         self.rule_detector = RuleBasedDetector()
-        
+
+        # Calibrator (loaded if available, otherwise falls back to ensemble threshold)
+        self.calibrator: Optional[EnsembleCalibrator] = None
+        calibrator_path = self.storage_dir / 'calibrator.pkl'
+        if calibrator_path.exists():
+            try:
+                self.calibrator = EnsembleCalibrator.load(calibrator_path)
+                logger.info("Loaded fitted calibrator for teacher")
+            except Exception as e:
+                logger.warning("Failed to load calibrator: %s", e)
+
         # Vocabulary
         self.template_to_id: Dict[str, int] = {}
         self.id_to_template: List[str] = []
@@ -519,15 +531,16 @@ class TeacherModel:
         }
         if len(sequence) >= MIN_SEQUENCE_CONTEXT:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
-                # High unknown-template ratio signals novel endpoint scanning — treat as anomaly.
-                # Fallback: use transformer_threshold as a proxy for max_nll since per-project
-                # NLL history is not available in this scope.
-                unknown_penalty = unknown_template_ratio * float(self.transformer_threshold)
+                # High unknown-template ratio signals novel endpoints, NOT necessarily malicious.
+                # Emit novel_score separately; malicious_score stays 0.
+                novel_penalty = unknown_template_ratio * float(self.transformer_threshold)
                 transformer_result = {
-                    'is_anomaly': 1,
-                    'score': unknown_penalty,
+                    'is_anomaly': 0,
+                    'score': novel_penalty,
+                    'novel_score': novel_penalty,
+                    'malicious_score': 0.0,
                     'threshold': float(self.transformer_threshold),
-                    'status': 'unknown_penalty',
+                    'status': 'novel_penalty',
                     'sequence_length': len(sequence),
                     'context': transformer_context,
                 }
@@ -573,22 +586,23 @@ class TeacherModel:
                     iso_result['status'] = f'error: {str(e)[:50]}'
         
         # 4. Ensemble voting
+        ablation = getattr(self, '_ablation_mode', 'none')
         votes = []
         weights = []
         vote_names = []
 
-        if rule_result.get('is_attack'):
+        if rule_result.get('is_attack') and ablation not in ('iso_only', 'transformer_only'):
             confidence = float(rule_result.get('confidence', 0.5))
             votes.append(1)
             weights.append(confidence)  # severity-tiered weight; no floor
             vote_names.append('rule')
 
-        if iso_result.get('status') == 'active':
+        if iso_result.get('status') == 'active' and ablation not in ('rule_only', 'transformer_only'):
             votes.append(iso_result.get('is_anomaly', 0))
             weights.append(0.5)
             vote_names.append('iso')
 
-        if transformer_result.get('status') in ('active', 'unknown_penalty'):
+        if transformer_result.get('status') in ('active', 'novel_penalty') and ablation not in ('rule_only', 'iso_only'):
             votes.append(transformer_result['is_anomaly'])
             weights.append(0.7)
             vote_names.append('transformer')
@@ -601,9 +615,34 @@ class TeacherModel:
         )
         is_anomaly = ensemble_score > 0.5
 
+        # Calibrated score (overrides ensemble threshold when calibrator is fitted)
+        calibrated_score = None
+        if self.calibrator is not None and self.calibrator.is_fitted:
+            try:
+                feat_vec = EnsembleCalibrator.build_feature_vector(
+                    {
+                        'transformer': transformer_result,
+                        'isolation_forest': iso_result,
+                        'rule_based': rule_result,
+                        'unknown_template_ratio': unknown_template_ratio,
+                        'ensemble': {'active_models': len(weights)},
+                    },
+                    session_stats,
+                )
+                calibrated_score = self.calibrator.predict_proba(feat_vec)
+                if calibrated_score is not None:
+                    is_anomaly = calibrated_score > 0.5
+                    ensemble_score = calibrated_score
+            except Exception as e:
+                logger.warning("Calibrator failed, falling back to ensemble: %s", e)
+
+        novel_score = float(transformer_result.get('novel_score', 0.0) or 0.0)
+
         return {
             'is_anomaly': is_anomaly,
             'anomaly_score': ensemble_score,
+            'novel_score': novel_score,
+            'calibrated_score': calibrated_score,
             'model_type': 'teacher',
             'rule_based': rule_result,
             'isolation_forest': iso_result,
@@ -616,7 +655,7 @@ class TeacherModel:
             },
             'unknown_template_ratio': float(unknown_template_ratio),
         }
-    
+
     def get_soft_labels(self, sequence: List[int]) -> torch.Tensor:
         """
         Get soft probability distribution from teacher for knowledge distillation.
