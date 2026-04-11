@@ -87,6 +87,23 @@ class TestSyntheticLogGenerator:
         assert len(logs) == 100
 
     def test_generate_sorted_chronologically(self):
+        import re
+        from datetime import datetime
         gen = SyntheticLogGenerator(MINIMAL_MANIFEST)
         logs = gen.generate(count=50, sessions=5)
         assert len(logs) > 0
+        # Parse timestamps from Apache log lines: [DD/Mon/YYYY:HH:MM:SS +0000]
+        _MONTHS_MAP = {
+            "Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,
+            "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12
+        }
+        _TS_RE = re.compile(r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2})')
+        def parse_ts(line):
+            m = _TS_RE.search(line)
+            if not m:
+                return None
+            d, mon, y, h, mi, s = m.groups()
+            return datetime(int(y), _MONTHS_MAP[mon], int(d), int(h), int(mi), int(s))
+        timestamps = [parse_ts(line) for line in logs]
+        assert all(t is not None for t in timestamps), "Could not parse some timestamps"
+        assert timestamps == sorted(timestamps), "Logs are not in chronological order"

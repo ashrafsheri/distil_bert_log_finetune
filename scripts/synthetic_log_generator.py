@@ -16,7 +16,7 @@ import random
 import re
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -110,7 +110,7 @@ class SyntheticLogGenerator:
         """Generate one session: fixed IP + UA, sequential endpoint calls."""
         ip = _random_ip()
         ua = random.choice(USER_AGENTS)
-        dt = start_time or datetime.utcnow()
+        dt = start_time or datetime.now(timezone.utc).replace(tzinfo=None)
         lines: List[str] = []
         for _ in range(session_length):
             ep = random.choice(self.endpoint_pool)
@@ -127,11 +127,13 @@ class SyntheticLogGenerator:
         Generate `count` total log lines spread across `sessions` sessions,
         sorted chronologically.
         """
+        if sessions <= 0:
+            raise ValueError("sessions must be >= 1")
         base = count // sessions
         remainder = count % sessions
         session_lengths = [base + (1 if i < remainder else 0) for i in range(sessions)]
 
-        base_time = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        base_time = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         all_with_key: List[tuple] = []
 
         for i, length in enumerate(session_lengths):
