@@ -1,0 +1,18 @@
+{
+  "service_name": "my-app",
+  "base_url": "https://my-app.com",
+  "endpoints": [
+    {"method": "GET",    "path_template": "/api/users",              "classification": "user_traffic",   "weight": 3},
+    {"method": "GET",    "path_template": "/api/users/{id}",         "classification": "user_traffic",   "weight": 5},
+    {"method": "PUT",    "path_template": "/api/users/{id}",         "classification": "user_traffic",   "weight": 2},
+    {"method": "POST",   "path_template": "/api/auth/login",         "classification": "user_traffic",   "weight": 4},
+    {"method": "POST",   "path_template": "/api/auth/logout",        "classification": "user_traffic",   "weight": 2},
+    {"method": "GET",    "path_template": "/api/products",           "classification": "user_traffic",   "weight": 6},
+    {"method": "GET",    "path_template": "/api/products/{id}",      "classification": "user_traffic",   "weight": 8},
+    {"method": "POST",   "path_template": "/api/orders",             "classification": "user_traffic",   "weight": 3},
+    {"method": "GET",    "path_template": "/api/orders/{id}",        "classification": "user_traffic",   "weight": 4},
+    {"method": "GET",    "path_template": "/api/search",             "classification": "user_traffic",   "weight": 5},
+    {"method": "GET",    "path_template": "/health",                 "classification": "internal_probe", "weight": 1},
+    {"method": "GET",    "path_template": "/metrics",                "classification": "internal_probe", "weight": 1}
+  ]
+}
