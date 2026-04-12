@@ -801,12 +801,12 @@ class StudentModel:
                 iso_result['status'] = 'not_fitted'
             else:
                 try:
-                    iso_pred = self.iso_forest.predict(features)[0]
                     iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_threshold = self.iso_threshold
                     iso_result = {
-                        'is_anomaly': int(iso_pred == -1),
+                        'is_anomaly': int(iso_score > iso_threshold) if iso_threshold is not None else int(self.iso_forest.predict(features)[0] == -1),
                         'score': float(iso_score),
-                        'threshold': self.iso_threshold,
+                        'threshold': iso_threshold,
                         'status': 'active'
                     }
                 except NotFittedError:
