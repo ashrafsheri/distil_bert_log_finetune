@@ -1,0 +1,907 @@
+{
+  "endpoints": [
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/analytics"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/communities"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/admin/communities/:communityId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/communities/:communityId/members"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/admin/communities/:communityId/pin"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/disputes"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/admin/disputes/:disputeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/exchanges"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/invites"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/admin/invites"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/admin/invites/:inviteId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/admin/invites/accept"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/admin/invites/verify"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/admin/products/:productId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/settings/home-banners"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/admin/settings/home-banners"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/admin/settings/home-banners/upload"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/admin/settings/home-greeting"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/settings/home-greeting"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/admin/settings/home-greeting"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/admin/users"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/admin/users/:userId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/api/auth/login"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/api/auth/register"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/api/auth/verify-token"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/api/services/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/api/services/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/api/services/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/api/services/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/api/services/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/api/users/:userId/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/api/users/:userId/public"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/api/users/profile"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/api/users/profile"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/change-password"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/login"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/logout"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/register"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/resend-verification-email"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/validate"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/validate-token"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/auth/verify-email"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/chat/conversations"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/chat/conversations"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/chat/conversations/:conversationId/messages"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/chat/conversations/:conversationId/messages"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/chat/conversations/:conversationId/read"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/communities/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/communities/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/image"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/join"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/join-request"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/:id/join-requests"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/join-requests/:requestId/approve"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/join-requests/:requestId/reject"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/join-with-pin"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/leave"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/:id/members"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/communities/:id/members/:userId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/communities/:id/members/:userId/role"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/:id/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/communities/:id/products/:productId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/communities/:id/request-join"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/communities/user/my-communities"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/embed"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchange-requests/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchange-requests/:exchangeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/exchange-requests/:exchangeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/exchange-requests/:exchangeId/cancel"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchange-requests/:exchangeId/qrcode"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchange-requests/:exchangeId/return-qr"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchange-requests/accept"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchange-requests/complete"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchange-requests/reject"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchange-requests/user/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchange-requests/validate-return-qr"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchanges/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchanges/:exchangeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/exchanges/:exchangeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/exchanges/:exchangeId/cancel"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchanges/:exchangeId/qrcode"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchanges/:exchangeId/return-qr"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchanges/accept"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchanges/complete"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchanges/reject"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/exchanges/user/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/exchanges/validate-return-qr"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/filters/all"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/filters/categories"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/filters/conditions"
+    },
+    {
+      "baseline_eligible": false,
+      "classification": "internal_probe",
+      "method": "GET",
+      "path_template": "/health"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/login"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/products/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/products/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/products/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/products/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/products/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/products/:id"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/products/:id/availability"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/products/community/:communityId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/products/user/:userId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/ratings/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/ratings/:ratingId/dispute"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/ratings/disputes"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/ratings/disputes/:disputeId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/ratings/user/:userId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/recommendations/:userId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/recommendations/:userId/suggested-categories"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/register"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/support-tickets/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/support-tickets/"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/support-tickets/:ticketId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/support-tickets/:ticketId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/support-tickets/:ticketId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/support-tickets/:ticketId/messages"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/support-tickets/:ticketId/messages"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/support-tickets/my-tickets"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/support-tickets/my-tickets/:ticketId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/user/:uid/photos/:file"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/:userId/products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/:userId/profile"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/:userId/public"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/users/me"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/users/me/avatar"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/users/me/fcm-token"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me/home-banners"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me/home-greeting"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/users/me/phone"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/users/me/preferences"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me/saved-products"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/users/me/saved-products/:productId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/users/me/saved-products/:productId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me/wants"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/users/me/wants"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "DELETE",
+      "path_template": "/users/me/wants/:wantId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PATCH",
+      "path_template": "/users/me/wants/:wantId"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/me/wants/:wantId/matches"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "GET",
+      "path_template": "/users/profile"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "PUT",
+      "path_template": "/users/profile"
+    },
+    {
+      "baseline_eligible": true,
+      "classification": "user_traffic",
+      "method": "POST",
+      "path_template": "/verify-token"
+    }
+  ],
+  "framework": "mixed",
+  "frameworks_detected": [
+    "express",
+    "fastapi"
+  ],
+  "generated_at": "2026-04-02T21:52:58.647142+00:00",
+  "service_name": "barterease-backend",
+  "source_root": "/home/ubuntu/barterease2.0/backend"
+}
+

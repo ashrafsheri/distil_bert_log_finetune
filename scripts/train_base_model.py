@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import math
 import os
 import pickle
@@ -29,6 +30,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from realtime_anomaly_detection.models.ensemble_detector import ApacheLogNormalizer, TemplateTransformer
 from realtime_anomaly_detection.models.multi_tenant_detector import MultiTenantDetector
+
+logger = logging.getLogger("train_base_model")
 
 APACHE_PATTERN = (
     r'^(?P<ip>\S+) \S+ \S+ '
@@ -169,6 +172,7 @@ class BaseModelTrainer:
 
     def ingest_lines(self, lines: Iterable[str]) -> None:
         session_windows: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=self.window_size))
+        logger.info("Starting log ingestion and normalization")
         for line in lines:
             parsed = parse_apache_log_line(line)
             if parsed is None:
@@ -184,6 +188,22 @@ class BaseModelTrainer:
             window.append(template_id)
             if len(window) == self.window_size:
                 self.sequences.append(list(window))
+
+            if self.valid_log_count % 2000 == 0:
+                logger.info(
+                    "Parsed %d valid lines, %d templates, %d windows",
+                    self.valid_log_count,
+                    len(self.template_to_id),
+                    len(self.sequences),
+                )
+
+        logger.info(
+            "Finished ingestion: valid_lines=%d templates=%d windows=%d feature_rows=%d",
+            self.valid_log_count,
+            len(self.template_to_id),
+            len(self.sequences),
+            len(self.feature_rows),
+        )
 
     def validate_corpus(self) -> None:
         if self.valid_log_count < MIN_VALID_LINES:
@@ -225,6 +245,13 @@ class BaseModelTrainer:
         unknown_id = base_vocab_size + 1
         full_vocab_size = unknown_id + 1
 
+        logger.info(
+            "Initializing transformer: base_vocab=%d full_vocab=%d window_size=%d device=%s",
+            base_vocab_size,
+            full_vocab_size,
+            self.window_size,
+            self.device,
+        )
         model = self._build_model(full_vocab_size, pad_id)
         dataset = SequenceDataset(self.sequences, pad_id)
         loader = DataLoader(
@@ -235,7 +262,14 @@ class BaseModelTrainer:
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.hyperparameters.learning_rate)
         final_loss = 0.0
 
-        for _ in range(self.epochs):
+        logger.info(
+            "Starting transformer training: epochs=%d batch_size=%d learning_rate=%s sequences=%d",
+            self.epochs,
+            self.hyperparameters.batch_size,
+            self.hyperparameters.learning_rate,
+            len(self.sequences),
+        )
+        for epoch_index in range(self.epochs):
             model.train()
             epoch_loss = 0.0
             batches = 0
@@ -257,14 +291,23 @@ class BaseModelTrainer:
                 batches += 1
 
             final_loss = epoch_loss / max(batches, 1)
+            logger.info(
+                "Epoch %d/%d complete: avg_loss=%.4f batches=%d",
+                epoch_index + 1,
+                self.epochs,
+                final_loss,
+                batches,
+            )
 
         model.eval()
+        logger.info("Transformer training finished: final_loss=%.4f", final_loss)
         return model, final_loss
 
     def compute_threshold(self, model: TemplateTransformer) -> float:
         base_vocab_size = len(self.template_to_id)
         pad_id = base_vocab_size
         scores: List[float] = []
+        logger.info("Computing transformer NLL threshold from %d sequences", len(self.sequences))
         with torch.no_grad():
             for sequence in self.sequences:
                 input_ids = torch.tensor([sequence], dtype=torch.long, device=self.device)
@@ -284,16 +327,25 @@ class BaseModelTrainer:
 
         if not scores:
             raise ValueError("Could not compute sequence NLL scores for threshold estimation.")
-        return float(np.percentile(scores, 95))
+        threshold = float(np.percentile(scores, 95))
+        logger.info("Computed optimal threshold (95th percentile): %.4f", threshold)
+        return threshold
 
     def train_isolation_forest(self) -> IsolationForest:
         features = np.asarray(self.feature_rows, dtype=np.float32)
+        logger.info(
+            "Training IsolationForest: rows=%d features=%d contamination=%.3f",
+            features.shape[0],
+            features.shape[1] if features.ndim == 2 else 0,
+            self.contamination,
+        )
         model = IsolationForest(
             n_estimators=100,
             contamination=self.contamination,
             random_state=42,
         )
         model.fit(features)
+        logger.info("IsolationForest training finished")
         return model
 
     def _atomic_write_json(self, path: Path, payload: Dict[str, Any]) -> None:
@@ -331,6 +383,7 @@ class BaseModelTrainer:
         iso_path = output_dir / "isolation_forest.pkl"
         config_path = output_dir / "model_config.json"
 
+        logger.info("Writing artifacts to %s", output_dir)
         self._atomic_write_json(
             vocab_path,
             {"template_to_id": self.template_to_id},
@@ -365,6 +418,13 @@ class BaseModelTrainer:
                 "window_size": self.window_size,
             },
         )
+        logger.info(
+            "Artifacts written: %s, %s, %s, %s",
+            vocab_path.name,
+            checkpoint_path.name,
+            iso_path.name,
+            config_path.name,
+        )
         return {
             "template_vocab.json": vocab_path,
             "transformer_model.pt": checkpoint_path,
@@ -373,8 +433,15 @@ class BaseModelTrainer:
         }
 
     def train_from_log_file(self, log_path: Path, output_dir: Path) -> Dict[str, Any]:
+        logger.info("Loading log file from %s", log_path)
         self.ingest_lines(log_path.read_text(encoding="utf-8").splitlines())
         self.validate_corpus()
+        logger.info(
+            "Corpus validation passed: valid_lines=%d templates=%d windows=%d",
+            self.valid_log_count,
+            len(self.template_to_id),
+            len(self.sequences),
+        )
 
         transformer, final_loss = self.train_transformer()
         threshold = self.compute_threshold(transformer)
@@ -408,11 +475,22 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
     log_path = Path(args.logs)
     if not log_path.exists():
         print(f"[ERROR] Log file not found: {log_path}", file=sys.stderr)
         raise SystemExit(1)
 
+    logger.info(
+        "Starting base model training: logs=%s output=%s epochs=%d device=%s",
+        log_path,
+        args.output,
+        args.epochs,
+        args.device or ("cuda" if torch.cuda.is_available() else "cpu"),
+    )
     trainer = BaseModelTrainer(
         epochs=args.epochs,
         contamination=args.contamination,
