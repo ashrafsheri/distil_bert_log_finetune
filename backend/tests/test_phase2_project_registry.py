@@ -449,3 +449,95 @@ def test_detect_single_does_not_reflag_clean_component_outputs_after_calibration
     assert result["final_decision"] == "not_flagged"
     assert result["decision_reason"] == "behavioral_normal"
     assert result["is_anomaly"] is False
+
+
+def test_teacher_escalation_remaps_entire_session_sequence(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    import numpy as np
+
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+    from models.project_manager import ProjectPhase
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+        window_size=20,
+    )
+    detector.escalation_max_rate = 1.1
+    project_id, _api_key = detector.create_project("Escalation Mapping", warmup_threshold=1000)
+    project = detector.project_manager.get_project(project_id)
+    assert project is not None
+    project.phase = ProjectPhase.ACTIVE.value
+
+    class FakeStudent:
+        def __init__(self) -> None:
+            self.sequences = []
+
+        def get_template_id(self, normalized_template: str) -> int:
+            return {"/api/users": 101, "/api/orders": 102}[normalized_template]
+
+        def detect(self, log_data, sequence, session_stats, features, known_template_mask=None):
+            self.sequences.append(list(sequence))
+            return {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "ensemble": {"active_models": 0},
+                "transformer": {"status": "insufficient_context"},
+                "unknown_template_ratio": 0.0,
+            }
+
+    class FakeTeacher:
+        def __init__(self) -> None:
+            self.sequences = []
+
+        def get_template_id(self, normalized_template: str) -> int:
+            return {"/api/users": 1, "/api/orders": 2}[normalized_template]
+
+        def detect(self, log_data, sequence, session_stats, features, known_template_mask=None):
+            self.sequences.append(list(sequence))
+            return {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "ensemble": {"active_models": 2},
+                "transformer": {"status": "active", "score": 0.75, "threshold": 1.5},
+                "unknown_template_ratio": 0.0,
+            }
+
+    detector.students[project_id] = FakeStudent()
+    detector.teacher = FakeTeacher()
+
+    features = np.zeros(7, dtype=float)
+
+    session, session_stats = detector._get_or_create_session(
+        project_id,
+        "sess-1",
+        {"path": "/api/users", "status": 200},
+    )
+    detector._detect_with_student(
+        project_id,
+        {"path": "/api/users", "status": 200},
+        "/api/users",
+        session,
+        session_stats,
+        features,
+    )
+
+    session, session_stats = detector._get_or_create_session(
+        project_id,
+        "sess-1",
+        {"path": "/api/orders", "status": 200},
+    )
+    detector._detect_with_student(
+        project_id,
+        {"path": "/api/orders", "status": 200},
+        "/api/orders",
+        session,
+        session_stats,
+        features,
+    )
+
+    assert list(session["normalized_templates"]) == ["/api/users", "/api/orders"]
+    assert detector.students[project_id].sequences[-1] == [101, 102]
+    assert detector.teacher.sequences[-1] == [1, 2]

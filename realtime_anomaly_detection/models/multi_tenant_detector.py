@@ -1109,7 +1109,7 @@ class MultiTenantDetector:
         student = self.students.get(project_id)
         if student is not None:
             student.record_reservoir_observation(
-                sequence=list(session['templates']),
+                sequence=self._map_session_templates(session, student.get_template_id),
                 is_anomaly=result['is_anomaly'],
                 is_known_attack=bool(result.get('rule_based', {}).get('is_attack')),
             )
@@ -1314,7 +1314,7 @@ class MultiTenantDetector:
         student = self.students.get(project_id)
         if student is not None:
             student.record_reservoir_observation(
-                sequence=list(session['templates']),
+                sequence=self._map_session_templates(session, student.get_template_id),
                 is_anomaly=result['is_anomaly'],
                 is_known_attack=bool(result.get('rule_based', {}).get('is_attack')),
             )
@@ -1465,7 +1465,7 @@ class MultiTenantDetector:
 
             if session_id not in self.project_sessions[project_id]:
                 self.project_sessions[project_id][session_id] = {
-                    'templates': deque(maxlen=self.window_size),
+                    'normalized_templates': deque(maxlen=self.window_size),
                     'known_template_flags': deque(maxlen=self.window_size),
                     'request_count': 0,
                     'error_count': 0,
@@ -1473,6 +1473,10 @@ class MultiTenantDetector:
                     'last_seen': now,
                 }
             else:
+                self.project_sessions[project_id][session_id].setdefault(
+                    'normalized_templates',
+                    deque(maxlen=self.window_size),
+                )
                 self.project_sessions[project_id][session_id].setdefault(
                     'known_template_flags',
                     deque(maxlen=self.window_size),
@@ -1498,6 +1502,13 @@ class MultiTenantDetector:
             runtime_metrics.observe("session_cache_size", len(self.project_sessions[project_id]))
             
             return session, session_stats
+
+    def _map_session_templates(self, session: Dict, template_id_getter) -> List[int]:
+        """Translate model-neutral session templates into a specific model vocabulary."""
+        return [
+            template_id_getter(normalized_template)
+            for normalized_template in list(session.get('normalized_templates', ()))
+        ]
     
     def _detect_with_teacher(
         self,
@@ -1510,13 +1521,10 @@ class MultiTenantDetector:
         manifest_known: bool = False,
     ) -> Dict:
         """Perform detection using teacher model"""
-        # Get template ID from teacher vocabulary
-        template_id = self.teacher.get_template_id(normalized_template)
-        
-        # Update session templates
-        session['templates'].append(template_id)
+        # Keep session history model-neutral so teacher/student vocabularies cannot mix.
+        session['normalized_templates'].append(normalized_template)
         session['known_template_flags'].append(bool(manifest_known))
-        sequence = list(session['templates'])
+        sequence = self._map_session_templates(session, self.teacher.get_template_id)
         known_template_mask = list(session['known_template_flags'])
         
         # Perform detection
@@ -1592,13 +1600,10 @@ class MultiTenantDetector:
         """
         student = self.students[project_id]
 
-        # Get template ID from student vocabulary
-        template_id = student.get_template_id(normalized_template)
-
-        # Update session templates
-        session['templates'].append(template_id)
+        # Keep session history model-neutral so teacher and student can score the same session safely.
+        session['normalized_templates'].append(normalized_template)
         session['known_template_flags'].append(bool(manifest_known))
-        sequence = list(session['templates'])
+        sequence = self._map_session_templates(session, student.get_template_id)
         known_template_mask = list(session['known_template_flags'])
 
         # Perform student detection
@@ -1620,10 +1625,7 @@ class MultiTenantDetector:
             self._escalation_window.append(1)
             runtime_metrics.increment('teacher_escalations_total')
             try:
-                teacher_template_id = self.teacher.get_template_id(normalized_template)
-                teacher_sequence = list(session['templates'])
-                # Re-map the last entry to teacher vocabulary for the teacher's scoring
-                teacher_sequence[-1] = teacher_template_id
+                teacher_sequence = self._map_session_templates(session, self.teacher.get_template_id)
 
                 self.teacher._ablation_mode = getattr(self, '_ablation_mode', 'none')
                 teacher_result = self.teacher.detect(
