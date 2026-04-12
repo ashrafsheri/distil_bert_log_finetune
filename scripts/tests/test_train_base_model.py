@@ -86,11 +86,22 @@ class TestBaseModelTrainer:
             "size": 256,
             "timestamp": datetime(2026, 4, 12, 10, 30, 0, tzinfo=timezone.utc),
         }
-        features = trainer.extract_feature_vector(parsed)
-        assert len(features) == 7
-        assert features[0] == 1.0  # POST
-        assert features[5] == 1.0  # is_api
-        assert features[6] == 1.0  # is_auth_endpoint
+        features = trainer.extract_feature_vector(
+            parsed,
+            {
+                "request_count": 3,
+                "error_rate": 1 / 3,
+                "unique_paths": 2,
+                "error_count": 1,
+            },
+        )
+        assert len(features) == 11
+        assert features[0] == 3.0  # request_count
+        assert features[3] == 1.0  # error_count
+        assert features[5] == 1.0  # POST
+        assert features[6] == 1.0  # status >= 400
+        assert features[9] == 1.0  # query present
+        assert features[10] == 10.0  # hour
 
     def test_validate_corpus_rejects_too_few_lines(self):
         trainer = BaseModelTrainer(epochs=1)
@@ -126,6 +137,7 @@ class TestBaseModelTrainer:
         assert summary["vocab_size"] >= 10
         assert summary["sequence_count"] > 0
         assert summary["threshold"] > 0
+        assert summary["iso_threshold"] > 0
 
         vocab_payload = json.loads((output_dir / "template_vocab.json").read_text(encoding="utf-8"))
         assert "template_to_id" in vocab_payload
@@ -134,6 +146,8 @@ class TestBaseModelTrainer:
         config_payload = json.loads((output_dir / "model_config.json").read_text(encoding="utf-8"))
         assert config_payload["window_size"] == 20
         assert config_payload["vocab_size"] == summary["vocab_size"]
+        assert config_payload["iso_threshold"] == summary["iso_threshold"]
+        assert config_payload["feature_schema_version"] == "access-log-v2"
 
         checkpoint = torch.load(output_dir / "transformer_model.pt", map_location="cpu")
         assert checkpoint["pad_id"] == summary["vocab_size"]

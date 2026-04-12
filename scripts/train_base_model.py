@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import math
 import os
 import pickle
 import sys
@@ -43,17 +42,6 @@ APACHE_PATTERN = (
 WINDOW_SIZE = 20
 MIN_VALID_LINES = 500
 MIN_DISTINCT_TEMPLATES = 10
-
-METHOD_TO_ID = {
-    "GET": 0,
-    "POST": 1,
-    "PUT": 2,
-    "PATCH": 3,
-    "DELETE": 4,
-    "HEAD": 5,
-    "OPTIONS": 6,
-}
-
 
 @dataclass(frozen=True)
 class ModelHyperparameters:
@@ -150,28 +138,34 @@ class BaseModelTrainer:
         self.id_to_template.append(normalized_template)
         return token_id
 
-    def extract_feature_vector(self, parsed: Dict[str, Any]) -> List[float]:
-        method_id = METHOD_TO_ID.get(parsed["method"].upper(), len(METHOD_TO_ID))
-        base_path = parsed["path"].split("?", 1)[0]
-        path_segments = [segment for segment in base_path.split("/") if segment]
-        path_depth = len(path_segments)
-        response_size = math.log1p(max(parsed["size"], 0))
+    def extract_feature_vector(self, parsed: Dict[str, Any], session_stats: Dict[str, Any]) -> List[float]:
+        method = parsed["method"].upper()
+        status = int(parsed["status"])
+        path = parsed["path"]
         hour_of_day = parsed["timestamp"].hour
-        path_lower = parsed["path"].lower()
-        is_api = 1.0 if base_path.startswith("/api") else 0.0
-        is_auth_endpoint = 1.0 if any(token in path_lower for token in ("/auth", "login", "logout", "signin", "signup")) else 0.0
         return [
-            float(method_id),
-            float(parsed["status"]),
-            float(path_depth),
-            float(response_size),
+            float(session_stats.get("request_count", 1)),
+            float(session_stats.get("error_rate", 0.0)),
+            float(session_stats.get("unique_paths", 1)),
+            float(session_stats.get("error_count", 0)),
+            1.0 if method == "GET" else 0.0,
+            1.0 if method == "POST" else 0.0,
+            1.0 if status >= 400 else 0.0,
+            float(len(path)),
+            float(path.count("/")),
+            1.0 if "?" in path else 0.0,
             float(hour_of_day),
-            is_api,
-            is_auth_endpoint,
         ]
 
     def ingest_lines(self, lines: Iterable[str]) -> None:
         session_windows: Dict[str, Deque[int]] = defaultdict(lambda: deque(maxlen=self.window_size))
+        session_state: Dict[str, Dict[str, Any]] = defaultdict(
+            lambda: {
+                "request_count": 0,
+                "error_count": 0,
+                "unique_paths": set(),
+            }
+        )
         logger.info("Starting log ingestion and normalization")
         for line in lines:
             parsed = parse_apache_log_line(line)
@@ -181,9 +175,20 @@ class BaseModelTrainer:
             self.valid_log_count += 1
             normalized_template = self._normalize_template(parsed)
             template_id = self._template_id_for(normalized_template)
-            self.feature_rows.append(self.extract_feature_vector(parsed))
-
             session_key = parsed["ip"]
+            state = session_state[session_key]
+            state["request_count"] += 1
+            if int(parsed["status"]) >= 400:
+                state["error_count"] += 1
+            state["unique_paths"].add(parsed["path"])
+            session_stats = {
+                "request_count": state["request_count"],
+                "error_count": state["error_count"],
+                "error_rate": state["error_count"] / max(state["request_count"], 1),
+                "unique_paths": len(state["unique_paths"]),
+            }
+            self.feature_rows.append(self.extract_feature_vector(parsed, session_stats))
+
             window = session_windows[session_key]
             window.append(template_id)
             if len(window) == self.window_size:
@@ -331,7 +336,7 @@ class BaseModelTrainer:
         logger.info("Computed optimal threshold (95th percentile): %.4f", threshold)
         return threshold
 
-    def train_isolation_forest(self) -> IsolationForest:
+    def train_isolation_forest(self) -> tuple[IsolationForest, float]:
         features = np.asarray(self.feature_rows, dtype=np.float32)
         logger.info(
             "Training IsolationForest: rows=%d features=%d contamination=%.3f",
@@ -345,8 +350,10 @@ class BaseModelTrainer:
             random_state=42,
         )
         model.fit(features)
-        logger.info("IsolationForest training finished")
-        return model
+        scores = -model.score_samples(features)
+        iso_threshold = float(np.percentile(scores, 95))
+        logger.info("IsolationForest training finished: threshold=%.4f", iso_threshold)
+        return model, iso_threshold
 
     def _atomic_write_json(self, path: Path, payload: Dict[str, Any]) -> None:
         temp_path = path.with_name(f"{path.name}.tmp")
@@ -371,6 +378,7 @@ class BaseModelTrainer:
         transformer: TemplateTransformer,
         isolation_forest: IsolationForest,
         threshold: float,
+        iso_threshold: float,
     ) -> Dict[str, Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         base_vocab_size = len(self.template_to_id)
@@ -414,8 +422,10 @@ class BaseModelTrainer:
             config_path,
             {
                 "optimal_threshold": threshold,
+                "iso_threshold": iso_threshold,
                 "vocab_size": base_vocab_size,
                 "window_size": self.window_size,
+                "feature_schema_version": "access-log-v2",
             },
         )
         logger.info(
@@ -445,12 +455,13 @@ class BaseModelTrainer:
 
         transformer, final_loss = self.train_transformer()
         threshold = self.compute_threshold(transformer)
-        iso_forest = self.train_isolation_forest()
+        iso_forest, iso_threshold = self.train_isolation_forest()
         self.save_artifacts(
             output_dir=output_dir,
             transformer=transformer,
             isolation_forest=iso_forest,
             threshold=threshold,
+            iso_threshold=iso_threshold,
         )
 
         return {
@@ -460,6 +471,7 @@ class BaseModelTrainer:
             "final_loss": final_loss,
             "contamination": self.contamination,
             "threshold": threshold,
+            "iso_threshold": iso_threshold,
         }
 
 
@@ -503,7 +515,8 @@ def main() -> None:
         f"sequence_count={summary['sequence_count']} "
         f"final_loss={summary['final_loss']:.4f} "
         f"contamination={summary['contamination']:.3f} "
-        f"threshold={summary['threshold']:.4f}"
+        f"threshold={summary['threshold']:.4f} "
+        f"iso_threshold={summary['iso_threshold']:.4f}"
     )
 
 

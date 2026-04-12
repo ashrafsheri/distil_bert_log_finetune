@@ -95,7 +95,7 @@ def test_teacher_rule_hits_are_not_diluted_by_unavailable_models(tmp_path: Path)
     assert result["transformer"]["status"] == "insufficient_context"
 
 
-def test_teacher_transformer_reports_insufficient_signal_for_unknown_dominated_sequence(tmp_path: Path) -> None:
+def test_teacher_transformer_reports_novel_penalty_for_unknown_dominated_sequence(tmp_path: Path) -> None:
     model = _build_minimal_teacher(tmp_path)
 
     result = model.detect(
@@ -106,5 +106,32 @@ def test_teacher_transformer_reports_insufficient_signal_for_unknown_dominated_s
     )
 
     assert result["unknown_template_ratio"] >= 0.75
-    assert result["transformer"]["status"] == "insufficient_signal"
-    assert result["transformer"]["score"] == 0.0
+    assert result["transformer"]["status"] == "novel_penalty"
+    assert result["transformer"]["score"] > 0.0
+
+
+def test_teacher_isolation_forest_uses_calibrated_threshold_for_binary_decision(tmp_path: Path) -> None:
+    model = _build_minimal_teacher(tmp_path)
+
+    class FakeIsoForest:
+        def predict(self, features):
+            return np.array([-1])
+
+        def score_samples(self, features):
+            return np.array([-0.2])
+
+    model.iso_forest = FakeIsoForest()
+    model.iso_threshold = 0.5
+    model._is_iso_forest_fitted = lambda: True
+
+    result = model.detect(
+        log_data={"path": "/health", "method": "GET", "status": 200},
+        sequence=[0, 0, 0],
+        session_stats={},
+        features=np.zeros((1, 11), dtype=np.float64),
+    )
+
+    assert result["isolation_forest"]["status"] == "active"
+    assert result["isolation_forest"]["score"] == 0.2
+    assert result["isolation_forest"]["threshold"] == 0.5
+    assert result["isolation_forest"]["is_anomaly"] == 0

@@ -217,6 +217,7 @@ class TeacherModel:
                 with open(config_path, 'r') as f:
                     config = json.load(f)
                 self.transformer_threshold = config.get('optimal_threshold', 6.5)
+                self.iso_threshold = config.get('iso_threshold')
             
             # Try to load base transformer
             base_transformer_path = self.model_dir / 'transformer_model.pt'
@@ -573,11 +574,12 @@ class TeacherModel:
                 iso_result['status'] = 'not_fitted'
             else:
                 try:
-                    iso_pred = self.iso_forest.predict(features)[0]
                     iso_score = -self.iso_forest.score_samples(features)[0]
+                    iso_threshold = self.iso_threshold
                     iso_result = {
-                        'is_anomaly': int(iso_pred == -1),
+                        'is_anomaly': int(iso_score > iso_threshold) if iso_threshold is not None else int(self.iso_forest.predict(features)[0] == -1),
                         'score': float(iso_score),
+                        'threshold': iso_threshold,
                         'status': 'active'
                     }
                 except NotFittedError:
