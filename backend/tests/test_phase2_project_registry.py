@@ -306,6 +306,45 @@ def test_recent_parse_failure_rate_can_clear_student_blocker(tmp_path: Path) -> 
     assert "parse_failure_rate_too_high" not in blockers
 
 
+def test_active_trained_student_does_not_report_transient_training_buffer_blockers(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+    from models.project_manager import ProjectPhase
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-active-student",
+        project_name="Active Student",
+        warmup_threshold=200,
+        metadata={"traffic_profile": "low_traffic"},
+    )
+    project = detector.project_manager.get_project("proj-active-student")
+    assert project is not None
+    project.phase = ProjectPhase.ACTIVE.value
+    project.clean_baseline_count = 1000
+    project.current_log_count = 1000
+    project.observed_hours = [1, 2, 3, 4]
+    project.distinct_template_count = 20
+
+    class TrainedStudent:
+        is_trained = True
+        training_sequences = []
+        training_features = []
+        template_counts = Counter({"GET /users/me": 50})
+
+    detector.students[project.project_id] = TrainedStudent()
+
+    blockers = detector._student_training_blockers(project)
+
+    assert "insufficient_training_sequences" not in blockers
+    assert "insufficient_if_features" not in blockers
+
+
 def test_warmup_can_continue_collecting_if_features_after_threshold(tmp_path: Path) -> None:
     pytest = __import__("pytest")
     pytest.importorskip("torch")
