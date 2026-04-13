@@ -675,7 +675,8 @@ body {
 }
 
 .log-detail-panel {
-  width: 280px;
+  width: min(320px, 100%);
+  min-width: 0;
   flex-shrink: 0;
   border-radius: 1.2rem;
   border: 1px solid rgba(79, 141, 249, 0.16);
@@ -693,6 +694,11 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   align-items: flex-start;
+  min-width: 0;
+}
+
+.log-detail-panel__header > div {
+  min-width: 0;
 }
 
 .log-detail-panel__eyebrow {
@@ -735,12 +741,14 @@ body {
 
 .log-detail-panel__route span {
   min-width: 0;
+  max-width: 100%;
 }
 
 .log-detail-panel__meta {
   display: flex;
   gap: 0.45rem;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .log-detail-panel__meta span {
@@ -752,6 +760,10 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.12);
   color: #9cadcf;
   font-size: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .log-detail-panel__divider {
@@ -764,6 +776,8 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.12);
   background: rgba(255, 255, 255, 0.03);
   padding: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .log-detail-model__head,
@@ -772,6 +786,7 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   align-items: center;
+  min-width: 0;
 }
 
 .log-detail-model__name {
@@ -780,6 +795,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
+  min-width: 0;
 }
 
 .log-detail-model__badge {
@@ -791,6 +807,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  max-width: 100%;
 }
 
 .log-detail-model__badge--anomaly {
@@ -811,10 +828,19 @@ body {
   font-size: 12px;
 }
 
+.log-detail-model__score-row span {
+  min-width: 0;
+}
+
 .log-detail-model__score-row strong {
   color: #edf4ff;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 13px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: right;
 }
 
 .log-detail-model__bar {
@@ -843,6 +869,7 @@ body {
   color: #aeb9d4;
   font-size: 12px;
   line-height: 1.55;
+  min-width: 0;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -855,14 +882,22 @@ body {
   margin-top: 0.5rem;
   font-size: 11px;
   color: #8e9bb9;
+  min-width: 0;
+}
+
+.log-detail-model__stat-row span {
+  min-width: 0;
 }
 
 .log-detail-model__stat-row strong {
   color: #edf4ff;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 11px;
+  min-width: 0;
+  max-width: 100%;
   text-align: right;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .log-detail-model__stat-divider {
@@ -877,7 +912,9 @@ body {
   border-radius: 0.5rem;
   font-size: 10.5px;
   line-height: 1.5;
+  min-width: 0;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .log-detail-model__note--warning {

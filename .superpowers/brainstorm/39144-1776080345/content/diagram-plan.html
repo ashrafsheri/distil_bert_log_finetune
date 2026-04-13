@@ -1,0 +1,48 @@
+<h2>LogGuard Diagram Set — What should we create?</h2>
+<p class="subtitle">Based on the codebase, I've identified 5 diagrams that together tell the complete story. Select all that you want included.</p>
+
+<div class="options" data-multiselect>
+
+  <div class="option" data-choice="system-arch" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>System Architecture Overview</h3>
+      <p>The three-service layout: Backend (FastAPI :8000) · Anomaly Detection (:8001) · Frontend (React :3000) · PostgreSQL · Elasticsearch · Fluent Bit. Shows service boundaries, ports, and communication protocols.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="ml-ensemble" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>ML Ensemble Detector Architecture</h3>
+      <p>The three-layer detection pipeline: Rule-Based (SQL/XSS/Traversal/Cmd injection patterns) → Transformer (causal attention, NLL scoring) → Isolation Forest (feature-based). Weighted ensemble voting with final anomaly decision.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="student-teacher" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Student–Teacher Knowledge Distillation</h3>
+      <p>Teacher model (shared, cross-project) trains project-specific student models via KL-divergence distillation. Periodic teacher refresh from aggregated student logs. Teacher escalation when student confidence is low.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="data-flow" onclick="toggleSelect(this)">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>End-to-End Log & Score Flow</h3>
+      <p>Fluent Bit → Agent API → Log Parser → Anomaly Detection Service → Elasticsearch write → WebSocket fanout to Frontend. Shows data transformations at each hop and async paths.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="project-lifecycle" onclick="toggleSelect(this)">
+    <div class="letter">5</div>
+    <div class="content">
+      <h3>Project Lifecycle State Machine</h3>
+      <p>State transitions: WARMUP → TRAINING → ACTIVE → SUSPENDED / ERROR. Annotated with thresholds (warmup_threshold, min_training_sequences, min_observed_hours) and online learning loop in ACTIVE state.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Click one or more, then reply in the terminal. Or just say "all" — I'll include everything.</p>

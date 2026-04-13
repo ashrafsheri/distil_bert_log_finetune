@@ -1,0 +1,44 @@
+<h2>Diagram Style & Format</h2>
+<p class="subtitle">Pick the format that fits how you'll use these posters.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="html-poster" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>HTML + SVG Poster Pages</h3>
+      <p>One self-contained HTML file per diagram. Rich colors, clean lines, printable. Opens in any browser, no tools needed. Best for sharing, presenting, or printing as A3/A4 posters. <strong>Recommended.</strong></p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>No install required</li><li>Looks great on screen & print</li><li>Fully portable</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Not editable in diagram tools</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="mermaid" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Mermaid Markdown (.md)</h3>
+      <p>Text-based diagrams embedded in Markdown. Renders natively on GitHub, Notion, Obsidian, GitBook. Easy to version-control and edit by hand.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>GitHub renders inline</li><li>Easy to edit/diff</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Limited visual polish</li><li>Complex diagrams can be awkward</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Both — HTML posters + Mermaid source</h3>
+      <p>Each diagram gets an HTML poster for display and a Mermaid <code>.md</code> for documentation and version control. Best of both worlds.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Great visuals AND editable source</li><li>Works in docs and presentations</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More files</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Click your preference, then reply in the terminal.</p>

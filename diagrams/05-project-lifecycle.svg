@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <marker id="a-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#E2E8F0"/></marker>
+    <marker id="a-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#F59E0B"/></marker>
+    <marker id="a-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#3B82F6"/></marker>
+    <marker id="a-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#22C55E"/></marker>
+    <marker id="a-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#EF4444"/></marker>
+    <marker id="a-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#64748B"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#0D1117"/>
+  <rect width="1600" height="3" fill="#22C55E" opacity="0.7"/>
+
+  <!-- ── HEADER ── -->
+  <text x="800" y="48" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#E2E8F0">Project Lifecycle State Machine</text>
+  <text x="800" y="74" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#475569">Per-project phases from creation to active detection · Thresholds, guards, and online learning in ACTIVE state</text>
+  <line x1="60" y1="90" x2="1540" y2="90" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- ── STATE BOXES (top row: WARMUP → TRAINING → ACTIVE) ── -->
+
+  <!-- WARMUP state -->
+  <rect x="80" y="140" width="340" height="340" rx="12" fill="#1C1008" stroke="#F59E0B" stroke-width="2.5"/>
+  <!-- State badge -->
+  <rect x="80" y="140" width="340" height="44" rx="12" fill="#2D1F08"/>
+  <rect x="80" y="170" width="340" height="14" fill="#2D1F08"/>
+  <text x="250" y="170" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#FCD34D">WARMUP</text>
+  <text x="250" y="200" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#92400E">Initial phase · Teacher handles all detection</text>
+  <line x1="100" y1="210" x2="400" y2="210" stroke="#2D1F08" stroke-width="1"/>
+
+  <text x="100" y="232" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#FCD34D">What happens</text>
+  <text x="100" y="252" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Teacher model scores every log</text>
+  <text x="100" y="270" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Clean logs → clean_normal_reservoir</text>
+  <text x="100" y="288" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Dirty logs excluded from baseline</text>
+  <text x="100" y="306" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Template distribution tracked</text>
+  <text x="100" y="324" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Observed hours accumulated</text>
+
+  <line x1="100" y1="338" x2="400" y2="338" stroke="#2D1F08" stroke-width="1"/>
+  <text x="100" y="358" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#FCD34D">Exit criteria (ALL required)</text>
+  <text x="100" y="377" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">standard: ≥ 10,000 logs collected</text>
+  <text x="100" y="393" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">low_traffic: ≥ 1,000 logs</text>
+  <text x="100" y="409" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">≥ 6h observed (std) / 3h (low_traffic)</text>
+  <text x="100" y="425" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">≥ 10 distinct templates (5 low_traffic)</text>
+  <text x="100" y="441" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">max single template ratio ≤ 0.85 / 0.95</text>
+  <text x="100" y="457" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F59E0B">parse failure rate ≤ 5%</text>
+
+  <!-- TRAINING state -->
+  <rect x="630" y="140" width="340" height="340" rx="12" fill="#050C1A" stroke="#3B82F6" stroke-width="2.5"/>
+  <rect x="630" y="140" width="340" height="44" rx="12" fill="#0F1E38"/>
+  <rect x="630" y="170" width="340" height="14" fill="#0F1E38"/>
+  <text x="800" y="170" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#60A5FA">TRAINING</text>
+  <text x="800" y="200" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#1D4ED8">Background thread · KD in progress</text>
+  <line x1="650" y1="210" x2="950" y2="210" stroke="#0F1E38" stroke-width="1"/>
+
+  <text x="650" y="232" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#60A5FA">What happens</text>
+  <text x="650" y="252" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● KD training starts in background</text>
+  <text x="650" y="270" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Teacher generates soft labels (T=3.0)</text>
+  <text x="650" y="288" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Student trained: α=0.5 KL+CE loss</text>
+  <text x="650" y="306" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● IsolationForest fitted on reservoir</text>
+  <text x="650" y="324" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Teacher STILL handles live logs</text>
+
+  <line x1="650" y1="338" x2="950" y2="338" stroke="#0F1E38" stroke-width="1"/>
+  <text x="650" y="358" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#60A5FA">Training config</text>
+  <text x="650" y="377" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#3B82F6">epochs=5 · batch=32 · lr=1e-4</text>
+  <text x="650" y="393" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#3B82F6">weight_decay=0.01 · patience=3</text>
+  <text x="650" y="409" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#3B82F6">min_training_sequences: 100 / 30</text>
+  <text x="650" y="425" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#3B82F6">min_if_feature_rows: 100 / 50</text>
+  <text x="650" y="441" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#3B82F6">Calibration: min 50 / 20 samples</text>
+  <text x="650" y="457" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#1D4ED8">knowledge_distillation.py</text>
+
+  <!-- ACTIVE state -->
+  <rect x="1180" y="140" width="340" height="340" rx="12" fill="#041A0C" stroke="#22C55E" stroke-width="2.5"/>
+  <rect x="1180" y="140" width="340" height="44" rx="12" fill="#082018"/>
+  <rect x="1180" y="170" width="340" height="14" fill="#082018"/>
+  <text x="1350" y="170" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#4ADE80">ACTIVE</text>
+  <text x="1350" y="200" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#166534">Student model live · Online learning enabled</text>
+  <line x1="1200" y1="210" x2="1500" y2="210" stroke="#082018" stroke-width="1"/>
+
+  <text x="1200" y="232" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#4ADE80">What happens</text>
+  <text x="1200" y="252" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Student model handles all detection</text>
+  <text x="1200" y="270" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Teacher escalation if confidence low</text>
+  <text x="1200" y="288" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Clean logs grow reservoir</text>
+  <text x="1200" y="306" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">● Threshold adapts over time</text>
+
+  <line x1="1200" y1="320" x2="1500" y2="320" stroke="#082018" stroke-width="1"/>
+  <text x="1200" y="340" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#4ADE80">Online Learning Loop</text>
+  <text x="1200" y="360" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">Every 500 logs (ONLINE_UPDATE_INTERVAL):</text>
+  <text x="1200" y="378" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">  1. Fine-tune on clean_normal_reservoir</text>
+  <text x="1200" y="394" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">  2. Compute KL divergence vs. pre-update</text>
+  <text x="1200" y="410" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">  3. If KL &gt; safety threshold → ROLLBACK</text>
+  <text x="1200" y="426" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">  4. Else commit new weights</text>
+  <text x="1200" y="450" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">max_daily_threshold_delta = 0.1</text>
+  <text x="1200" y="466" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">student_model.py · online_update()</text>
+
+  <!-- ── TRANSITION ARROWS (top row) ── -->
+  <!-- WARMUP → TRAINING -->
+  <line x1="422" y1="310" x2="628" y2="310" stroke="#F59E0B" stroke-width="2.5" marker-end="url(#a-a)"/>
+  <rect x="450" y="290" width="148" height="34" rx="4" fill="#0D1117"/>
+  <text x="524" y="305" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#FCD34D">all warmup criteria met</text>
+  <text x="524" y="319" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#92400E">phase = TRAINING</text>
+
+  <!-- TRAINING → ACTIVE -->
+  <line x1="972" y1="310" x2="1178" y2="310" stroke="#3B82F6" stroke-width="2.5" marker-end="url(#a-b)"/>
+  <rect x="1000" y="290" width="148" height="34" rx="4" fill="#0D1117"/>
+  <text x="1074" y="305" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#60A5FA">training complete</text>
+  <text x="1074" y="319" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#1D4ED8">phase = ACTIVE</text>
+
+  <!-- ── ERROR + SUSPENDED STATES (bottom row) ── -->
+  <!-- ERROR state -->
+  <rect x="200" y="600" width="380" height="220" rx="12" fill="#150406" stroke="#EF4444" stroke-width="2"/>
+  <rect x="200" y="600" width="380" height="44" rx="12" fill="#2A0808"/>
+  <rect x="200" y="630" width="380" height="14" fill="#2A0808"/>
+  <text x="390" y="630" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#FCA5A5">ERROR</text>
+  <text x="390" y="662" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7F1D1D">Detection degraded · Logged for ops</text>
+  <line x1="220" y1="672" x2="560" y2="672" stroke="#2A0808" stroke-width="1"/>
+  <text x="220" y="693" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Triggered by:</text>
+  <text x="220" y="712" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F87171">● Training failure / model crash</text>
+  <text x="220" y="728" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F87171">● Persistent data quality incidents</text>
+  <text x="220" y="744" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F87171">● Unrecoverable state corruption</text>
+  <text x="220" y="764" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Behaviour:</text>
+  <text x="220" y="782" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Teacher fallback where possible</text>
+  <text x="220" y="798" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Error logged · Manual intervention</text>
+
+  <!-- SUSPENDED state -->
+  <rect x="740" y="600" width="380" height="220" rx="12" fill="#0A0C0E" stroke="#6B7280" stroke-width="2"/>
+  <rect x="740" y="600" width="380" height="44" rx="12" fill="#1A1C1E"/>
+  <rect x="740" y="630" width="380" height="14" fill="#1A1C1E"/>
+  <text x="930" y="630" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#9CA3AF">SUSPENDED</text>
+  <text x="930" y="662" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#374151">Temporarily paused · Can resume</text>
+  <line x1="760" y1="672" x2="1100" y2="672" stroke="#1A1C1E" stroke-width="1"/>
+  <text x="760" y="693" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Triggered by:</text>
+  <text x="760" y="712" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#9CA3AF">● Manual operator action</text>
+  <text x="760" y="728" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#9CA3AF">● Resource pressure</text>
+  <text x="760" y="744" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#9CA3AF">● Scheduled maintenance</text>
+  <text x="760" y="764" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Behaviour:</text>
+  <text x="760" y="782" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● No new log processing</text>
+  <text x="760" y="798" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● State preserved on PVC</text>
+  <text x="760" y="814" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Resume → ACTIVE (if student ok)</text>
+
+  <!-- ── TRANSITION ARROWS to error/suspended ── -->
+  <!-- WARMUP → ERROR -->
+  <path d="M250,482 C250,540 280,570 300,598" stroke="#EF4444" stroke-width="1.5" fill="none" marker-end="url(#a-r)" stroke-dasharray="5,3"/>
+  <text x="175" y="545" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#EF4444">training</text>
+  <text x="175" y="558" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#EF4444">failed</text>
+
+  <!-- TRAINING → ERROR -->
+  <path d="M700,482 C700,540 500,560 480,598" stroke="#EF4444" stroke-width="1.5" fill="none" marker-end="url(#a-r)" stroke-dasharray="5,3"/>
+  <text x="568" y="548" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#EF4444">exception</text>
+
+  <!-- ACTIVE → SUSPENDED -->
+  <path d="M1350,482 C1350,540 1100,570 1122,598" stroke="#6B7280" stroke-width="1.5" fill="none" marker-end="url(#a-s)" stroke-dasharray="5,3"/>
+  <text x="1220" y="548" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#6B7280">suspend</text>
+
+  <!-- ACTIVE → ERROR -->
+  <path d="M1300,482 C1300,550 900,570 680,598" stroke="#EF4444" stroke-width="1.5" fill="none" marker-end="url(#a-r)" stroke-dasharray="5,3"/>
+  <text x="1040" y="534" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#EF4444">model error</text>
+
+  <!-- SUSPENDED → ACTIVE (resume) -->
+  <path d="M1120,600 C1160,540 1220,510 1240,482" stroke="#22C55E" stroke-width="1.5" fill="none" marker-end="url(#a-g)" stroke-dasharray="5,3"/>
+  <text x="1142" y="540" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">resume</text>
+
+  <!-- ── RIGHT SIDE: Project Config Panel ── -->
+  <rect x="1360" y="600" width="200" height="220" rx="8" fill="#0A0C0E" stroke="#1E293B" stroke-width="1.5"/>
+  <text x="1460" y="626" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#64748B">ProjectConfig</text>
+  <line x1="1378" y1="634" x2="1542" y2="634" stroke="#1E293B" stroke-width="1"/>
+  <text x="1378" y="652" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">project_id: str</text>
+  <text x="1378" y="668" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">api_key_hash: str</text>
+  <text x="1378" y="684" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">phase: ProjectPhase</text>
+  <text x="1378" y="700" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">traffic_profile: str</text>
+  <text x="1378" y="716" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">current_log_count: int</text>
+  <text x="1378" y="732" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">warmup_threshold: int</text>
+  <text x="1378" y="748" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">calibration_threshold</text>
+  <text x="1378" y="764" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">observed_hours: []</text>
+  <text x="1378" y="780" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">student_trained_at</text>
+  <text x="1378" y="796" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">project_manager.py</text>
+
+  <!-- ── FOOTER ── -->
+  <line x1="60" y1="892" x2="1540" y2="892" stroke="#1E293B" stroke-width="1"/>
+  <text x="800" y="882" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">LogGuard · project_manager.py · ProjectPhase enum · multi_tenant_detector.py · per-project RLock thread safety · Persisted via ProjectManager storage_dir</text>
+</svg>

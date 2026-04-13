@@ -792,6 +792,12 @@ class MultiTenantDetector:
     def _student_training_blockers(self, project: ProjectConfig) -> List[str]:
         blockers: List[str] = []
         profile_settings = self._profile_settings_for_project(project)
+        student = self.students.get(project.project_id)
+        if student and student.is_trained:
+            # Training buffers are intentionally cleared after a successful fit, so
+            # sequence/feature counts are no longer a meaningful blocker signal once
+            # a project is already running an active student model.
+            return blockers
         if project.clean_baseline_count < project.warmup_threshold:
             blockers.append("insufficient_clean_baseline_volume")
         if len(project.observed_hours) < profile_settings["min_observed_hours"]:
@@ -806,7 +812,6 @@ class MultiTenantDetector:
         total_non_probe = project.clean_baseline_count + project.dirty_excluded_count
         if project.probe_skipped_count > total_non_probe and project.probe_skipped_count > 0:
             blockers.append("probe_traffic_dominant")
-        student = self.students.get(project.project_id)
         training_sequence_count = len(student.training_sequences) if student else 0
         training_feature_count = len(student.training_features) if student else 0
         if training_sequence_count < profile_settings["min_training_sequences"]:

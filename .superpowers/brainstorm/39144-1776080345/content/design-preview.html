@@ -1,0 +1,104 @@
+<h2>Design Preview — 5 HTML Poster Files</h2>
+<p class="subtitle">Each will be a self-contained <code>.html</code> file in a <code>diagrams/</code> folder. Dark theme, color-coded by service/layer. Here's the visual structure planned for each.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="1" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-family:monospace;font-size:11px;color:#94a3b8;min-height:140px">
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+        <div style="background:#1e3a5f;border:1px solid #3b82f6;border-radius:6px;padding:6px 10px;color:#60a5fa;font-size:10px">Frontend<br><span style="color:#94a3b8">React :3000</span></div>
+        <div style="background:#1a3a2a;border:1px solid #22c55e;border-radius:6px;padding:6px 10px;color:#4ade80;font-size:10px">Backend<br><span style="color:#94a3b8">FastAPI :8000</span></div>
+        <div style="background:#3a1a2a;border:1px solid #ec4899;border-radius:6px;padding:6px 10px;color:#f472b6;font-size:10px">Anomaly<br><span style="color:#94a3b8">FastAPI :8001</span></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <div style="background:#2a2a1a;border:1px solid #eab308;border-radius:4px;padding:4px 8px;color:#fbbf24;font-size:9px">PostgreSQL</div>
+        <div style="background:#1a2a3a;border:1px solid #38bdf8;border-radius:4px;padding:4px 8px;color:#7dd3fc;font-size:9px">Elasticsearch</div>
+        <div style="background:#2a1a1a;border:1px solid #f87171;border-radius:4px;padding:4px 8px;color:#fca5a5;font-size:9px">Fluent Bit</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1 — System Architecture</h3>
+      <p>3 services + infra, ports, protocols</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="2" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-size:10px;color:#94a3b8;min-height:140px;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="background:#7c3aed20;border:1px solid #7c3aed;border-radius:4px;padding:4px 20px;color:#a78bfa;width:80%;text-align:center">Rule-Based Layer</div>
+      <div style="color:#475569">↓ pass + confidence</div>
+      <div style="background:#1e3a5f20;border:1px solid #3b82f6;border-radius:4px;padding:4px 20px;color:#60a5fa;width:80%;text-align:center">Transformer (NLL)</div>
+      <div style="color:#475569">↓ sequence score</div>
+      <div style="background:#14532d20;border:1px solid #22c55e;border-radius:4px;padding:4px 20px;color:#4ade80;width:80%;text-align:center">Isolation Forest</div>
+      <div style="color:#475569">↓ weighted vote</div>
+      <div style="background:#7f1d1d20;border:1px solid #ef4444;border-radius:4px;padding:4px 20px;color:#f87171;width:80%;text-align:center">Ensemble Decision</div>
+    </div>
+    <div class="card-body">
+      <h3>2 — Ensemble ML Pipeline</h3>
+      <p>3-layer detection + weighted voting</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="3" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-size:10px;color:#94a3b8;min-height:140px;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div style="background:#78350f20;border:1px solid #f59e0b;border-radius:6px;padding:6px 24px;color:#fbbf24">Teacher Model</div>
+      <div style="display:flex;gap:4px;color:#475569;font-size:9px">
+        <span>↙ distill</span><span style="margin-left:16px">distill ↘</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="background:#1e3a5f20;border:1px solid #3b82f6;border-radius:4px;padding:4px 10px;color:#60a5fa;font-size:9px">Student A</div>
+        <div style="background:#1a3a2a20;border:1px solid #22c55e;border-radius:4px;padding:4px 10px;color:#4ade80;font-size:9px">Student B</div>
+        <div style="background:#3a1a2a20;border:1px solid #ec4899;border-radius:4px;padding:4px 10px;color:#f472b6;font-size:9px">Student N</div>
+      </div>
+      <div style="color:#475569;font-size:9px">↑ aggregated logs (7d)</div>
+    </div>
+    <div class="card-body">
+      <h3>3 — Student–Teacher KD</h3>
+      <p>Distillation + teacher refresh cycle</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="4" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:12px;font-size:9px;color:#94a3b8;min-height:140px;display:flex;align-items:center;justify-content:center;gap:4px">
+      <div style="background:#2a1a1a;border:1px solid #f87171;border-radius:4px;padding:4px 6px;color:#fca5a5">Fluent Bit</div>
+      <span>→</span>
+      <div style="background:#1a2a1a;border:1px solid #4ade80;border-radius:4px;padding:4px 6px;color:#86efac">Backend</div>
+      <span>→</span>
+      <div style="background:#1a1a2a;border:1px solid #818cf8;border-radius:4px;padding:4px 6px;color:#a5b4fc">Anomaly Svc</div>
+      <span>→</span>
+      <div style="background:#1a2a2a;border:1px solid #38bdf8;border-radius:4px;padding:4px 6px;color:#7dd3fc">ES Index</div>
+      <span>→</span>
+      <div style="background:#2a1a2a;border:1px solid #e879f9;border-radius:4px;padding:4px 6px;color:#f0abfc">WS→UI</div>
+    </div>
+    <div class="card-body">
+      <h3>4 — End-to-End Data Flow</h3>
+      <p>Log journey from ingest to dashboard</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="5" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:12px;font-size:9px;color:#94a3b8;min-height:140px;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:center">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="background:#78350f20;border:1px solid #f59e0b;border-radius:4px;padding:3px 8px;color:#fbbf24">WARMUP</div>
+        <span>→</span>
+        <div style="background:#1e3a5f20;border:1px solid #3b82f6;border-radius:4px;padding:3px 8px;color:#60a5fa">TRAINING</div>
+        <span>→</span>
+        <div style="background:#14532d20;border:1px solid #22c55e;border-radius:4px;padding:3px 8px;color:#4ade80">ACTIVE</div>
+      </div>
+      <div style="display:flex;gap:8px;color:#475569;font-size:8px;margin-top:2px">
+        <span style="color:#7f1d1d">↓ error</span>
+        <span style="margin-left:48px;color:#1e3a5f">↓ suspend</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="border:1px solid #ef4444;border-radius:4px;padding:3px 8px;color:#f87171">ERROR</div>
+        <div style="border:1px solid #6b7280;border-radius:4px;padding:3px 8px;color:#9ca3af">SUSPENDED</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>5 — Project Lifecycle FSM</h3>
+      <p>States, thresholds, online learning loop</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Does this layout and style look right? Reply "looks good" in the terminal to proceed, or request changes.</p>

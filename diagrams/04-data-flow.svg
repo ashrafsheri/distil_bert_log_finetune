@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94A3B8"/></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#3B82F6"/></marker>
+    <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#A78BFA"/></marker>
+    <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#38BDF8"/></marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#22C55E"/></marker>
+    <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#FB923C"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#0D1117"/>
+  <rect width="1600" height="3" fill="#38BDF8" opacity="0.7"/>
+
+  <!-- ── HEADER ── -->
+  <text x="800" y="48" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#E2E8F0">End-to-End Log Processing Pipeline</text>
+  <text x="800" y="74" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#475569">From Fluent Bit log shipper to real-time anomaly dashboard · Data transformations at each stage</text>
+  <line x1="60" y1="90" x2="1540" y2="90" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- ── STAGE HEADER LABELS (top row) ── -->
+  <!-- Stage 1 -->
+  <rect x="40" y="105" width="200" height="32" rx="4" fill="#1A0808" stroke="#F87171" stroke-width="1"/>
+  <text x="140" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#FCA5A5" letter-spacing="1">① FLUENT BIT</text>
+  <!-- Stage 2 -->
+  <rect x="280" y="105" width="200" height="32" rx="4" fill="#050C1A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="380" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#60A5FA" letter-spacing="1">② INGEST API</text>
+  <!-- Stage 3 -->
+  <rect x="520" y="105" width="200" height="32" rx="4" fill="#050C1A" stroke="#60A5FA" stroke-width="1"/>
+  <text x="620" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#93C5FD" letter-spacing="1">③ LOG PARSER</text>
+  <!-- Stage 4 -->
+  <rect x="760" y="105" width="200" height="32" rx="4" fill="#0D0520" stroke="#A78BFA" stroke-width="1"/>
+  <text x="860" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#C4B5FD" letter-spacing="1">④ ANOMALY SERVICE</text>
+  <!-- Stage 5 -->
+  <rect x="1000" y="105" width="200" height="32" rx="4" fill="#051828" stroke="#38BDF8" stroke-width="1"/>
+  <text x="1100" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#7DD3FC" letter-spacing="1">⑤ ELASTICSEARCH</text>
+  <!-- Stage 6 -->
+  <rect x="1240" y="105" width="200" height="32" rx="4" fill="#041408" stroke="#22C55E" stroke-width="1"/>
+  <text x="1340" y="126" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4ADE80" letter-spacing="1">⑥ WEBSOCKET → UI</text>
+
+  <!-- ── STAGE DETAIL BOXES ── -->
+
+  <!-- Stage 1: Fluent Bit -->
+  <rect x="40" y="148" width="200" height="460" rx="8" fill="#140606" stroke="#F87171" stroke-width="1.5"/>
+  <text x="140" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#FCA5A5">Log Collection</text>
+  <line x1="60" y1="182" x2="220" y2="182" stroke="#2A0A0A" stroke-width="1"/>
+  <text x="58" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Tails application</text>
+  <text x="58" y="216" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">log files</text>
+  <text x="58" y="240" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Parses Apache /</text>
+  <text x="58" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Nginx / syslog</text>
+  <text x="58" y="280" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Buffers and</text>
+  <text x="58" y="296" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">batches lines</text>
+  <text x="58" y="320" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Injects X-API-Key</text>
+  <text x="58" y="336" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">header</text>
+  <line x1="60" y1="352" x2="220" y2="352" stroke="#2A0A0A" stroke-width="1"/>
+  <text x="140" y="370" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#F87171">Payload</text>
+  <text x="58" y="390" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">HTTP POST</text>
+  <text x="58" y="406" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">Content-Type: json</text>
+  <text x="58" y="430" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">{ logs: [</text>
+  <text x="58" y="446" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  "raw log line",</text>
+  <text x="58" y="462" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  ...batch</text>
+  <text x="58" y="478" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">]}</text>
+  <text x="58" y="506" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">fluent-bit/</text>
+  <text x="58" y="521" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">fluent.conf</text>
+  <text x="58" y="537" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Hardcoded host,</text>
+  <text x="58" y="552" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">path, API key</text>
+  <text x="58" y="568" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">(not a template)</text>
+  <text x="58" y="596" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#92400E">→ :8000</text>
+
+  <!-- Stage 2: Ingest API -->
+  <rect x="280" y="148" width="200" height="460" rx="8" fill="#050C1A" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="380" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#60A5FA">Backend Ingest</text>
+  <line x1="300" y1="182" x2="460" y2="182" stroke="#0A1628" stroke-width="1"/>
+  <text x="298" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Receives HTTP POST</text>
+  <text x="298" y="218" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Firebase JWT auth</text>
+  <text x="298" y="236" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">OR API key auth</text>
+  <text x="298" y="262" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Validates project ID</text>
+  <text x="298" y="280" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Looks up project in</text>
+  <text x="298" y="296" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">PostgreSQL</text>
+  <text x="298" y="320" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Rate limit / ACL</text>
+  <text x="298" y="338" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">checks</text>
+  <line x1="300" y1="354" x2="460" y2="354" stroke="#0A1628" stroke-width="1"/>
+  <text x="380" y="372" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#3B82F6">Route</text>
+  <text x="298" y="392" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">POST</text>
+  <text x="298" y="408" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">/api/v1/logs/</text>
+  <text x="298" y="424" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">agent/send-logs</text>
+  <text x="298" y="450" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">log_controller.py</text>
+  <text x="298" y="474" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">router.py</text>
+  <text x="298" y="510" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Async FastAPI</text>
+  <text x="298" y="526" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">handler</text>
+  <text x="298" y="560" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#60A5FA">→ LogParserService</text>
+
+  <!-- Stage 3: Log Parser -->
+  <rect x="520" y="148" width="200" height="460" rx="8" fill="#050C1A" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="620" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#93C5FD">Log Parser</text>
+  <line x1="540" y1="182" x2="700" y2="182" stroke="#0A1628" stroke-width="1"/>
+  <text x="538" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Parses raw string</text>
+  <text x="538" y="218" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">→ structured dict</text>
+  <text x="538" y="244" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Extracts: ip, method</text>
+  <text x="538" y="260" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">path, protocol</text>
+  <text x="538" y="276" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">status, size, ts</text>
+  <text x="538" y="300" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Traffic classifier:</text>
+  <text x="538" y="316" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">standard / low_traffic</text>
+  <text x="538" y="340" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Normalizer:</text>
+  <text x="538" y="356" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">IP→&lt;IP&gt;, URL→&lt;URL&gt;</text>
+  <text x="538" y="372" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">path ID → &lt;NUM&gt;</text>
+  <line x1="540" y1="388" x2="700" y2="388" stroke="#0A1628" stroke-width="1"/>
+  <text x="620" y="406" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#60A5FA">Output Event</text>
+  <text x="538" y="426" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">{ project_id,</text>
+  <text x="538" y="442" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  session_id,</text>
+  <text x="538" y="458" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  ip, method,</text>
+  <text x="538" y="474" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  path, status,</text>
+  <text x="538" y="490" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  timestamp,</text>
+  <text x="538" y="506" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  raw_line }</text>
+  <text x="538" y="540" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">log_parser_service.py</text>
+  <text x="538" y="572" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#60A5FA">→ AnomalyDetection</text>
+  <text x="538" y="588" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#60A5FA">  Service.detect()</text>
+
+  <!-- Stage 4: Anomaly Service -->
+  <rect x="760" y="148" width="200" height="460" rx="8" fill="#0C0520" stroke="#A78BFA" stroke-width="1.5"/>
+  <text x="860" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#C4B5FD">Anomaly Detection</text>
+  <line x1="780" y1="182" x2="940" y2="182" stroke="#1A0D38" stroke-width="1"/>
+  <text x="778" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">POST /detect/</text>
+  <text x="778" y="216" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">batch/structured</text>
+  <text x="778" y="240" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">API key lookup</text>
+  <text x="778" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">→ project routing</text>
+  <text x="778" y="280" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Phase check:</text>
+  <text x="778" y="296" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">WARMUP→teacher</text>
+  <text x="778" y="312" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">ACTIVE→student</text>
+  <text x="778" y="336" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">3-layer ensemble:</text>
+  <text x="778" y="352" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#A78BFA">Rule + TF + IF</text>
+  <text x="778" y="376" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Score + calibrate</text>
+  <text x="778" y="392" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">→ is_anomaly flag</text>
+  <line x1="780" y1="408" x2="940" y2="408" stroke="#1A0D38" stroke-width="1"/>
+  <text x="860" y="426" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#A78BFA">Scored Result</text>
+  <text x="778" y="446" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">{ is_anomaly,</text>
+  <text x="778" y="462" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  anomaly_score,</text>
+  <text x="778" y="478" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  rule_based,</text>
+  <text x="778" y="494" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  transformer,</text>
+  <text x="778" y="510" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  isolation_forest,</text>
+  <text x="778" y="526" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  ensemble }</text>
+  <text x="778" y="558" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">multi_tenant_</text>
+  <text x="778" y="574" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">detector.py</text>
+  <text x="778" y="598" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#A78BFA">→ Backend</text>
+
+  <!-- Stage 5: Elasticsearch -->
+  <rect x="1000" y="148" width="200" height="460" rx="8" fill="#051828" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="1100" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#7DD3FC">Elasticsearch</text>
+  <line x1="1020" y1="182" x2="1180" y2="182" stroke="#082030" stroke-width="1"/>
+  <text x="1018" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Backend merges</text>
+  <text x="1018" y="216" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">parsed + scored</text>
+  <text x="1018" y="240" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Builds ES document:</text>
+  <text x="1018" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">log fields +</text>
+  <text x="1018" y="272" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">anomaly fields</text>
+  <text x="1018" y="296" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">elasticsearch_</text>
+  <text x="1018" y="312" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">service.py</text>
+  <text x="1018" y="336" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Index bulk write</text>
+  <text x="1018" y="352" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">logguard-logs</text>
+  <line x1="1020" y1="368" x2="1180" y2="368" stroke="#082030" stroke-width="1"/>
+  <text x="1100" y="386" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#38BDF8">Stored Document</text>
+  <text x="1018" y="406" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">{ @timestamp,</text>
+  <text x="1018" y="422" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  project_id,</text>
+  <text x="1018" y="438" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  ip, method,</text>
+  <text x="1018" y="454" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  path, status,</text>
+  <text x="1018" y="470" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  is_anomaly,</text>
+  <text x="1018" y="486" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  anomaly_score,</text>
+  <text x="1018" y="502" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  rule_based,</text>
+  <text x="1018" y="518" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  transformer,</text>
+  <text x="1018" y="534" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">  isolation_forest}</text>
+  <text x="1018" y="566" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#38BDF8">Also: query by</text>
+  <text x="1018" y="582" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#38BDF8">Frontend via</text>
+  <text x="1018" y="598" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#38BDF8">Backend REST</text>
+
+  <!-- Stage 6: WebSocket → UI -->
+  <rect x="1240" y="148" width="200" height="460" rx="8" fill="#041408" stroke="#22C55E" stroke-width="1.5"/>
+  <text x="1340" y="174" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#4ADE80">WebSocket → UI</text>
+  <line x1="1260" y1="182" x2="1420" y2="182" stroke="#082018" stroke-width="1"/>
+  <text x="1258" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Backend broadcasts</text>
+  <text x="1258" y="216" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">scored event via WS</text>
+  <text x="1258" y="240" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">websocket_</text>
+  <text x="1258" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">controller.py</text>
+  <text x="1258" y="280" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Filtered by:</text>
+  <text x="1258" y="296" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">  project_id</text>
+  <text x="1258" y="312" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">  org_id</text>
+  <text x="1258" y="336" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">Frontend App.tsx</text>
+  <text x="1258" y="352" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">AuthProvider</text>
+  <text x="1258" y="376" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">React state update</text>
+  <text x="1258" y="392" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#64748B">→ re-render</text>
+  <line x1="1260" y1="408" x2="1420" y2="408" stroke="#082018" stroke-width="1"/>
+  <text x="1340" y="426" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#22C55E">Dashboard</text>
+  <text x="1258" y="446" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Live anomaly feed</text>
+  <text x="1258" y="462" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Real-time counters</text>
+  <text x="1258" y="478" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Attack type breakdown</text>
+  <text x="1258" y="494" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Score time-series</text>
+  <text x="1258" y="510" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">IP / session drill-down</text>
+  <text x="1258" y="550" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">React :3000</text>
+  <text x="1258" y="566" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">Vite + Tailwind</text>
+  <text x="1258" y="582" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#22C55E">Firebase client</text>
+
+  <!-- ── FLOW ARROWS (between stage boxes) ── -->
+  <line x1="242" y1="374" x2="278" y2="374" stroke="#94A3B8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="482" y1="374" x2="518" y2="374" stroke="#3B82F6" stroke-width="2" marker-end="url(#arr-b)"/>
+  <line x1="722" y1="374" x2="758" y2="374" stroke="#60A5FA" stroke-width="2" marker-end="url(#arr-b)"/>
+  <line x1="962" y1="374" x2="998" y2="374" stroke="#A78BFA" stroke-width="2" marker-end="url(#arr-p)"/>
+  <line x1="1202" y1="374" x2="1238" y2="374" stroke="#38BDF8" stroke-width="2" marker-end="url(#arr-c)"/>
+
+  <!-- Arrow labels -->
+  <text x="248" y="368" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#64748B">HTTP</text>
+  <text x="488" y="368" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#3B82F6">parse</text>
+  <text x="728" y="368" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#60A5FA">POST</text>
+  <text x="968" y="368" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#A78BFA">scored</text>
+  <text x="1208" y="368" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#38BDF8">index</text>
+
+  <!-- ── TIMELINE STRIP (bottom) ── -->
+  <rect x="40" y="638" width="1400" height="50" rx="6" fill="#0A0E14" stroke="#1E293B" stroke-width="1"/>
+  <text x="740" y="658" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#64748B">Typical latency per stage</text>
+  <text x="140" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#F87171">~100ms batch</text>
+  <text x="380" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#60A5FA">~5ms auth</text>
+  <text x="620" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#93C5FD">~1ms/log</text>
+  <text x="860" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#C4B5FD">~10–50ms batch</text>
+  <text x="1100" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7DD3FC">~5ms bulk</text>
+  <text x="1340" y="676" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#4ADE80">&lt;1ms push</text>
+
+  <!-- Async Paths note -->
+  <rect x="40" y="706" width="680" height="60" rx="6" fill="#0A0E14" stroke="#1E293B" stroke-width="1"/>
+  <text x="380" y="726" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#64748B">Async Paths</text>
+  <text x="58" y="746" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Elasticsearch write is async (fire-and-forget after anomaly detection returns)</text>
+  <text x="58" y="760" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● WebSocket broadcast happens after ES write — Frontend receives near-real-time (sub-second)</text>
+
+  <rect x="760" y="706" width="680" height="60" rx="6" fill="#0A0E14" stroke="#1E293B" stroke-width="1"/>
+  <text x="1100" y="726" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#64748B">Failure Modes</text>
+  <text x="778" y="746" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Anomaly service unavailable → Backend logs error, skips scoring, writes unscored doc to ES</text>
+  <text x="778" y="760" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">● Log parse failure → counted in parse_failure_count, excluded from reservoir, logged</text>
+
+  <!-- ── FOOTER ── -->
+  <line x1="60" y1="892" x2="1540" y2="892" stroke="#1E293B" stroke-width="1"/>
+  <text x="800" y="882" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">LogGuard · log_controller.py · log_parser_service.py · anomaly_detection_service.py · elasticsearch_service.py · websocket_controller.py</text>
+</svg>

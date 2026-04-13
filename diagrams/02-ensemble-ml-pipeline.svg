@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <marker id="a-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#E2E8F0"/></marker>
+    <marker id="a-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#7C3AED"/></marker>
+    <marker id="a-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#3B82F6"/></marker>
+    <marker id="a-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#22C55E"/></marker>
+    <marker id="a-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#EF4444"/></marker>
+    <marker id="a-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94A3B8"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#0D1117"/>
+  <rect width="1600" height="3" fill="#7C3AED" opacity="0.7"/>
+
+  <!-- ── HEADER ── -->
+  <text x="800" y="48" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#E2E8F0">Ensemble Anomaly Detection Pipeline</text>
+  <text x="800" y="74" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#475569">Three-layer hybrid detection · Rule-based · Transformer (NLL) · Isolation Forest · Weighted ensemble</text>
+  <line x1="60" y1="90" x2="1540" y2="90" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- ── INPUT ── -->
+  <rect x="550" y="106" width="500" height="68" rx="8" fill="#111827" stroke="#475569" stroke-width="1.5"/>
+  <text x="800" y="134" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600" fill="#94A3B8">Raw Log Line (Apache / Access Log)</text>
+  <text x="800" y="154" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">192.168.1.1 - - [13/Apr/2026] "GET /api/v1/users HTTP/1.1" 200 1234</text>
+  <text x="800" y="168" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">session_id (IP or explicit) · method · path · status · size · timestamp</text>
+
+  <!-- INPUT arrow down -->
+  <line x1="800" y1="176" x2="800" y2="198" stroke="#475569" stroke-width="1.5" marker-end="url(#a-s)"/>
+
+  <!-- ── LOG PARSER & NORMALIZER ── -->
+  <rect x="500" y="200" width="600" height="80" rx="8" fill="#0A1628" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="800" y="226" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600" fill="#60A5FA">ApacheLogNormalizer  +  Log Parser</text>
+  <text x="800" y="246" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">IP normalization → &lt;IP&gt; · URL → &lt;URL&gt; · Path IDs → &lt;NUM&gt; / &lt;HEX&gt;</text>
+  <text x="800" y="263" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">Number bucketing → &lt;NUM_E2&gt; · Attack signatures PRESERVED (SQL / XSS / shell)</text>
+  <text x="800" y="277" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">ensemble_detector.py · ApacheLogNormalizer.normalize()</text>
+
+  <!-- PARSER arrow splits into 3 -->
+  <!-- left branch to rule-based -->
+  <path d="M800,282 L800,300 L310,300 L310,320" stroke="#7C3AED" stroke-width="1.5" fill="none" marker-end="url(#a-v)"/>
+  <!-- center branch to transformer -->
+  <line x1="800" y1="282" x2="800" y2="320" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#a-b)"/>
+  <!-- right branch to iso forest -->
+  <path d="M800,282 L800,300 L1290,300 L1290,320" stroke="#22C55E" stroke-width="1.5" fill="none" marker-end="url(#a-g)"/>
+
+  <!-- COLUMN LABELS -->
+  <text x="310" y="315" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="700" fill="#7C3AED" letter-spacing="1">LAYER 1: RULE-BASED</text>
+  <text x="800" y="315" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="700" fill="#3B82F6" letter-spacing="1">LAYER 2: TRANSFORMER</text>
+  <text x="1290" y="315" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="700" fill="#22C55E" letter-spacing="1">LAYER 3: ISOLATION FOREST</text>
+
+  <!-- ── RULE-BASED COLUMN ── -->
+  <rect x="100" y="324" width="420" height="390" rx="10" fill="#13082A" stroke="#7C3AED" stroke-width="1.5"/>
+
+  <!-- Rule sub-sections -->
+  <rect x="120" y="340" width="380" height="68" rx="6" fill="#1E0D45" stroke="#6D28D9" stroke-width="1"/>
+  <text x="140" y="362" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#C4B5FD">SQL Injection  (weight 1.5 — HIGH)</text>
+  <text x="140" y="380" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7C3AED">UNION SELECT · OR 1=1 · DROP TABLE</text>
+  <text x="140" y="396" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">SELECT/INSERT/DELETE/UPDATE · sp_executesql · exec()</text>
+
+  <rect x="120" y="418" width="380" height="60" rx="6" fill="#1E0D45" stroke="#6D28D9" stroke-width="1"/>
+  <text x="140" y="440" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#C4B5FD">Command Injection  (weight 1.5 — HIGH)</text>
+  <text x="140" y="458" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7C3AED">; bash · | sh · &amp;&amp; · $() · ` ` · ${}</text>
+  <text x="140" y="472" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">wget · curl · python · perl · nc · telnet</text>
+
+  <rect x="120" y="488" width="380" height="60" rx="6" fill="#1E0D45" stroke="#6D28D9" stroke-width="1"/>
+  <text x="140" y="510" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#C4B5FD">Path Traversal  (weight 0.8 — MED)</text>
+  <text x="140" y="528" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7C3AED">../ · %2e%2e/ · ..\ · %5c%2e%2e</text>
+  <text x="140" y="542" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">URL-decoded before matching</text>
+
+  <rect x="120" y="558" width="380" height="60" rx="6" fill="#1E0D45" stroke="#6D28D9" stroke-width="1"/>
+  <text x="140" y="580" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#C4B5FD">XSS  (weight 0.6 — CONSERVATIVE)</text>
+  <text x="140" y="598" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7C3AED">&lt;script&gt; · javascript: · onerror= · alert()</text>
+  <text x="140" y="612" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">High false-positive risk — needs corroboration</text>
+
+  <!-- Rule output box -->
+  <rect x="120" y="630" width="380" height="68" rx="6" fill="#0C0620" stroke="#4B1D96" stroke-width="1"/>
+  <text x="310" y="652" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#A78BFA">Rule Output</text>
+  <text x="140" y="671" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">is_attack: bool · attack_types: []</text>
+  <text x="140" y="688" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7C3AED">confidence = max_weight + bonus (max 0.2)</text>
+
+  <!-- ── TRANSFORMER COLUMN ── -->
+  <rect x="590" y="324" width="420" height="390" rx="10" fill="#050D1A" stroke="#3B82F6" stroke-width="1.5"/>
+
+  <rect x="610" y="340" width="380" height="68" rx="6" fill="#0A1628" stroke="#1D4ED8" stroke-width="1"/>
+  <text x="800" y="360" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#93C5FD">Vocabulary Lookup</text>
+  <text x="800" y="379" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">normalize(log) → template string</text>
+  <text x="800" y="397" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">template_vocab.json  vocab_size ~ 10k+  PAD = vocab_size</text>
+
+  <rect x="610" y="418" width="380" height="100" rx="6" fill="#0A1628" stroke="#1D4ED8" stroke-width="1"/>
+  <text x="800" y="440" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#93C5FD">TemplateTransformer</text>
+  <text x="800" y="458" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">Embedding(vocab) → d_model=256</text>
+  <text x="800" y="476" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">Learnable positional encoding (max 512)</text>
+  <text x="800" y="494" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">TransformerEncoder: n_layers=4  n_heads=8  ffn=1024</text>
+  <text x="800" y="510" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">GELU  dropout=0.1  causal mask  LayerNorm  Linear→logits</text>
+
+  <rect x="610" y="528" width="380" height="80" rx="6" fill="#0A1628" stroke="#1D4ED8" stroke-width="1"/>
+  <text x="800" y="550" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#93C5FD">NLL Scoring (next-token prediction)</text>
+  <text x="800" y="569" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">session window = last 20 templates</text>
+  <text x="800" y="587" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">score = mean NLL over non-PAD positions</text>
+  <text x="800" y="600" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Suppressed if unknown-template ratio &gt; 50%</text>
+
+  <!-- Transformer output box -->
+  <rect x="610" y="620" width="380" height="78" rx="6" fill="#050C1A" stroke="#1E40AF" stroke-width="1"/>
+  <text x="800" y="643" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#60A5FA">Transformer Output</text>
+  <text x="800" y="662" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">score: float (NLL)  ·  is_anomaly: score &gt; threshold</text>
+  <text x="800" y="681" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#3B82F6">optimal_threshold from model_config.json (≈6.5)</text>
+  <text x="800" y="693" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">weight in ensemble: 0.7</text>
+
+  <!-- ── ISOLATION FOREST COLUMN ── -->
+  <rect x="1080" y="324" width="420" height="390" rx="10" fill="#041A0A" stroke="#22C55E" stroke-width="1.5"/>
+
+  <rect x="1100" y="340" width="380" height="88" rx="6" fill="#061A0C" stroke="#15803D" stroke-width="1"/>
+  <text x="1290" y="362" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#86EFAC">Feature Extraction  (11 features)</text>
+  <text x="1110" y="382" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">session.request_count  ·  session.error_rate</text>
+  <text x="1110" y="398" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">session.unique_paths  ·  session.error_count</text>
+  <text x="1110" y="414" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">is_GET  ·  is_POST  ·  is_error(status≥400)</text>
+  <text x="1110" y="424" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#64748B">path_length  ·  path_depth  ·  has_query  ·  hour</text>
+
+  <rect x="1100" y="438" width="380" height="80" rx="6" fill="#061A0C" stroke="#15803D" stroke-width="1"/>
+  <text x="1290" y="460" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#86EFAC">IsolationForest (sklearn)</text>
+  <text x="1110" y="480" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">Fits on normal baseline traffic</text>
+  <text x="1110" y="498" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">predict(features) → {-1: anomaly, 1: normal}</text>
+  <text x="1110" y="512" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">isolation_forest.pkl  ·  n_estimators per config</text>
+
+  <rect x="1100" y="528" width="380" height="60" rx="6" fill="#061A0C" stroke="#15803D" stroke-width="1"/>
+  <text x="1290" y="550" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#86EFAC">Score Calibration</text>
+  <text x="1110" y="570" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">raw = -score_samples(features)[0]</text>
+  <text x="1110" y="582" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">calibrator.py · EnsembleCalibrator</text>
+
+  <!-- IF output box -->
+  <rect x="1100" y="600" width="380" height="98" rx="6" fill="#031008" stroke="#166534" stroke-width="1"/>
+  <text x="1290" y="622" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#4ADE80">Isolation Forest Output</text>
+  <text x="1110" y="642" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">is_anomaly: int (0 or 1)</text>
+  <text x="1110" y="660" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#475569">score: float (calibrated)</text>
+  <text x="1110" y="679" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">weight in ensemble: 0.6</text>
+  <text x="1110" y="692" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">Isolation Forest scores aligned with IF threshold</text>
+
+  <!-- ── ARROWS DOWN from each output to ensemble ── -->
+  <line x1="310" y1="700" x2="310" y2="730" stroke="#7C3AED" stroke-width="1.5" marker-end="url(#a-v)"/>
+  <line x1="800" y1="700" x2="800" y2="730" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#a-b)"/>
+  <line x1="1290" y1="700" x2="1290" y2="730" stroke="#22C55E" stroke-width="1.5" marker-end="url(#a-g)"/>
+
+  <!-- ENSEMBLE BOX -->
+  <rect x="180" y="732" width="1240" height="90" rx="10" fill="#150A2A" stroke="#EF4444" stroke-width="2"/>
+  <text x="800" y="758" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="700" fill="#FCA5A5">Weighted Ensemble Fusion</text>
+  <text x="800" y="778" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" fill="#475569">ensemble_score = (rule_vote × rule_confidence + iso_vote × 0.6 + transformer_vote × 0.7) / total_weight</text>
+  <text x="800" y="796" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#EF4444">is_anomaly = ensemble_score &gt; 0.5  ·  Rule-based is authoritative for known attacks (bypasses soft threshold)</text>
+  <text x="800" y="812" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#334155">EnsembleCalibrator · calibration_threshold per-project (bootstrap 0.5 → fitted from clean normal reservoir)</text>
+
+  <!-- ENSEMBLE arrow to OUTPUT -->
+  <line x1="800" y1="824" x2="800" y2="845" stroke="#EF4444" stroke-width="2" marker-end="url(#a-r)"/>
+
+  <!-- OUTPUT BOX -->
+  <rect x="480" y="848" width="640" height="40" rx="8" fill="#1A0505" stroke="#EF4444" stroke-width="1.5"/>
+  <text x="800" y="863" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#F87171">Output: { is_anomaly, anomaly_score, rule_based, isolation_forest, transformer, ensemble, log_data }</text>
+  <text x="800" y="880" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#475569">Returned to Backend · Written to Elasticsearch logguard-logs · Broadcast via WebSocket</text>
+
+  <!-- ── FOOTER ── -->
+  <line x1="60" y1="895" x2="1540" y2="895" stroke="#1E293B" stroke-width="1"/>
+</svg>
