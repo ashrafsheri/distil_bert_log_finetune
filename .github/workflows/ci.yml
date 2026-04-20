@@ -17,6 +17,9 @@ permissions:
 env:
   GHCR_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
+# Touching this workflow intentionally forces all three service images to rebuild,
+# because each paths-filter includes `.github/workflows/ci.yml`.
+
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
   # Detect which service directories changed so we only build what's needed.
