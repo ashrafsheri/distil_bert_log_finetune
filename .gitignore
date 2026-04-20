@@ -69,6 +69,10 @@ backend/serviceAccountKey.json
 .vscode/
 .idea/
 .claude/settings.local.json
+.claude/worktrees/
+.codex-ci-311/
+.coverage
+coverage.xml
 
 # --------------------
 # Secrets / Keys
