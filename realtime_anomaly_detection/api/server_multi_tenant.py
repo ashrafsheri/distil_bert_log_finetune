@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Any
 from datetime import datetime
+import math
 import logging
 
 # Add parent directory to path
@@ -216,6 +217,36 @@ update_scheduler: Optional[TeacherUpdateScheduler] = None
 # DEPENDENCIES
 # ============================================================================
 
+def _sanitize_json_payload(value: Any) -> Any:
+    """
+    Recursively sanitize payloads before JSON serialization.
+
+    FastAPI/Starlette JSON responses reject NaN/Inf values. Detector outputs can
+    occasionally include those for scores/thresholds during warmup or degraded
+    paths, so convert any non-finite float to None for safe transport.
+    """
+    if isinstance(value, dict):
+        return {str(key): _sanitize_json_payload(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_json_payload(item) for item in value]
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if hasattr(value, "item") and callable(getattr(value, "item")):
+        try:
+            return _sanitize_json_payload(value.item())
+        except Exception:
+            return value
+    return value
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Return a finite float suitable for typed response fields."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    return numeric if math.isfinite(numeric) else default
+
 def get_project_from_api_key(
     api_key: Optional[str] = Header(None, alias="X-API-Key")
 ) -> str:
@@ -417,7 +448,7 @@ async def health_check():
 @app.get("/metrics", response_model=Dict[str, Any])
 async def metrics():
     """Lightweight runtime metrics for the detector service."""
-    return runtime_metrics.snapshot()
+    return _sanitize_json_payload(runtime_metrics.snapshot())
 
 
 @app.get("/metrics/detailed", response_model=Dict[str, Any])
@@ -457,7 +488,7 @@ async def metrics_detailed(
         "enabled": detector.online_update_enabled,
         "interval": detector.online_update_interval,
     }
-    return base
+    return _sanitize_json_payload(base)
 
 
 # ============================================================================
@@ -555,12 +586,13 @@ async def register_project_internal(request: InternalProjectRequest):
     if detector is None:
         raise HTTPException(status_code=503, detail=ERROR_DETECTOR_NOT_INITIALIZED)
 
-    return detector.ensure_project(
+    status = detector.ensure_project(
         project_id=request.project_id,
         project_name=request.project_name,
         warmup_threshold=request.warmup_threshold,
         metadata={**(request.metadata or {}), "traffic_profile": request.traffic_profile or "standard"},
     )
+    return _sanitize_json_payload(status)
 
 
 @app.post("/internal/projects/ingest-stats")
@@ -584,7 +616,7 @@ async def record_project_ingest_stats_internal(request: ProjectIngestStatsReques
     )
     if status is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return status
+    return _sanitize_json_payload(status)
 
 
 @app.get("/internal/projects/{project_id}/status")
@@ -596,7 +628,7 @@ async def get_project_status_internal(project_id: str):
     status = detector.get_project_status(project_id)
     if status is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return status
+    return _sanitize_json_payload(status)
 
 
 # ============================================================================
@@ -621,7 +653,7 @@ async def get_project_status(
         phase=status['phase'],
         log_count=status['log_count'],
         warmup_threshold=status['warmup_threshold'],
-        warmup_progress=status['warmup_progress'],
+        warmup_progress=_safe_float(status.get('warmup_progress', 0.0), 0.0),
         has_student_model=status['has_student_model'],
         traffic_profile=status.get('traffic_profile', 'standard'),
         low_sample_calibration=status.get('low_sample_calibration', False),
@@ -666,24 +698,27 @@ async def detect_single(
         
         if 'error' in result:
             raise HTTPException(status_code=400, detail=result['error'])
-        
-        return DetectionResponse(
-            is_anomaly=result['is_anomaly'],
-            anomaly_score=result['anomaly_score'],
-            model_type=result.get('using_model', 'unknown'),
-            phase=result['phase'],
-            project_id=result['project_id'],
-            project_name=result['project_name'],
-            log_count=result['log_count'],
-            warmup_progress=result['warmup_progress'],
-            timestamp=datetime.now().isoformat(),
-            details={
+
+        details = _sanitize_json_payload(
+            {
                 'rule_based': result.get('rule_based', {}),
                 'isolation_forest': result.get('isolation_forest', {}),
                 'transformer': result.get('transformer', {}),
                 'ensemble': result.get('ensemble', {}),
                 'log_data': result.get('log_data', {})
             }
+        )
+        return DetectionResponse(
+            is_anomaly=result['is_anomaly'],
+            anomaly_score=_safe_float(result.get('anomaly_score'), 0.0),
+            model_type=result.get('using_model', 'unknown'),
+            phase=result['phase'],
+            project_id=result['project_id'],
+            project_name=result['project_name'],
+            log_count=result['log_count'],
+            warmup_progress=_safe_float(result.get('warmup_progress', 0.0), 0.0),
+            timestamp=datetime.now().isoformat(),
+            details=details
         )
         
     except HTTPException:
@@ -733,23 +768,26 @@ async def detect_batch(
             )
             
             if 'error' not in result:
-                results.append(DetectionResponse(
-                    is_anomaly=result['is_anomaly'],
-                    anomaly_score=result['anomaly_score'],
-                    model_type=result.get('using_model', 'unknown'),
-                    phase=result['phase'],
-                    project_id=result['project_id'],
-                    project_name=result['project_name'],
-                    log_count=result['log_count'],
-                    warmup_progress=result['warmup_progress'],
-                    timestamp=datetime.now().isoformat(),
-                    details={
+                details = _sanitize_json_payload(
+                    {
                         'rule_based': result.get('rule_based', {}),
                         'isolation_forest': result.get('isolation_forest', {}),
                         'transformer': result.get('transformer', {}),
                         'ensemble': result.get('ensemble', {}),
                         'log_data': result.get('log_data', {})
                     }
+                )
+                results.append(DetectionResponse(
+                    is_anomaly=result['is_anomaly'],
+                    anomaly_score=_safe_float(result.get('anomaly_score'), 0.0),
+                    model_type=result.get('using_model', 'unknown'),
+                    phase=result['phase'],
+                    project_id=result['project_id'],
+                    project_name=result['project_name'],
+                    log_count=result['log_count'],
+                    warmup_progress=_safe_float(result.get('warmup_progress', 0.0), 0.0),
+                    timestamp=datetime.now().isoformat(),
+                    details=details
                 ))
                 
                 if result['is_anomaly']:
@@ -791,15 +829,15 @@ async def detect_structured(request: StructuredLogRequest):
 
     return DetectionResponse(
         is_anomaly=result['is_anomaly'],
-        anomaly_score=result['anomaly_score'],
+        anomaly_score=_safe_float(result.get('anomaly_score'), 0.0),
         model_type=result.get('using_model', 'teacher'),
         phase=result['phase'],
         project_id=result['project_id'],
         project_name=result['project_name'],
         log_count=result['log_count'],
-        warmup_progress=result['warmup_progress'],
+        warmup_progress=_safe_float(result.get('warmup_progress', 0.0), 0.0),
         timestamp=datetime.now().isoformat(),
-        details=result,
+        details=_sanitize_json_payload(result),
     )
 
 
@@ -875,15 +913,15 @@ async def detect_batch_structured(request: StructuredBatchLogRequest):
         results.append(
             DetectionResponse(
                 is_anomaly=result['is_anomaly'],
-                anomaly_score=result['anomaly_score'],
+                anomaly_score=_safe_float(result.get('anomaly_score'), 0.0),
                 model_type=result.get('using_model', 'teacher'),
                 phase=result['phase'],
                 project_id=result['project_id'],
                 project_name=result['project_name'],
                 log_count=result['log_count'],
-                warmup_progress=result['warmup_progress'],
+                warmup_progress=_safe_float(result.get('warmup_progress', 0.0), 0.0),
                 timestamp=datetime.now().isoformat(),
-                details=result,
+                details=_sanitize_json_payload(result),
             )
         )
         if result['is_anomaly']:

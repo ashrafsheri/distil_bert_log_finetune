@@ -106,7 +106,7 @@ class LogService:
 
             writer.writerow([
                 log.get('timestamp', ''),
-                log.get('ip_address', ''),
+                log.get('ip_address') or '',
                 log.get('api_accessed', ''),
                 log.get('status_code', ''),
                 log.get('infected', False),
@@ -287,6 +287,24 @@ class LogService:
     @staticmethod
     def build_session_key_hash(session_key: str) -> str:
         return hashlib.sha256(session_key.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def normalize_ip_for_storage(raw_ip: Any) -> Optional[str]:
+        """
+        Return a valid IP literal for Elasticsearch `ip` mapping, else None.
+
+        Elasticsearch rejects empty strings for `ip` fields, but accepts null.
+        """
+        if raw_ip is None:
+            return None
+        candidate = str(raw_ip).strip()
+        if not candidate:
+            return None
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            return None
 
     @staticmethod
     def should_skip_detection(parsed_log: Dict[str, Any]) -> tuple[bool, Optional[str]]:
@@ -721,14 +739,14 @@ class LogService:
         Returns:
             Formatted log dict for Elasticsearch
         """
-        ip_address = parsed_log["ip_address"]
+        ip_address = LogService.normalize_ip_for_storage(parsed_log.get("ip_address"))
         final_decision = anomaly_result.get("final_decision")
         infected_status = final_decision == "threat_detected"
         if final_decision is None:
             infected_status = anomaly_result.get("is_anomaly", False)
 
         # Override infected status if IP is in the IP table
-        if ip_address in ip_status_map:
+        if ip_address and ip_address in ip_status_map:
             infected_status = ip_status_map[ip_address]
             logger.debug(f"Overriding infected status for IP {ip_address} to {infected_status} based on IP table")
 
@@ -804,7 +822,7 @@ class LogService:
             "timestamp": event_time,
             "event_time": event_time,
             "ingest_time": datetime.now(timezone.utc).isoformat(),
-            "ip_address": "",
+            "ip_address": None,
             "api_accessed": "",
             "status_code": 0,
             "infected": False,
@@ -863,7 +881,7 @@ class LogService:
             "timestamp": log.get("timestamp", ""),
             "eventTime": log.get("event_time") or log.get("timestamp", ""),
             "ingestTime": log.get("ingest_time") or log.get("created_at", ""),
-            "ipAddress": log.get("ip_address", ""),
+            "ipAddress": log.get("ip_address") or "",
             "apiAccessed": log.get("api_accessed", ""),
             "statusCode": log.get("status_code", 0),
             "infected": log.get("infected", False),
@@ -950,7 +968,7 @@ class LogService:
                                 f"Incident: {incident_id}",
                                 f"Type: {incident_log.get('incident_type', 'anomaly')}",
                                 f"Template: {incident_log.get('normalized_template', '')}",
-                                f"IP: {incident_log.get('ip_address', '')}",
+                                f"IP: {incident_log.get('ip_address') or ''}",
                                 f"API: {incident_log.get('api_accessed', '')}",
                                 f"Status: {incident_log.get('status_code', '')}",
                                 f"Score: {incident_log.get('anomaly_score', '')}",
@@ -962,7 +980,7 @@ class LogService:
                             "",
                             "First incident example:",
                             f"Time: {example.get('timestamp', '')}",
-                            f"IP: {example.get('ip_address', '')}",
+                            f"IP: {example.get('ip_address') or ''}",
                             f"API: {example.get('api_accessed', '')}",
                             f"Status: {example.get('status_code', '')}",
                             f"Score: {example.get('anomaly_score', '')}",
