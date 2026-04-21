@@ -10,6 +10,7 @@ import random
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote, urljoin
@@ -56,12 +57,23 @@ def _format_terminal_row(record: ReplayRecord, prefix: str) -> str:
     return f"[{timestamp}] {record.method:<6} {record.path:<40} {prefix}{marker}"
 
 
-def _rebuild_log_line(parsed: Dict[str, object], *, path: str, status: int) -> str:
-    timestamp = parsed["timestamp"].strftime("%d/%b/%Y:%H:%M:%S %z")
+def _rebuild_log_line(
+    parsed: Dict[str, object],
+    *,
+    path: Optional[str] = None,
+    status: Optional[int] = None,
+    timestamp: Optional[datetime] = None,
+) -> str:
+    ts = (timestamp or parsed["timestamp"]).astimezone(timezone.utc)
+    timestamp_str = ts.strftime("%d/%b/%Y:%H:%M:%S %z")
+    method = parsed["method"]
+    protocol = parsed["protocol"]
+    resolved_path = path or str(parsed["path"])
+    resolved_status = int(status if status is not None else parsed["status"])
     size = max(int(parsed.get("size", 0) or 0), 128)
     return (
-        f'{parsed["ip"]} - - [{timestamp}] "{parsed["method"]} {path} {parsed["protocol"]}" '
-        f"{status} {size} \"-\" \"LogGuard Demo/1.0\""
+        f'{parsed["ip"]} - - [{timestamp_str}] "{method} {resolved_path} {protocol}" '
+        f'{resolved_status} {size} "-" "LogGuard Demo/1.0"'
     )
 
 
@@ -82,7 +94,35 @@ def _inject_attack(parsed: Dict[str, object]) -> Tuple[str, str]:
     return _rebuild_log_line(parsed, path=path, status=status), attack_type
 
 
-def load_mixed_records(log_path: Path, attack_ratio: float) -> List[ReplayRecord]:
+def _restamp_records(records: List[ReplayRecord], *, window_seconds: int = 300) -> List[ReplayRecord]:
+    if not records:
+        return []
+
+    now = datetime.now(timezone.utc)
+    span_seconds = max(0, min(window_seconds, len(records) - 1))
+    start = now - timedelta(seconds=span_seconds)
+    step = span_seconds / max(len(records) - 1, 1) if len(records) > 1 else 0.0
+
+    restamped: List[ReplayRecord] = []
+    for index, record in enumerate(records):
+        parsed = parse_apache_log_line(record.raw_log)
+        if parsed is None:
+            restamped.append(record)
+            continue
+        restamped_dt = start + timedelta(seconds=step * index)
+        restamped.append(
+            ReplayRecord(
+                raw_log=_rebuild_log_line(parsed, timestamp=restamped_dt),
+                method=record.method,
+                path=record.path,
+                timestamp_iso=restamped_dt.isoformat(),
+                attack_type=record.attack_type,
+            )
+        )
+    return restamped
+
+
+def load_mixed_records(log_path: Path, attack_ratio: float, *, preserve_timestamps: bool = False) -> List[ReplayRecord]:
     records: List[ReplayRecord] = []
     for line in log_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -106,7 +146,9 @@ def load_mixed_records(log_path: Path, attack_ratio: float) -> List[ReplayRecord
                 attack_type=attack_type,
             )
         )
-    return records
+    if preserve_timestamps:
+        return records
+    return _restamp_records(records)
 
 
 def chunked(records: List[ReplayRecord], batch_size: int) -> Iterable[List[ReplayRecord]]:
@@ -144,6 +186,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=10, help="Logs per POST request")
     parser.add_argument("--rate", type=float, default=0.5, help="Seconds to wait between batches")
     parser.add_argument("--dry-run", action="store_true", help="Print mixed stream without sending")
+    parser.add_argument(
+        "--preserve-timestamps",
+        action="store_true",
+        help="Use the original log timestamps instead of restamping into a recent replay window",
+    )
     parser.add_argument("--seed", type=int, default=None, help="Optional RNG seed")
     return parser.parse_args()
 
@@ -159,7 +206,11 @@ def main() -> None:
         raise SystemExit(1)
 
     send_url = urljoin(args.backend_url.rstrip("/") + "/", "api/v1/logs/agent/send-logs")
-    mixed_records = load_mixed_records(log_path, args.attack_ratio)
+    mixed_records = load_mixed_records(
+        log_path,
+        args.attack_ratio,
+        preserve_timestamps=args.preserve_timestamps,
+    )
 
     total_batches = 0
     injected_attacks = 0
