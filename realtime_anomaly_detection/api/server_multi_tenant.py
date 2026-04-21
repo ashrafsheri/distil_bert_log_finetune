@@ -814,22 +814,64 @@ async def detect_batch_structured(request: StructuredBatchLogRequest):
     project_id = request.events[0].project_id if request.events else ""
 
     for event in request.events:
-        result = detector.detect_structured(
-            project_id=event.project_id,
-            project_name=event.project_name,
-            warmup_threshold=event.warmup_threshold,
-            session_key=event.session_key,
-            event_time=event.event_time,
-            normalized_event=event.normalized_event,
-            raw_log=event.raw_log,
-            parsed_fields=event.parsed_fields,
-            traffic_class=event.traffic_class,
-            flags=event.flags,
-            metadata=event.metadata,
-        )
+        try:
+            result = detector.detect_structured(
+                project_id=event.project_id,
+                project_name=event.project_name,
+                warmup_threshold=event.warmup_threshold,
+                session_key=event.session_key,
+                event_time=event.event_time,
+                normalized_event=event.normalized_event,
+                raw_log=event.raw_log,
+                parsed_fields=event.parsed_fields,
+                traffic_class=event.traffic_class,
+                flags=event.flags,
+                metadata=event.metadata,
+            )
+        except Exception as e:
+            logger.exception("Structured detection raised for project %s", event.project_id)
+            result = {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "using_model": "teacher",
+                "phase": "failed",
+                "project_id": event.project_id,
+                "project_name": event.project_name,
+                "log_count": 0,
+                "warmup_progress": 0.0,
+                "model_version": getattr(detector, "model_version", "multi-tenant-v1"),
+                "feature_schema_version": getattr(detector, "feature_schema_version", "access-log-v2"),
+                "component_status": {},
+                "decision_reason": "detector_exception",
+                "final_decision": "detection_failed",
+                "traffic_class": event.traffic_class or "user_traffic",
+                "baseline_eligible": False,
+                "details": {},
+                "detection_status": "failed",
+                "detection_error": str(e)[:200],
+            }
         if 'error' in result:
             logger.warning("Structured detection failed for project %s: %s", event.project_id, result['error'])
-            continue
+            result = {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "using_model": "teacher",
+                "phase": "failed",
+                "project_id": event.project_id,
+                "project_name": event.project_name,
+                "log_count": 0,
+                "warmup_progress": 0.0,
+                "model_version": getattr(detector, "model_version", "multi-tenant-v1"),
+                "feature_schema_version": getattr(detector, "feature_schema_version", "access-log-v2"),
+                "component_status": {},
+                "decision_reason": "detector_error",
+                "final_decision": "detection_failed",
+                "traffic_class": event.traffic_class or "user_traffic",
+                "baseline_eligible": False,
+                "details": {},
+                "detection_status": "failed",
+                "detection_error": result['error'],
+            }
         results.append(
             DetectionResponse(
                 is_anomaly=result['is_anomaly'],

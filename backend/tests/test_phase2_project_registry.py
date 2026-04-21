@@ -580,3 +580,73 @@ def test_teacher_escalation_remaps_entire_session_sequence(tmp_path: Path) -> No
     assert list(session["normalized_templates"]) == ["/api/users", "/api/orders"]
     assert detector.students[project_id].sequences[-1] == [101, 102]
     assert detector.teacher.sequences[-1] == [1, 2]
+
+
+def test_student_detection_failure_falls_back_to_teacher(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    import numpy as np
+
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+    from models.project_manager import ProjectPhase
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+        window_size=20,
+    )
+    project_id, _api_key = detector.create_project("Student Fallback", warmup_threshold=1000)
+    project = detector.project_manager.get_project(project_id)
+    assert project is not None
+    project.phase = ProjectPhase.ACTIVE.value
+
+    class ExplodingStudent:
+        def get_template_id(self, normalized_template: str) -> int:
+            return 101
+
+        def detect(self, *args, **kwargs):
+            raise RuntimeError("student exploded")
+
+    class FakeTeacher:
+        def __init__(self) -> None:
+            self.sequences = []
+
+        def get_template_id(self, normalized_template: str) -> int:
+            return 1
+
+        def detect(self, log_data, sequence, session_stats, features, known_template_mask=None):
+            self.sequences.append(list(sequence))
+            return {
+                "is_anomaly": False,
+                "anomaly_score": 0.0,
+                "ensemble": {"active_models": 2},
+                "transformer": {"status": "active", "score": 0.2, "threshold": 1.0},
+                "isolation_forest": {"status": "active", "is_anomaly": 0, "score": 0.1, "threshold": 1.0},
+                "rule_based": {"is_attack": False, "confidence": 0.0},
+                "unknown_template_ratio": 0.0,
+            }
+
+    detector.students[project_id] = ExplodingStudent()
+    detector.teacher = FakeTeacher()
+
+    features = np.zeros(11, dtype=float)
+    session, session_stats = detector._get_or_create_session(
+        project_id,
+        "sess-fallback",
+        {"path": "/api/users", "status": 200},
+    )
+
+    result = detector._detect_with_student(
+        project_id,
+        {"path": "/api/users", "status": 200},
+        "/api/users",
+        session,
+        session_stats,
+        features,
+    )
+
+    assert result["using_model"] == "teacher_fallback"
+    assert result["escalated_to_teacher"] is True
+    assert result["student_error"] == "student exploded"
+    assert detector.teacher.sequences == [[1]]

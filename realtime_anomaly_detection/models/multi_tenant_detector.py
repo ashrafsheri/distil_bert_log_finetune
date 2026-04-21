@@ -1613,13 +1613,32 @@ class MultiTenantDetector:
 
         # Perform student detection
         student._ablation_mode = getattr(self, '_ablation_mode', 'none')
-        result = student.detect(
-            log_data,
-            sequence,
-            session_stats,
-            features,
-            known_template_mask=known_template_mask,
-        )
+        try:
+            result = student.detect(
+                log_data,
+                sequence,
+                session_stats,
+                features,
+                known_template_mask=known_template_mask,
+            )
+        except Exception as e:
+            logger.warning("Student detection failed for %s; falling back to teacher: %s", project_id[:8], e)
+            runtime_metrics.increment("student_detection_failures_total")
+            teacher_sequence = self._map_session_templates(session, self.teacher.get_template_id)
+            self.teacher._ablation_mode = getattr(self, '_ablation_mode', 'none')
+            teacher_result = self.teacher.detect(
+                log_data,
+                teacher_sequence,
+                session_stats,
+                features,
+                known_template_mask=known_template_mask,
+            )
+            teacher_result['using_model'] = 'teacher_fallback'
+            teacher_result['student_error'] = str(e)[:160]
+            teacher_result['escalated_to_teacher'] = True
+            teacher_result['log_data'] = log_data
+            teacher_result['model_version'] = self.model_version
+            return teacher_result
         result['using_model'] = 'student'
         result['escalated_to_teacher'] = False
         result['log_data'] = log_data
