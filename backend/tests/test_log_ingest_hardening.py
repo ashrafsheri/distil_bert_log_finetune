@@ -39,17 +39,25 @@ def test_extract_log_candidates_rejects_arbitrary_json_records() -> None:
     assert candidates[0]["extraction_error"] == "unsupported_record_format"
 
 
-def test_build_session_key_prefers_authenticated_identity_then_ip_then_hash() -> None:
+def test_build_session_key_prefers_authenticated_identity_then_ip_then_coarse_identity_then_hash() -> None:
     parsed_with_auth = {"auth_user": "alice", "ip_address": "198.51.100.10"}
     parsed_with_ip_only = {"auth_user": "", "ip_address": "198.51.100.11"}
     parsed_without_identity = {"auth_user": "", "ip_address": ""}
+    parsed_without_identity_or_source = {"auth_user": "", "ip_address": "", "user_agent": "-"}
 
     auth_key = LogService.build_session_key("project-1", parsed_with_auth, {"session_id": "ignored"})
     ip_key = LogService.build_session_key("project-1", parsed_with_ip_only, {"source": "edge"})
-    hash_key = LogService.build_session_key("project-1", parsed_without_identity, {"source": "edge", "tag": "a"})
+    coarse_key = LogService.build_session_key(
+        "project-1",
+        parsed_without_identity,
+        {"source": "edge", "tag": "a"},
+    )
+    hash_key = LogService.build_session_key("project-1", parsed_without_identity_or_source, None)
 
     assert auth_key == "project-1:alice"
     assert ip_key == "project-1:198.51.100.11"
+    assert coarse_key.startswith("project-1:coarse-")
+    assert len(coarse_key.split(":", maxsplit=1)[1]) == len("coarse-") + 24
     assert hash_key.startswith("project-1:")
     assert len(hash_key.split(":", maxsplit=1)[1]) == 64
 

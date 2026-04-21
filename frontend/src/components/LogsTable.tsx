@@ -74,6 +74,9 @@ const getDecisionBadge = (decisionState: DecisionState) => {
   };
 };
 
+const isTransformerLowSignalStatus = (status?: string): boolean =>
+  status === 'insufficient_signal' || status === 'insufficient_context';
+
 const getTransformerBadge = (
   transformer: LogEntry['anomaly_details'] extends undefined ? never : NonNullable<LogEntry['anomaly_details']>['transformer'],
   options?: { isWarmupTeacher?: boolean }
@@ -84,9 +87,15 @@ const getTransformerBadge = (
       className: 'bg-vt-accent/20 text-vt-accent border border-vt-accent/30',
     };
   }
-  if (transformer?.status === 'insufficient_signal') {
+  if (isTransformerLowSignalStatus(transformer?.status)) {
     return {
       label: 'Low Signal',
+      className: 'bg-vt-warning/20 text-vt-warning border border-vt-warning/30',
+    };
+  }
+  if (transformer?.status === 'novel_penalty') {
+    return {
+      label: 'Novel Route',
       className: 'bg-vt-warning/20 text-vt-warning border border-vt-warning/30',
     };
   }
@@ -434,8 +443,9 @@ const LogsTable: React.FC<LogsTableProps> = ({
               const isWarmupTeacher = log.detectorPhase === 'warmup' && log.modelType === 'teacher';
               const transformerBadge = getTransformerBadge(transformer, { isWarmupTeacher });
               const unknownTemplateRatio = log.unknownTemplateRatio;
-              const transformerSuppressed = transformer?.status === 'insufficient_signal';
+              const transformerSuppressed = isTransformerLowSignalStatus(transformer?.status);
               const transformerErrored = transformer?.status === 'error';
+              const transformerNovelPenalty = transformer?.status === 'novel_penalty';
               const transformerScoreText = transformerSuppressed
                 ? 'Suppressed'
                 : transformerErrored
@@ -784,6 +794,11 @@ const LogsTable: React.FC<LogsTableProps> = ({
                                   {transformerSuppressed && (
                                     <div className="rounded-lg border border-vt-warning/30 bg-vt-warning/10 px-3 py-2 text-xs text-vt-warning">
                                       Sequence is dominated by unseen templates. The transformer output is being suppressed because it is not reliable for this event yet.
+                                    </div>
+                                  )}
+                                  {transformerNovelPenalty && (
+                                    <div className="rounded-lg border border-vt-warning/30 bg-vt-warning/10 px-3 py-2 text-xs text-vt-warning">
+                                      This score is a novelty penalty for unseen routes, not a direct malicious NLL score.
                                     </div>
                                   )}
                                   {transformerErrored && (
