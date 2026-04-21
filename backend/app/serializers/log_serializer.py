@@ -30,7 +30,7 @@ class LogSerializer:
                 timestamp=log_data.get("timestamp", ""),
                 eventTime=log_data.get("event_time") or log_data.get("timestamp"),
                 ingestTime=log_data.get("ingest_time") or log_data.get("created_at"),
-                ipAddress=log_data.get("ip_address", ""),
+                ipAddress=log_data.get("ip_address") or "",
                 apiAccessed=log_data.get("api_accessed", ""),
                 statusCode=log_data.get("status_code", 0),
                 infected=log_data.get("infected", False),
