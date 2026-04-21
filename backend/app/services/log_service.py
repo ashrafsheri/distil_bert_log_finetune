@@ -232,6 +232,67 @@ class LogService:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @staticmethod
+    def _clean_identity_value(value: Any) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        if cleaned.lower() in {"-", "null", "none", "unknown", "n/a"}:
+            return None
+        return cleaned
+
+    @staticmethod
+    def _extract_coarse_identity_value(parsed_log: Dict[str, Any], source_record: Any) -> Optional[str]:
+        """
+        Build a coarse but stable identity when logs have no explicit user/session/IP.
+
+        This avoids per-log hash fallback (which creates one-event sessions and yields
+        constant transformer outputs with insufficient sequence context).
+        """
+        candidates: List[str] = []
+
+        user_agent = LogService._clean_identity_value(parsed_log.get("user_agent"))
+        if user_agent:
+            candidates.append(f"ua:{user_agent}")
+
+        source_records: List[Dict[str, Any]] = []
+        if isinstance(source_record, dict):
+            source_records.append(source_record)
+            nested_record = source_record.get("record")
+            if isinstance(nested_record, dict):
+                source_records.append(nested_record)
+
+        source_fields = (
+            "source",
+            "tag",
+            "host",
+            "hostname",
+            "stream",
+            "container_name",
+            "pod_name",
+            "service",
+            "app",
+        )
+        for record in source_records:
+            for field_name in source_fields:
+                value = LogService._clean_identity_value(record.get(field_name))
+                if value:
+                    candidates.append(f"{field_name}:{value}")
+            kubernetes = record.get("kubernetes")
+            if isinstance(kubernetes, dict):
+                for field_name in ("namespace_name", "pod_name", "container_name", "host"):
+                    value = LogService._clean_identity_value(kubernetes.get(field_name))
+                    if value:
+                        candidates.append(f"k8s.{field_name}:{value}")
+
+        if not candidates:
+            return None
+
+        basis = "|".join(sorted(set(candidates)))
+        return f"coarse-{hashlib.sha256(basis.encode('utf-8')).hexdigest()[:24]}"
+
+    @staticmethod
     def _extract_identity_value(parsed_log: Dict[str, Any], source_record: Any) -> Optional[str]:
         parsed_candidates = [
             parsed_log.get("auth_user"),
@@ -239,8 +300,9 @@ class LogService:
             parsed_log.get("user_id"),
         ]
         for value in parsed_candidates:
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+            cleaned = LogService._clean_identity_value(value)
+            if cleaned:
+                return cleaned
 
         candidate_records: List[Dict[str, Any]] = []
         if isinstance(source_record, dict):
@@ -268,12 +330,13 @@ class LogService:
         for candidate_record in candidate_records:
             for field_name in identity_fields:
                 value = candidate_record.get(field_name)
-                if isinstance(value, str) and value.strip():
-                    return value.strip()
+                cleaned = LogService._clean_identity_value(value)
+                if cleaned:
+                    return cleaned
 
-        ip_address = parsed_log.get("ip_address")
-        if isinstance(ip_address, str) and ip_address.strip():
-            return ip_address.strip()
+        ip_address = LogService._clean_identity_value(parsed_log.get("ip_address"))
+        if ip_address:
+            return ip_address
 
         return None
 
@@ -282,6 +345,9 @@ class LogService:
         identity = LogService._extract_identity_value(parsed_log, source_record)
         if identity:
             return f"{project_id}:{identity}"
+        coarse_identity = LogService._extract_coarse_identity_value(parsed_log, source_record)
+        if coarse_identity:
+            return f"{project_id}:{coarse_identity}"
         return f"{project_id}:{LogService._stable_record_hash(source_record)}"
 
     @staticmethod

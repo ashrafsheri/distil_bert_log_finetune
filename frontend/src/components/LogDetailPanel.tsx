@@ -18,6 +18,9 @@ const verdictClass = (isAnomaly: boolean): string =>
     ? 'log-detail-model__badge log-detail-model__badge--anomaly'
     : 'log-detail-model__badge log-detail-model__badge--clean';
 
+const isTransformerLowSignalStatus = (status?: string): boolean =>
+  status === 'insufficient_signal' || status === 'insufficient_context';
+
 const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
   const ruleBased = log.anomaly_details?.rule_based;
   const isolationForest = log.anomaly_details?.isolation_forest;
@@ -27,8 +30,9 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
   const isolationIsAnomaly = isolationForest?.is_anomaly === 1;
   const ruleIsAnomaly = Boolean(ruleBased?.is_attack);
   const isWarmupTeacher = log.detectorPhase === 'warmup' && log.modelType === 'teacher';
-  const transformerSuppressed = transformer?.status === 'insufficient_signal';
+  const transformerSuppressed = isTransformerLowSignalStatus(transformer?.status);
   const transformerErrored = transformer?.status === 'error';
+  const transformerNovelPenalty = transformer?.status === 'novel_penalty';
 
   const transformerFill = transformer?.threshold && typeof transformer.score === 'number'
     ? clampPercent((transformer.score / transformer.threshold) * 100)
@@ -150,6 +154,11 @@ const LogDetailPanel: React.FC<LogDetailPanelProps> = ({ log, onClose }) => {
         {transformerSuppressed && (
           <p className="log-detail-model__note log-detail-model__note--warning">
             Suppressed: sequence dominated by unseen templates.
+          </p>
+        )}
+        {transformerNovelPenalty && (
+          <p className="log-detail-model__note log-detail-model__note--warning">
+            Novel penalty: unseen route patterns raised this score.
           </p>
         )}
         {transformerErrored && (
