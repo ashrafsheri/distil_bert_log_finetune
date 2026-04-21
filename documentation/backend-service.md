@@ -89,9 +89,11 @@ The code supports these project properties:
 
 The backend talks to the anomaly service through `backend/app/services/anomaly_detection_service.py`.
 
-By default it calls:
+Detector base URL resolution priority:
 
-- base URL: `http://anomaly-detection:8001`
+- `ANOMALY_DETECTION_URL` or `ANOMALY_SERVICE_URL` (explicit URL)
+- `ANOMALY_DETECTION_SERVICE_HOST` + `ANOMALY_DETECTION_SERVICE_PORT` (Kubernetes service env vars)
+- fallback: `http://anomaly-detection:8001`
 
 Implemented detector client calls include:
 

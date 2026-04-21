@@ -4,6 +4,7 @@ Communicates with the realtime anomaly detection microservice
 """
 
 import httpx
+import os
 from typing import List, Dict, Optional, Any
 import logging
 
@@ -14,8 +15,33 @@ class AnomalyDetectionService:
     Anomaly Detection Service
     Communicates with the realtime anomaly detection microservice
     """
-    
-    def __init__(self, base_url: str = "http://anomaly-detection:8001"):
+
+    @staticmethod
+    def _resolve_default_base_url() -> str:
+        """
+        Resolve detector base URL from environment.
+
+        Priority:
+        1. ANOMALY_DETECTION_URL / ANOMALY_SERVICE_URL explicit URL
+        2. Kubernetes service env vars (ANOMALY_DETECTION_SERVICE_HOST/PORT)
+        3. Legacy in-cluster DNS service name
+        """
+        explicit = os.getenv("ANOMALY_DETECTION_URL") or os.getenv("ANOMALY_SERVICE_URL")
+        if explicit:
+            return explicit.rstrip("/")
+
+        service_host = os.getenv("ANOMALY_DETECTION_SERVICE_HOST")
+        service_port = (
+            os.getenv("ANOMALY_DETECTION_SERVICE_PORT")
+            or os.getenv("ANOMALY_DETECTION_PORT_8001_TCP_PORT")
+            or "8001"
+        )
+        if service_host:
+            return f"http://{service_host}:{service_port}"
+
+        return "http://anomaly-detection:8001"
+
+    def __init__(self, base_url: Optional[str] = None):
         """
         Initialize anomaly detection service client
         
@@ -25,7 +51,7 @@ class AnomalyDetectionService:
         Returns:
             None
         """
-        self.base_url = base_url
+        self.base_url = (base_url or self._resolve_default_base_url()).rstrip("/")
         self.timeout = 30.0  # 30 second timeout
 
     @staticmethod
