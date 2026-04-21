@@ -19,6 +19,7 @@ env:
 
 # Touching this workflow intentionally forces all three service images to rebuild,
 # because each paths-filter includes `.github/workflows/ci.yml`.
+# Trigger refresh: 2026-04-21
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
