@@ -22,6 +22,9 @@ from typing import Any, Dict, Iterable, List, Optional
 
 MANIFEST_INVALID_MARKERS = ("${",)
 PARAM_RE = re.compile(r"\{([^}]+)\}")
+COLON_PARAM_RE = re.compile(r"(^|/):([A-Za-z_][A-Za-z0-9_]*)")
+ANGLE_PARAM_RE = re.compile(r"<([A-Za-z_][A-Za-z0-9_]*)>")
+ANY_PARAM_RE = re.compile(r":([A-Za-z_][A-Za-z0-9_]*)|\{([A-Za-z_][A-Za-z0-9_]*)\}|<([A-Za-z_][A-Za-z0-9_]*)>")
 QUERY_PATH_RE = re.compile(r"(?i)/(search|filter|query|find|lookup)$")
 
 USER_AGENTS = [
@@ -80,7 +83,7 @@ class ManifestEndpoint:
             return "action"
         if "search" in path or "query" in path or "filter" in path:
             return "search"
-        if PARAM_RE.search(self.path_template):
+        if ANY_PARAM_RE.search(self.path_template):
             return "detail"
         return "list"
 
@@ -98,7 +101,12 @@ def substitute_params(path_template: str) -> str:
             return str(random.randint(1, 50_000))
         return str(random.randint(1, 9_999))
 
-    rendered = PARAM_RE.sub(_replace, path_template)
+    # Normalize common path-parameter syntaxes to {param} first so they all
+    # get concrete values in generated traffic.
+    normalized_template = COLON_PARAM_RE.sub(r"\1{\2}", path_template)
+    normalized_template = ANGLE_PARAM_RE.sub(r"{\1}", normalized_template)
+
+    rendered = PARAM_RE.sub(_replace, normalized_template)
     if QUERY_PATH_RE.search(rendered) and "?" not in rendered and random.random() < 0.7:
         rendered = f"{rendered}?q={random.choice(SEARCH_TERMS)}"
     return rendered
