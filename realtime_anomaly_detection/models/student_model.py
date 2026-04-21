@@ -643,10 +643,32 @@ class StudentModel:
                 
                 if mask.sum() > 0:
                     avg_nll = nll_per_pos[mask].mean().item()
-                    scores.append(avg_nll)
+                    if math.isfinite(avg_nll):
+                        scores.append(float(avg_nll))
+                    else:
+                        logger.warning("Student %s produced non-finite NLL during threshold update; skipping sample", self.project_id[:8])
         
         if scores:
-            self.transformer_threshold = float(np.percentile(scores, 95))
+            candidate_threshold = float(np.percentile(scores, 95))
+            if math.isfinite(candidate_threshold) and candidate_threshold > 0:
+                self.transformer_threshold = candidate_threshold
+            else:
+                logger.warning(
+                    "Student %s produced non-finite threshold candidate (%s); retaining previous threshold=%s",
+                    self.project_id[:8],
+                    candidate_threshold,
+                    self.transformer_threshold,
+                )
+
+    def _safe_transformer_threshold(self) -> float:
+        """Return a finite positive transformer threshold for runtime decisions."""
+        try:
+            threshold = float(self.transformer_threshold)
+        except (TypeError, ValueError):
+            threshold = 6.5
+        if not math.isfinite(threshold) or threshold <= 0:
+            return 6.5
+        return threshold
     
     def _score_transformer_sequence(self, sequence: List[int]) -> Tuple[float, Optional[str]]:
         """Calculate anomaly score from transformer (NLL) with error details."""
@@ -679,6 +701,8 @@ class StudentModel:
         with torch.no_grad():
             try:
                 logits = self.transformer(input_ids, attention_mask)
+                if not torch.isfinite(logits).all():
+                    return 0.0, "non_finite_logits"
                 
                 input_shifted = input_ids[:, 1:]
                 logits_shifted = logits[:, :-1, :]
@@ -689,7 +713,12 @@ class StudentModel:
                 valid_nll = nll_per_pos[mask]
                 
                 if valid_nll.numel() > 0:
-                    return valid_nll.mean().item(), None
+                    if not torch.isfinite(valid_nll).all():
+                        return 0.0, "non_finite_nll"
+                    score = valid_nll.mean().item()
+                    if not math.isfinite(score):
+                        return 0.0, "non_finite_nll_mean"
+                    return float(score), None
                 return 0.0, None
                 
             except Exception as e:
@@ -700,7 +729,7 @@ class StudentModel:
         """Calculate anomaly score from transformer (NLL)."""
         score, error = self._score_transformer_sequence(sequence)
         if error:
-            return self.transformer_threshold
+            return self._safe_transformer_threshold()
         return score
     
     def detect(
@@ -734,6 +763,7 @@ class StudentModel:
         )
         
         # 2. Transformer detection
+        transformer_threshold = self._safe_transformer_threshold()
         if sequence and self.unknown_id is not None:
             protected_mask = list(known_template_mask or [])
             if len(protected_mask) < len(sequence):
@@ -752,7 +782,7 @@ class StudentModel:
         transformer_result = {
             'is_anomaly': 0,
             'score': 0.0,
-            'threshold': float(self.transformer_threshold),
+            'threshold': transformer_threshold,
             'status': 'insufficient_context',
             'sequence_length': len(sequence),
             'context': transformer_context,
@@ -761,13 +791,13 @@ class StudentModel:
             if unknown_template_ratio >= MAX_UNKNOWN_TEMPLATE_RATIO:
                 # High unknown-template ratio signals novel endpoints, NOT necessarily malicious.
                 # Emit novel_score separately; malicious_score stays 0.
-                novel_penalty = unknown_template_ratio * float(self.transformer_threshold)
+                novel_penalty = unknown_template_ratio * transformer_threshold
                 transformer_result = {
                     'is_anomaly': 0,
                     'score': novel_penalty,
                     'novel_score': novel_penalty,
                     'malicious_score': 0.0,
-                    'threshold': float(self.transformer_threshold),
+                    'threshold': transformer_threshold,
                     'status': 'novel_penalty',
                     'sequence_length': len(sequence),
                     'context': transformer_context,
@@ -778,7 +808,7 @@ class StudentModel:
                     transformer_result = {
                         'is_anomaly': 0,
                         'score': None,
-                        'threshold': float(self.transformer_threshold),
+                        'threshold': transformer_threshold,
                         'status': 'error',
                         'error': transformer_error[:160],
                         'sequence_length': len(sequence),
@@ -786,9 +816,9 @@ class StudentModel:
                     }
                 else:
                     transformer_result = {
-                        'is_anomaly': 1 if transformer_score > self.transformer_threshold else 0,
+                        'is_anomaly': 1 if transformer_score > transformer_threshold else 0,
                         'score': float(transformer_score),
-                        'threshold': float(self.transformer_threshold),
+                        'threshold': transformer_threshold,
                         'status': 'active',
                         'sequence_length': len(sequence),
                         'context': transformer_context,
@@ -1041,7 +1071,7 @@ class StudentModel:
             'project_id': self.project_id,
             'vocab_size': self.vocab_size,
             'num_templates': len(self.id_to_template),
-            'transformer_threshold': self.transformer_threshold,
+            'transformer_threshold': self._safe_transformer_threshold(),
             'iso_threshold': self.iso_threshold,
             'logs_processed': self.logs_processed,
             'is_trained': self.is_trained,

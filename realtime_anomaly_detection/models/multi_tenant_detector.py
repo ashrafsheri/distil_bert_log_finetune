@@ -30,6 +30,9 @@ UUID_SEGMENT_RE = re.compile(
     re.IGNORECASE,
 )
 LONG_HEX_SEGMENT_RE = re.compile(r"^[0-9a-f]{16,}$", re.IGNORECASE)
+PATH_COLON_PLACEHOLDER_RE = re.compile(r":([A-Za-z_][A-Za-z0-9_]*)(?:\([^)]*\))?[?+*]?")
+PATH_CURLY_PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+PATH_ANGLE_PLACEHOLDER_RE = re.compile(r"<([A-Za-z_][A-Za-z0-9_]*)>")
 MANIFEST_INVALID_MARKERS = ("${",)
 TRANSPORT_NOISE_PREFIXES = ("/socket.io/",)
 SIGNED_ASSET_PREFIXES = ("/storage/v1/object/sign/",)
@@ -548,25 +551,64 @@ class MultiTenantDetector:
         return None
 
     @staticmethod
+    def _manifest_placeholder_value(name: str) -> str:
+        lowered = (name or "").lower()
+        if "uuid" in lowered:
+            return "123e4567-e89b-12d3-a456-426614174000"
+        if any(token in lowered for token in ("id", "pk", "key", "num", "index", "ref")):
+            return "12345"
+        if any(token in lowered for token in ("slug", "name", "tag", "type", "code")):
+            return "sample-slug"
+        return "value"
+
+    @staticmethod
+    def _materialize_manifest_template(path_template: str) -> str:
+        normalized = path_template if path_template.startswith("/") else f"/{path_template}"
+
+        rendered = PATH_COLON_PLACEHOLDER_RE.sub(
+            lambda match: MultiTenantDetector._manifest_placeholder_value(match.group(1)),
+            normalized,
+        )
+        rendered = PATH_CURLY_PLACEHOLDER_RE.sub(
+            lambda match: MultiTenantDetector._manifest_placeholder_value(match.group(1)),
+            rendered,
+        )
+        rendered = PATH_ANGLE_PLACEHOLDER_RE.sub(
+            lambda match: MultiTenantDetector._manifest_placeholder_value(match.group(1)),
+            rendered,
+        )
+        return rendered
+
+    @staticmethod
+    def _segment_template_to_regex(segment: str) -> str:
+        if segment in {"*", "**"}:
+            return ".*"
+
+        marker = "__LOGGUARD_PARAM__"
+        normalized = PATH_COLON_PLACEHOLDER_RE.sub(marker, segment)
+        normalized = PATH_CURLY_PLACEHOLDER_RE.sub(marker, normalized)
+        normalized = PATH_ANGLE_PLACEHOLDER_RE.sub(marker, normalized)
+        if marker not in normalized:
+            return re.escape(segment)
+        escaped = re.escape(normalized)
+        return escaped.replace(re.escape(marker), r"[^/]+")
+
+    @staticmethod
     def _path_template_to_regex(path_template: str) -> re.Pattern[str]:
         normalized = path_template if path_template.startswith("/") else f"/{path_template}"
         if normalized == "/":
             return re.compile(r"^/$")
 
         pattern_parts: List[str] = []
+        wildcard = False
         for segment in normalized.strip("/").split("/"):
+            segment_pattern = MultiTenantDetector._segment_template_to_regex(segment)
+            pattern_parts.append(segment_pattern)
             if segment in {"*", "**"}:
-                pattern_parts.append(".*")
+                wildcard = True
                 break
-            if (
-                segment.startswith(":")
-                or (segment.startswith("{") and segment.endswith("}"))
-                or (segment.startswith("<") and segment.endswith(">"))
-            ):
-                pattern_parts.append(r"[^/]+")
-            else:
-                pattern_parts.append(re.escape(segment))
-        return re.compile(r"^/" + "/".join(pattern_parts) + r"$")
+        suffix = "" if wildcard else "/?"
+        return re.compile(r"^/" + "/".join(pattern_parts) + suffix + r"$")
 
     def _endpoint_manifest_entries(self, project: ProjectConfig) -> List[Dict[str, Any]]:
         manifest = (project.metadata or {}).get("endpoint_manifest") or {}
@@ -617,9 +659,10 @@ class MultiTenantDetector:
     ) -> str:
         if not manifest_match:
             return self.normalize_template(log_data)
+        rendered_manifest_template = self._materialize_manifest_template(manifest_match["path_template"])
         message = (
             f"{log_data.get('method', 'GET')} "
-            f"{self._canonicalize_path(manifest_match['path_template'])} "
+            f"{self._canonicalize_path(rendered_manifest_template)} "
             f"{log_data.get('protocol', 'HTTP/1.1')} "
             f"{log_data.get('status', 0)}"
         )

@@ -145,6 +145,59 @@ def test_detector_endpoint_manifest_matches_known_routes_and_internal_probes(tmp
     assert probe_match["classification"] == "internal_probe"
 
 
+def test_detector_manifest_colon_placeholders_are_normalized_as_dynamic_segments(tmp_path: Path) -> None:
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    sys.path.insert(0, str(REPO_ROOT / "realtime_anomaly_detection"))
+    from models.multi_tenant_detector import MultiTenantDetector
+
+    detector = MultiTenantDetector(
+        base_model_dir=tmp_path / "artifacts",
+        storage_dir=tmp_path / "runtime",
+    )
+    detector.ensure_project(
+        project_id="proj-colon-template",
+        project_name="Colon Placeholder",
+        warmup_threshold=1000,
+        metadata={
+            "endpoint_manifest": {
+                "service_name": "express-api",
+                "framework": "express",
+                "endpoints": [
+                    {"method": "GET", "path_template": "/products/:id", "classification": "user_traffic", "baseline_eligible": True},
+                    {"method": "GET", "path_template": "/files/:name.:ext", "classification": "user_traffic", "baseline_eligible": True},
+                ],
+            }
+        },
+    )
+    project = detector.project_manager.get_project("proj-colon-template")
+    assert project is not None
+
+    product_match = detector._match_endpoint_manifest(project, "GET", "/products/42")
+    assert product_match is not None
+    assert product_match["path_template"] == "/products/:id"
+
+    product_trailing_match = detector._match_endpoint_manifest(project, "GET", "/products/42/")
+    assert product_trailing_match is not None
+    assert product_trailing_match["path_template"] == "/products/:id"
+
+    file_match = detector._match_endpoint_manifest(project, "GET", "/files/report.pdf")
+    assert file_match is not None
+    assert file_match["path_template"] == "/files/:name.:ext"
+
+    normalized = detector._normalize_template_with_manifest(
+        {
+            "method": "GET",
+            "path": "/products/42",
+            "protocol": "HTTP/1.1",
+            "status": 200,
+        },
+        product_match,
+    )
+    assert ":id" not in normalized
+    assert "/products/<NUM>" in normalized
+
+
 def test_detector_skips_transport_and_signed_asset_paths(tmp_path: Path) -> None:
     pytest = __import__("pytest")
     pytest.importorskip("torch")

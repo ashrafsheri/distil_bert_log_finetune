@@ -8,7 +8,7 @@ import pytest
 # Allow 'from scripts.synthetic_log_generator import ...'
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.synthetic_log_generator import SyntheticLogGenerator, substitute_params
+from scripts.synthetic_log_generator import ManifestEndpoint, SyntheticLogGenerator, substitute_params
 
 APACHE_COMBINED_RE = re.compile(
     r'^\S+ - - \[[^\]]+\] "\S+ \S+ HTTP/1\.\d" \d{3} \d+'
@@ -30,6 +30,11 @@ class TestSubstituteParams:
         assert "{id}" not in result
         assert result.startswith("/api/items/")
 
+    def test_replaces_colon_id_param(self):
+        result = substitute_params("/api/items/:id")
+        assert ":id" not in result
+        assert result.startswith("/api/items/")
+
     def test_replaces_uuid_param(self):
         result = substitute_params("/api/objects/{uuid}")
         assert "{uuid}" not in result
@@ -45,8 +50,23 @@ class TestSubstituteParams:
         assert "{org_id}" not in result
         assert "{id}" not in result
 
+    def test_mixed_param_styles(self):
+        result = substitute_params("/communities/:id/join-requests/{requestId}/<userId>")
+        assert ":id" not in result
+        assert "{requestId}" not in result
+        assert "<userId>" not in result
+
 
 class TestSyntheticLogGenerator:
+    def test_manifest_endpoint_role_treats_colon_placeholders_as_detail(self):
+        endpoint = ManifestEndpoint(
+            method="GET",
+            path_template="/products/:id",
+            classification="user_traffic",
+            weight=1,
+        )
+        assert endpoint.role == "detail"
+
     def test_endpoint_pool_respects_weights(self):
         gen = SyntheticLogGenerator(MINIMAL_MANIFEST)
         # weights: 2+1+3 = 6
