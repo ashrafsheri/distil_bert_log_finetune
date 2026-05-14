@@ -6,7 +6,8 @@ usage() {
 Usage:
   generate_authenticated_attack_traffic.sh \
     --base-url https://api.example.co \
-    --firebase-api-key "$FIREBASE_API_KEY" \
+    --supabase-url https://your-project-ref.supabase.co \
+    --supabase-key "$SUPABASE_SERVICE_ROLE_KEY" \
     --email "$TEST_EMAIL" \
     --password "$TEST_PASSWORD"
 
@@ -29,7 +30,8 @@ require_cmd() {
 }
 
 BASE_URL=""
-FIREBASE_API_KEY=""
+SUPABASE_URL=""
+SUPABASE_KEY=""
 EMAIL=""
 PASSWORD=""
 USER_ID="3"
@@ -43,8 +45,12 @@ while [[ $# -gt 0 ]]; do
       BASE_URL="$2"
       shift 2
       ;;
-    --firebase-api-key)
-      FIREBASE_API_KEY="$2"
+    --supabase-url)
+      SUPABASE_URL="$2"
+      shift 2
+      ;;
+    --supabase-key)
+      SUPABASE_KEY="$2"
       shift 2
       ;;
     --email)
@@ -83,7 +89,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$BASE_URL" || -z "$FIREBASE_API_KEY" || -z "$EMAIL" || -z "$PASSWORD" ]]; then
+if [[ -z "$BASE_URL" || -z "$SUPABASE_URL" || -z "$SUPABASE_KEY" || -z "$EMAIL" || -z "$PASSWORD" ]]; then
   usage >&2
   exit 1
 fi
@@ -96,17 +102,18 @@ if [[ "$INSECURE" -eq 1 ]]; then
   CURL_COMMON+=(-k)
 fi
 
-FIREBASE_URL="https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}"
+SUPABASE_AUTH_URL="${SUPABASE_URL%/}/auth/v1/token?grant_type=password"
 AUTH_RESPONSE="$(
   curl "${CURL_COMMON[@]}" \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"returnSecureToken\":true}" \
-    "$FIREBASE_URL"
+    -H "apikey: ${SUPABASE_KEY}" \
+    -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" \
+    "$SUPABASE_AUTH_URL"
 )"
 
-ID_TOKEN="$(printf '%s' "$AUTH_RESPONSE" | jq -r '.idToken // empty')"
+ID_TOKEN="$(printf '%s' "$AUTH_RESPONSE" | jq -r '.access_token // empty')"
 if [[ -z "$ID_TOKEN" ]]; then
-  echo "Firebase sign-in failed:" >&2
+  echo "Supabase sign-in failed:" >&2
   printf '%s\n' "$AUTH_RESPONSE" >&2
   exit 1
 fi

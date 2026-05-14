@@ -22,7 +22,8 @@ Low-traffic quickstart
 python generate_authenticated_manifest_traffic.py \\
   --manifest manifest.json \\
   --base-url https://api.example.com \\
-  --firebase-api-key YOUR_KEY \\
+  --supabase-url https://your-project-ref.supabase.co \\
+  --supabase-key YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY \\
   --email test@example.com \\
   --password secret \\
   --mode low_traffic \\
@@ -160,6 +161,7 @@ def _http_json(
     method: str = "GET",
     token: str | None = None,
     body: dict[str, Any] | None = None,
+    extra_headers: dict[str, str] | None = None,
     timeout: float = 20.0,
     insecure: bool = False,
     user_agent: str = "logguard-traffic-generator/1.0",
@@ -168,6 +170,8 @@ def _http_json(
         "Accept": "application/json",
         "User-Agent": user_agent,
     }
+    if extra_headers:
+        headers.update(extra_headers)
     data: bytes | None = None
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -191,20 +195,30 @@ def _http_json(
         return exc.code, raw
 
 
-def _sign_in(firebase_api_key: str, email: str, password: str, *, timeout: float, insecure: bool) -> dict[str, Any]:
-    url = (
-        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-        f"?key={parse.quote(firebase_api_key)}"
-    )
+def _sign_in(
+    supabase_url: str,
+    supabase_key: str,
+    email: str,
+    password: str,
+    *,
+    timeout: float,
+    insecure: bool,
+) -> dict[str, Any]:
+    url = f"{supabase_url.rstrip('/')}/auth/v1/token?grant_type=password"
     status, payload = _http_json(
         url,
         method="POST",
-        body={"email": email, "password": password, "returnSecureToken": True},
+        body={"email": email, "password": password},
+        extra_headers={"apikey": supabase_key},
         timeout=timeout,
         insecure=insecure,
     )
-    if status != 200 or not isinstance(payload, dict) or not payload.get("idToken"):
-        raise RuntimeError(f"Firebase sign-in failed with status {status}: {payload}")
+    if status != 200 or not isinstance(payload, dict) or not payload.get("access_token"):
+        hint = (
+            " Check --email/--password and make sure --supabase-url/--supabase-key "
+            "match the Example Project backend SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+        )
+        raise RuntimeError(f"Supabase sign-in failed with status {status}: {payload}.{hint}")
     return payload
 
 
@@ -283,8 +297,10 @@ def _resolve_placeholder(name: str, explicit_params: dict[str, str], discovered:
             return discovered["userid"][0]
         if discovered.get("id"):
             return discovered["id"][0]
-    if normalized in {"firebaseuid", "uid", "localid"}:
-        return str(auth_payload.get("localId") or "")
+    if normalized in {"firebaseuid", "localid"}:
+        return None
+    if normalized in {"supabaseuid", "supabaseuserid", "uid"}:
+        return str(((auth_payload.get("user") or {}).get("id")) or "")
     return None
 
 
@@ -344,10 +360,11 @@ def _bootstrap_discovery(
         discovered.setdefault(key, [])
         if value not in discovered[key]:
             discovered[key].append(value)
-    if auth_payload.get("localId"):
-        discovered.setdefault("firebaseuid", []).append(str(auth_payload["localId"]))
-        discovered.setdefault("uid", []).append(str(auth_payload["localId"]))
-        discovered.setdefault("localid", []).append(str(auth_payload["localId"]))
+    supabase_user_id = str(((auth_payload.get("user") or {}).get("id")) or "").strip()
+    if supabase_user_id:
+        discovered.setdefault("supabaseuid", []).append(supabase_user_id)
+        discovered.setdefault("supabaseuserid", []).append(supabase_user_id)
+        discovered.setdefault("uid", []).append(supabase_user_id)
     return discovered
 
 
@@ -469,9 +486,10 @@ def main() -> int:
     )
     parser.add_argument("--manifest", required=True, help="Path to the manifest JSON file")
     parser.add_argument("--base-url", required=True, help="API base URL, e.g. https://api.example.com")
-    parser.add_argument("--firebase-api-key", required=True, help="Firebase Web API key")
-    parser.add_argument("--email", required=True, help="Firebase user email")
-    parser.add_argument("--password", required=True, help="Firebase user password")
+    parser.add_argument("--supabase-url", required=True, help="Supabase project URL, e.g. https://your-project-ref.supabase.co")
+    parser.add_argument("--supabase-key", required=True, help="Supabase service-role key used for password auth")
+    parser.add_argument("--email", required=True, help="Supabase user email")
+    parser.add_argument("--password", required=True, help="Supabase user password")
 
     # Mode
     parser.add_argument(
@@ -542,10 +560,10 @@ def main() -> int:
         Path(args.params_file).expanduser().resolve() if args.params_file else None,
     )
     auth_payload = _sign_in(
-        args.firebase_api_key, args.email, args.password,
+        args.supabase_url, args.supabase_key, args.email, args.password,
         timeout=args.timeout, insecure=args.insecure,
     )
-    token = str(auth_payload["idToken"])
+    token = str(auth_payload["access_token"])
     discovered = _bootstrap_discovery(
         args.base_url, token, endpoints, explicit_params, auth_payload,
         timeout=args.timeout, insecure=args.insecure,
