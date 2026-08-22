@@ -7,8 +7,9 @@ Tests specific attack patterns against the API to verify detection
 import requests
 import sys
 import time
+import os
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("ATTACK_TEST_BASE_URL", "http://localhost:8000")
 
 def test_sql_injection():
     print("\n🔴 Testing SQL Injection Attacks...")

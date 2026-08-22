@@ -99,7 +99,7 @@
   <!-- Deploy strip -->
   <rect x="325" y="628" width="460" height="50" rx="6" fill="#060A10" stroke="#1E293B" stroke-width="1"/>
   <text x="555" y="649" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#1E3A5F">CI: .github/workflows/ci.yml → ghcr.io/OWNER/backend · K8s: k8s/ · namespace: logguard</text>
-  <text x="555" y="667" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#1E3A5F">Firebase credential → /app/secrets · Default admin seeded on startup</text>
+  <text x="555" y="667" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#1E3A5F">Firebase credential -> /app/secrets · Optional admin seed via env</text>
 
   <!-- ── ANOMALY DETECTION SERVICE (right-center) ── -->
   <rect x="858" y="105" width="450" height="560" rx="12" fill="#0C0520" stroke="#A78BFA" stroke-width="2"/>

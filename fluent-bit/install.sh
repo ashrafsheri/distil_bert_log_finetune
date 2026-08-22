@@ -99,9 +99,13 @@ mkdir -p /var/log/fluent-bit
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ -f "$SCRIPT_DIR/fluent-bit.conf" ]]; then
+if [[ -f "$SCRIPT_DIR/fluent-bit.conf" || -f "$SCRIPT_DIR/fluent-bit-simple.conf" ]]; then
     echo "Copying configuration files..."
-    cp "$SCRIPT_DIR/fluent-bit.conf" "$CONFIG_PATH/"
+    if [[ -f "$SCRIPT_DIR/fluent-bit.conf" ]]; then
+        cp "$SCRIPT_DIR/fluent-bit.conf" "$CONFIG_PATH/"
+    else
+        cp "$SCRIPT_DIR/fluent-bit-simple.conf" "$CONFIG_PATH/fluent-bit.conf"
+    fi
     [[ -f "$SCRIPT_DIR/parsers.conf" ]] && cp "$SCRIPT_DIR/parsers.conf" "$CONFIG_PATH/"
 fi
 

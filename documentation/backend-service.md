@@ -34,7 +34,7 @@ On startup the backend:
 - creates database tables through `init_db()`
 - initializes Firebase auth support
 - seeds permission records
-- ensures a default admin exists
+- optionally seeds a default admin when `DEFAULT_ADMIN_UID` and `DEFAULT_ADMIN_EMAIL` are set
 
 This means the backend expects PostgreSQL and Firebase credentials to be ready before it starts serving traffic cleanly.
 

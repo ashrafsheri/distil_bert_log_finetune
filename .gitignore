@@ -25,7 +25,9 @@ venv/
 # --------------------
 
 # Artifacts (large model/data dirs)
-# artifacts/
+artifacts/sonar-report/
+scripts/artifacts/
+# Keep small sample artifacts under artifacts/ensemble_model_export tracked.
 # notebooks/artifacts/
 # notebooks/data/
 data/
@@ -43,6 +45,8 @@ metrics/
 runs/
 wandb/
 mlruns/
+.scannerwork/
+.superpowers/
 
 # Cache files
 .cache/
@@ -51,6 +55,12 @@ mlruns/
 *.h5
 *.npz
 *.npy
+*.db
+*.db-shm
+*.db-wal
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Temp/cleanup
 *.tmp
@@ -82,3 +92,8 @@ server_deploy_key.pub
 *.pem
 id_rsa*
 *.key
+*.env
+!.env.example
+!**/.env.example
+fluent-bit/config.env
+!fluent-bit/config.env.example

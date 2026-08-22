@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Log Generator for Nexus MXP
-Generates realistic user traffic and attack patterns for anomaly detection training
+Comprehensive HTTP log generator.
+Generates realistic user traffic and attack patterns for anomaly detection training.
 """
 
 import requests
@@ -12,9 +12,10 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import sys
 import argparse
+import os
 
 # Base configuration
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("LOG_GENERATOR_BASE_URL", "http://localhost:8000")
 TARGET_LOGS = 100000
 ATTACK_RATIO = 0.15  # 15% of requests will be attacks
 
@@ -539,7 +540,7 @@ class LogGenerator:
         print(f"{'='*60}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate logs for Nexus MXP anomaly detection')
+    parser = argparse.ArgumentParser(description='Generate synthetic HTTP traffic for LogGuard testing')
     parser.add_argument('--url', default=BASE_URL, help='Base URL of the API')
     parser.add_argument('--target', type=int, default=TARGET_LOGS, help='Target number of logs')
     parser.add_argument('--attack-ratio', type=float, default=ATTACK_RATIO, 

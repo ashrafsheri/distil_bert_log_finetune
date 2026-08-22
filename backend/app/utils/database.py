@@ -13,10 +13,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# Build database URL (using asyncpg for async support)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL"
-)
+# Build database URL (using asyncpg for async support).
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is required. Example: "
+        "postgresql+asyncpg://logguard_user:logguard_password@localhost:5432/logguard_db"
+    )
 
 # Create async engine
 engine = create_async_engine(
@@ -63,10 +66,15 @@ async def create_default_admin_user(
     from app.models.user_db import UserDB, RoleEnum
     from sqlalchemy import select
     
-    # Use provided values or fallback to environment variables or defaults
-    admin_uid = uid or os.getenv("DEFAULT_ADMIN_UID", "l4m9lfnNfhgtt52goNmydFdpNP63")
-    admin_email = email or os.getenv("DEFAULT_ADMIN_EMAIL", "admin@example.com")
+    # Use provided values or environment variables. Public builds must not seed
+    # a real user identity by default.
+    admin_uid = uid or os.getenv("DEFAULT_ADMIN_UID")
+    admin_email = email or os.getenv("DEFAULT_ADMIN_EMAIL")
     admin_org_id = org_id or os.getenv("DEFAULT_ADMIN_ORG_ID", None)
+
+    if not admin_uid or not admin_email:
+        logger.info("Default admin seed skipped; DEFAULT_ADMIN_UID/DEFAULT_ADMIN_EMAIL not set")
+        return False
     
     # Use provided session or create new one
     should_close_session = session is None

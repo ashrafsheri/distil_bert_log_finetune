@@ -216,7 +216,7 @@ def _sign_in(
     if status != 200 or not isinstance(payload, dict) or not payload.get("access_token"):
         hint = (
             " Check --email/--password and make sure --supabase-url/--supabase-key "
-            "match the Example Project backend SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+            "match the target backend SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
         )
         raise RuntimeError(f"Supabase sign-in failed with status {status}: {payload}.{hint}")
     return payload

@@ -2,8 +2,8 @@
 """
 AI Test Cases — Integration Test Suite
 ========================================
-Runs all 21 test cases from "AI Test Cases Template - Filled.xlsx" against the
-live deployment at http://127.0.0.1/.
+Runs all 21 test cases from "AI Test Cases Template - Filled.xlsx" against a
+configured LogGuard deployment. By default it targets http://localhost:8000.
 
   - 13 Gold Dataset test cases  (GD-01 … GD-13)
   -  8 Bias & Fairness test cases (BF-1A … BF-4B)
@@ -45,7 +45,7 @@ try:
 except ImportError:
     pass
 
-BASE_URL = os.getenv("TEST_BASE_URL", "http://127.0.0.1")
+BASE_URL = os.getenv("TEST_BASE_URL", "http://localhost:8000")
 API_KEY  = os.getenv("TEST_API_KEY", "")
 ENDPOINT = f"{BASE_URL}/api/v1/logs/agent/send-logs"
 TIMEOUT  = int(os.getenv("TEST_TIMEOUT", "15"))

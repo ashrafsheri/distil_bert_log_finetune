@@ -10,7 +10,7 @@ Pipeline under test:
   This script → POST /api/v1/logs/agent/send-logs (SaaS Starter API key)  ─┐
   This script → POST /api/v1/logs/agent/send-logs (Playground API key)    ─┤
                                                                              ↓
-                                               LogGuard (127.0.0.1)
+                                               LogGuard backend
                                                  → AnomalyDetectionService
                                                  → Elasticsearch storage
                                                  → WebSocket dashboard
@@ -54,18 +54,22 @@ try:
 except ImportError:
     pass
 
-LOGGUARD_ENDPOINT = "http://127.0.0.1/api/v1/logs/agent/send-logs"
+LOGGUARD_BASE_URL = os.getenv("LOGGUARD_BASE_URL", "http://localhost:8000").rstrip("/")
+LOGGUARD_ENDPOINT = os.getenv(
+    "LOGGUARD_ENDPOINT",
+    f"{LOGGUARD_BASE_URL}/api/v1/logs/agent/send-logs",
+)
 
 ORGS = [
     {
         "name":    "SaaS Starter",
         "api_key": os.getenv("SAAS_API_KEY", ""),
-        "site":    "http://152.70.28.154",       # just used in fake log Host header
+        "site":    os.getenv("SAAS_SITE_URL", "http://saas-starter.local"),
     },
     {
         "name":    "Playground",
         "api_key": os.getenv("PLAYGROUND_API_KEY", ""),
-        "site":    "http://152.70.28.154:81",
+        "site":    os.getenv("PLAYGROUND_SITE_URL", "http://playground.local"),
     },
 ]
 
@@ -447,7 +451,7 @@ def main():
     # Connectivity check
     print("  Checking LogGuard is reachable...", end=" ", flush=True)
     try:
-        r = requests.get("http://127.0.0.1", timeout=8)
+        r = requests.get(LOGGUARD_BASE_URL, timeout=8)
         print(green(f"OK (HTTP {r.status_code})"))
     except requests.exceptions.RequestException as e:
         print(red(f"FAILED ({e})"))

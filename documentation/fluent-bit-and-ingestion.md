@@ -10,35 +10,27 @@ Its intended purpose is to tail access logs and forward them to the backend inge
 
 ## Current Config Reality
 
-The checked-in file is not a clean generic production config. It currently contains:
-
-- duplicate input blocks
-- duplicate filter and output directives
-- a hardcoded Windows Apache log path
-- a hardcoded remote host IP
-- a hardcoded API key in the output header
-
-That means the file should be treated as an environment-specific sample or a currently in-use local config, not a reusable default.
+The checked-in file is a safe sample config. It tails an Apache access log from a Linux path and forwards records to a local backend. Before using it in production, change the log path, backend host/port, and `X-API-Key` value.
 
 ## Current Active-Looking Input
 
 The uncommented input tails:
 
-- `C:\Users\hp\Downloads\httpd-2.4.65-250724-Win64-VS17\Apache24\logs\juicebox_access.log`
+- `/var/log/apache2/access.log`
 
 with tag:
 
-- `apache.access`
+- `web.access`
 
 ## Current Output
 
-The HTTP output currently sends to:
+The HTTP output sample sends to:
 
-- host: `127.0.0.1`
-- port: `80`
+- host: `localhost`
+- port: `8000`
 - URI: `/api/v1/logs/agent/send-logs`
 
-and includes an `X-API-Key` header directly in the config.
+and includes a placeholder `X-API-Key` header.
 
 ## Service Monitoring
 
@@ -59,7 +51,6 @@ The intended path is:
 
 ## Grounded Warnings
 
-- The checked-in Fluent Bit config is not parameterized.
-- The hardcoded `X-API-Key` should be treated as sensitive runtime data, not a safe reusable template.
-- The file includes repeated directives that should be cleaned before treating it as canonical documentation or infrastructure-as-code.
+- Do not commit a real project API key in `fluent-bit-simple.conf` or `config.env`.
+- Keep Fluent Bit state DB files out of Git; they are local cursor state.
 - The ingest path described above is real, but this specific config is operationally rough.

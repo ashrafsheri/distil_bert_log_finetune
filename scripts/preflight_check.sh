@@ -45,8 +45,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Check Backend API
-curl -s -f http://localhost:8000/api/gcp?page=1&limit=1 > /dev/null 2>&1
-check $? "Backend API is responding (http://localhost:8000)" "Check if example.com is accessible"
+LOGGUARD_BASE_URL="${LOGGUARD_BASE_URL:-http://localhost:8000}"
+curl -s -f "$LOGGUARD_BASE_URL/health" > /dev/null 2>&1
+check $? "Backend API is responding ($LOGGUARD_BASE_URL)" "Start backend or set LOGGUARD_BASE_URL"
 
 # Check Nginx
 if systemctl is-active --quiet nginx 2>/dev/null || pgrep nginx > /dev/null; then
@@ -137,7 +138,7 @@ else
     echo ""
     echo "Common fixes:"
     echo "  1. Install dependencies: pip3 install -r requirements.txt"
-    echo "  2. Start backend: cd ../backend && npm start"
+    echo "  2. Start backend: cd ../backend && uvicorn app.main:app --reload"
     echo "  3. Start nginx: sudo systemctl start nginx"
     echo "  4. Start fluent-bit: sudo systemctl start fluent-bit"
     echo ""

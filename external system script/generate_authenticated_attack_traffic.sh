@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage:
   generate_authenticated_attack_traffic.sh \
-    --base-url https://api.example.co \
+    --base-url https://api.example.com \
     --supabase-url https://your-project-ref.supabase.co \
     --supabase-key "$SUPABASE_SERVICE_ROLE_KEY" \
     --email "$TEST_EMAIL" \
